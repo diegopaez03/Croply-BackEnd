@@ -1,0 +1,11 @@
+/**
+ * Database migrations barrel export.
+ * TypeORM migration files will be placed in this directory.
+ * Each migration file should be named: <timestamp>-<MigrationName>.ts
+ *
+ * Example:
+ *   1700000000000-CreateUsersTable.ts
+ *   1700000000001-CreateFarmsTable.ts
+ */
+
+export {};
