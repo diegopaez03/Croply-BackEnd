@@ -29,12 +29,6 @@ import { HealthModule } from './modules/health';
 
     // ── Feature Modules (add here as developed) ──────────────────
     HealthModule,
-    // AuthModule,
-    // UsersModule,
-    // FarmsModule,
-    // CropsModule,
-    // PlotsModule,
-    // ReportsModule,
   ],
 })
 export class AppModule {}
