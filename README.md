@@ -15,16 +15,16 @@ cp .env.example .env
 pnpm start:dev
 ```
 
-La API estará disponible en `http://localhost:3000/api`  
-Swagger UI en `http://localhost:3000/api/docs`  
-OpenAPI JSON en `http://localhost:3000/api/docs-json`
+La API estará disponible en `http://localhost:3000/api/v1`  
+Swagger UI en `http://localhost:3000/api/v1/docs`  
+OpenAPI JSON en `http://localhost:3000/api/v1/docs-json`
 
 ## Documentación de la API (Swagger)
 
 La documentación OpenAPI se genera desde el código (controllers, DTOs y decoradores).
 
 - **Guía de convenciones:** [docs/swagger-guidelines.md](./docs/swagger-guidelines.md)
-- **Endpoint de ejemplo:** `GET /api/health` (módulo Health)
+- **Endpoint de ejemplo:** `GET /api/v1/health` (módulo Health)
 - **Control:** variable `SWAGGER_ENABLED` en `.env` (por defecto activo fuera de `production`)
 
 Al desarrollar un módulo nuevo, seguir el checklist de la guía y reutilizar:

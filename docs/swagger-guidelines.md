@@ -5,13 +5,54 @@ para mantener la especificación OpenAPI consistente y útil para frontend, QA y
 
 ## Acceso
 
-| Recurso | URL |
-| --- | --- |
-| Swagger UI | `http://localhost:3000/api/docs` |
-| OpenAPI JSON | `http://localhost:3000/api/docs-json` |
+Las rutas dependen de `API_PREFIX` en `.env` (valor por defecto: `api/v1`).
 
-Controlado por `SWAGGER_ENABLED` (ver `.env.example`). Por defecto está **habilitado**
-fuera de `production`.
+| Recurso | URL (desarrollo) |
+| --- | --- |
+| Base de la API | `http://localhost:3000/api/v1` |
+| Swagger UI | `http://localhost:3000/api/v1/docs` |
+| OpenAPI JSON | `http://localhost:3000/api/v1/docs-json` |
+
+Swagger se registra solo si `isSwaggerEnabled()` lo permite:
+
+- Por defecto: **habilitado** cuando `NODE_ENV !== production`
+- Override explícito: `SWAGGER_ENABLED=true|false` en `.env` (ver `.env.example`)
+
+## Configuración (cómo encaja todo)
+
+| Pieza | Ubicación | Rol |
+| --- | --- | --- |
+| Prefijo global | `main.ts` → `app.setGlobalPrefix(API_PREFIX)` | Todas las rutas HTTP llevan `/{API_PREFIX}/...` |
+| DocumentBuilder | `src/config/swagger.config.ts` → `buildSwaggerConfig()` | Título, descripción, tags, Bearer, **servidores OpenAPI** |
+| Registro UI/JSON | `src/common/swagger/swagger.setup.ts` → `setupSwagger()` | Monta docs en `/{API_PREFIX}/docs` |
+| Constantes | `SWAGGER_TAGS`, `SWAGGER_PATH` | Tags y segmento `docs` |
+
+Flujo en arranque (`main.ts`):
+
+1. Leer `PORT`, `NODE_ENV`, `API_PREFIX`
+2. Aplicar prefijo global
+3. Si Swagger está habilitado → `setupSwagger(app, { apiPrefix, port, nodeEnv })`
+
+### Servidores OpenAPI y prefijo global
+
+Nest incluye el prefijo global en cada **path** del documento (ej. `/api/v1/health`).
+
+Por eso el servidor local en OpenAPI debe ser **solo el origen**, sin repetir el prefijo:
+
+- Correcto: `http://localhost:3000` + path `/api/v1/health` → `http://localhost:3000/api/v1/health`
+- Incorrecto: `http://localhost:3000/api/v1` + path `/api/v1/health` → URL duplicada
+
+En producción, `buildSwaggerConfig()` agrega `https://api.croply.app` (origen, sin path extra).
+
+### UI de Swagger
+
+Opciones relevantes en `setupSwagger()`:
+
+- `persistAuthorization: true` — conserva el JWT al recargar
+- `tryItOutEnabled: true` — “Try it out” activo por defecto
+- `jsonDocumentUrl` — expone el JSON en `/{API_PREFIX}/docs-json`
+
+En desarrollo, `helmet` desactiva CSP para que carguen los assets de Swagger UI (`main.ts`).
 
 ## Principios
 
@@ -32,7 +73,11 @@ Al crear o modificar un handler:
 - [ ] Errores con `@ApiErrorResponses({ ... })`
 - [ ] Si requiere JWT: `@ApiAuth()` (o `@ApiBearerAuth('access-token')` a nivel controller)
 
+Ruta expuesta: `/{API_PREFIX}/<controller-path>` — el controller define solo el segmento local (ej. `@Controller('health')` → `GET /api/v1/health`).
+
 ## Estructura recomendada de un controller
+
+Referencia viva: `src/modules/health/health.controller.ts` (`GET /api/v1/health`, sin auth).
 
 ```ts
 import { Controller, Get, Query } from '@nestjs/common';
@@ -44,18 +89,18 @@ import {
   ApiPaginatedResponse,
 } from '../../common/decorators';
 import { PaginationQueryDto } from '../../common/dto';
-import { FarmResponseDto } from './dto/farm-response.dto';
+import { FincaResponseDto } from './dto/finca-response.dto';
 
-@ApiTags(SWAGGER_TAGS.FARMS)
+@ApiTags(SWAGGER_TAGS.FINCAS)
 @ApiAuth()
-@Controller('farms')
-export class FarmsController {
+@Controller('fincas')
+export class FincasController {
   @Get()
   @ApiOperation({
-    summary: 'Listar establecimientos',
-    description: 'Devuelve los farms del usuario autenticado, paginados.',
+    summary: 'Listar fincas',
+    description: 'Devuelve las fincas del usuario autenticado, paginadas.',
   })
-  @ApiPaginatedResponse(FarmResponseDto)
+  @ApiPaginatedResponse(FincaResponseDto)
   @ApiErrorResponses({ forbidden: true })
   findAll(@Query() query: PaginationQueryDto) {
     // ...
@@ -79,9 +124,9 @@ export class FarmsController {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, MaxLength } from 'class-validator';
 
-export class CreateFarmDto {
+export class CreateFincaDto {
   @ApiProperty({
-    description: 'Nombre del establecimiento',
+    description: 'Nombre de la finca',
     example: 'Estancia La Esperanza',
     maxLength: 120,
   })
@@ -109,7 +154,7 @@ El shape documentado es `ErrorResponseDto`:
   "message": ["email must be an email"],
   "error": "Bad Request",
   "timestamp": "2026-07-20T15:30:00.000Z",
-  "path": "/api/auth/login"
+  "path": "/api/v1/auth/login"
 }
 ```
 
@@ -126,17 +171,24 @@ El nombre del security scheme es **`access-token`**. Debe coincidir con `@ApiBea
 
 ## Tags del dominio
 
-| Tag | Módulo |
-| --- | --- |
-| Health | `modules/health` |
-| Auth | `modules/auth` |
-| Users | `modules/users` |
-| Farms | `modules/farms` |
-| Crops | `modules/crops` |
-| Plots | `modules/plots` |
-| Reports | `modules/reports` |
+Los valores de tag en Swagger coinciden con `SWAGGER_TAGS` (texto visible en la UI).
+Los módulos en código pueden usar nombres de carpeta en inglés; el tag documentado es el de la constante.
 
-Al agregar un dominio nuevo: declarar el tag en `SWAGGER_TAGS` y en `buildSwaggerConfig()`.
+| Constante `SWAGGER_TAGS` | Tag en Swagger | Módulo (carpeta) |
+| --- | --- | --- |
+| `HEALTH` | Health | `modules/health` |
+| `AUTH` | Auth | `modules/auth` |
+| `USUARIOS` | Usuarios | `modules/users` |
+| `FINCAS` | Fincas | `modules/farms` |
+| `CULTIVOS` | Cultivos | `modules/crops` |
+| `PARCELAS` | Parcelas | `modules/plots` |
+| `REPORTS` | Reports | `modules/reports` |
+
+Al agregar un dominio nuevo:
+
+1. Añadir entrada en `SWAGGER_TAGS` (`swagger.config.ts`)
+2. Registrar `.addTag(...)` en `buildSwaggerConfig()`
+3. Usar `@ApiTags(SWAGGER_TAGS.NUEVO)` en el controller
 
 ## Plugin `@nestjs/swagger`
 
@@ -152,9 +204,10 @@ Tras cambiar opciones del plugin, reiniciar `pnpm start:dev`.
 
 | Archivo | Rol |
 | --- | --- |
-| `src/config/swagger.config.ts` | Metadata OpenAPI, tags, Bearer |
-| `src/common/swagger/swagger.setup.ts` | Registro de UI/JSON |
-| `src/common/dto/*` | Envelopes y errores compartidos |
+| `src/config/swagger.config.ts` | Metadata OpenAPI, tags, Bearer, servidores |
+| `src/common/swagger/swagger.setup.ts` | Registro de UI/JSON, opciones de Swagger UI |
+| `src/common/swagger/index.ts` | Reexport de setup + tags |
+| `src/common/dto/*` | Envelopes, paginación y errores compartidos |
 | `src/common/decorators/*` | `@ApiAuth`, `@ApiErrorResponses`, `@ApiPaginatedResponse` |
 | `src/modules/health/*` | Endpoint de ejemplo documentado de punta a punta |
 
@@ -165,3 +218,5 @@ Tras cambiar opciones del plugin, reiniciar `pnpm start:dev`.
 - DTOs sin `@ApiProperty` (schemas vacíos en Swagger)
 - Documentar 200 con un tipo genérico `object` cuando existe un DTO concreto
 - Exponer Swagger en producción sin decisión explícita (`SWAGGER_ENABLED`)
+- **Incluir `API_PREFIX` en `addServer()`** — duplica rutas en “Try it out”
+- Asumir paths sin prefijo en ejemplos de `path` en errores (usar `/api/v1/...`)
