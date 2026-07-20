@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { DatabaseModule } from './database/database.module';
+import { HealthModule } from './modules/health';
 
 /**
  * Root application module.
@@ -27,6 +28,7 @@ import { DatabaseModule } from './database/database.module';
     DatabaseModule,
 
     // ── Feature Modules (add here as developed) ──────────────────
+    HealthModule,
     // AuthModule,
     // UsersModule,
     // FarmsModule,

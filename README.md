@@ -1,6 +1,6 @@
 # Croply — Backend API
 
-NestJS v11 · TypeORM · PostgreSQL 16 · TypeScript
+NestJS v11 · TypeORM · PostgreSQL 16 · TypeScript · OpenAPI (Swagger)
 
 ## Setup local (sin Docker)
 
@@ -15,8 +15,25 @@ cp .env.example .env
 pnpm start:dev
 ```
 
-La API estará disponible en `http://localhost:3000/api`
-Swagger en `http://localhost:3000/api/docs`
+La API estará disponible en `http://localhost:3000/api`  
+Swagger UI en `http://localhost:3000/api/docs`  
+OpenAPI JSON en `http://localhost:3000/api/docs-json`
+
+## Documentación de la API (Swagger)
+
+La documentación OpenAPI se genera desde el código (controllers, DTOs y decoradores).
+
+- **Guía de convenciones:** [docs/swagger-guidelines.md](./docs/swagger-guidelines.md)
+- **Endpoint de ejemplo:** `GET /api/health` (módulo Health)
+- **Control:** variable `SWAGGER_ENABLED` en `.env` (por defecto activo fuera de `production`)
+
+Al desarrollar un módulo nuevo, seguir el checklist de la guía y reutilizar:
+
+- `SWAGGER_TAGS` — tags del dominio
+- `@ApiAuth()` — endpoints protegidos con JWT
+- `@ApiErrorResponses()` — errores HTTP estándar
+- `@ApiPaginatedResponse(Dto)` — listados paginados
+- DTOs en `src/common/dto`
 
 ## Migrations
 

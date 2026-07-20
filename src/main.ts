@@ -1,15 +1,25 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as compression from 'compression';
+import { AppModule } from './app.module';
+import { isSwaggerEnabled, setupSwagger } from './common/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  const port = Number(process.env.PORT ?? 3000);
+  const nodeEnv = process.env.NODE_ENV ?? 'development';
+  const apiPrefix = process.env.API_PREFIX ?? 'api/v1';
+  const swaggerEnabled = isSwaggerEnabled(nodeEnv);
+
   // ── Security ──────────────────────────────────────────────────
-  app.use(helmet());
+  // Relax CSP outside production so Swagger UI assets can load.
+  app.use(
+    helmet({
+      contentSecurityPolicy: nodeEnv === 'production' ? undefined : false,
+    }),
+  );
   app.use(compression());
 
   // ── CORS ──────────────────────────────────────────────────────
@@ -19,7 +29,6 @@ async function bootstrap() {
   });
 
   // ── Global prefix ─────────────────────────────────────────────
-  const apiPrefix = process.env.API_PREFIX ?? 'api';
   app.setGlobalPrefix(apiPrefix);
 
   // ── Global validation pipe ────────────────────────────────────
@@ -32,20 +41,18 @@ async function bootstrap() {
   );
 
   // ── Swagger / OpenAPI ─────────────────────────────────────────
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Croply API')
-    .setDescription('API REST para el sistema de gestión agrícola Croply')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup(`${apiPrefix}/docs`, app, document);
+  if (swaggerEnabled) {
+    setupSwagger(app, { apiPrefix, port, nodeEnv });
+  }
 
   // ── Start ─────────────────────────────────────────────────────
-  const port = process.env.PORT ?? 3000;
   await app.listen(port);
   console.log(`🌱 Croply API running on http://localhost:${port}/${apiPrefix}`);
-  console.log(`📖 Swagger docs at http://localhost:${port}/${apiPrefix}/docs`);
+  if (swaggerEnabled) {
+    console.log(
+      `📖 Swagger docs at http://localhost:${port}/${apiPrefix}/docs`,
+    );
+  }
 }
 
 bootstrap();

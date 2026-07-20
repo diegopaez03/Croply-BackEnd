@@ -1,11 +1,10 @@
 /**
  * Config barrel export.
- * Environment-specific configuration factories will be placed here.
- *
- * Example exports:
- *   export { databaseConfig } from './database.config';
- *   export { jwtConfig } from './jwt.config';
- *   export { appConfig } from './app.config';
+ * Environment-specific configuration factories and OpenAPI metadata.
  */
-
-export {};
+export {
+  SWAGGER_PATH,
+  SWAGGER_TAGS,
+  buildSwaggerConfig,
+} from './swagger.config';
+export type { SwaggerTag, SwaggerSetupOptions } from './swagger.config';
