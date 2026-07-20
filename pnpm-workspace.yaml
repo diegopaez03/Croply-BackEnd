@@ -1,0 +1,11 @@
+# ──────────────────────────────────────────────────────────────────
+#  Croply Backend — pnpm workspace configuration
+#  Declarative approval of native-module build scripts.
+#  See: https://pnpm.io/settings
+# ──────────────────────────────────────────────────────────────────
+
+# bcrypt: true  → allowed to compile native C++ bindings (required)
+# @scarf/scarf: false → telemetry package, intentionally blocked
+allowBuilds:
+  '@scarf/scarf': false
+  bcrypt: true
