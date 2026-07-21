@@ -24,10 +24,7 @@ import { AdminCroplyGuard } from './guards/admin-croply.guard';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>(
-          'JWT_SECRET',
-          'CHANGE_ME_super_secret_jwt_key_256bits',
-        ),
+        secret: config.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
           expiresIn: config.get<string>('JWT_EXPIRES_IN', '1h') as
             | number
