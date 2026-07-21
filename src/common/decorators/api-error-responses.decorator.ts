@@ -1,7 +1,9 @@
 import { applyDecorators } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiConflictResponse,
   ApiForbiddenResponse,
+  ApiGoneResponse,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiUnauthorizedResponse,
@@ -18,6 +20,10 @@ export interface ApiErrorResponsesOptions {
   notFound?: boolean;
   /** Include 400 Bad Request (default: true) */
   badRequest?: boolean;
+  /** Include 409 Conflict (default: false) */
+  conflict?: boolean;
+  /** Include 410 Gone (default: false) */
+  gone?: boolean;
   /** Include 429 Too Many Requests (default: true) */
   tooManyRequests?: boolean;
   /** Include 500 Internal Server Error (default: true) */
@@ -34,6 +40,8 @@ export function ApiErrorResponses(options: ApiErrorResponsesOptions = {}) {
     forbidden = false,
     notFound = false,
     badRequest = true,
+    conflict = false,
+    gone = false,
     tooManyRequests = true,
     internalServerError = true,
   } = options;
@@ -71,6 +79,24 @@ export function ApiErrorResponses(options: ApiErrorResponsesOptions = {}) {
     decorators.push(
       ApiNotFoundResponse({
         description: 'Recurso no encontrado',
+        type: ErrorResponseDto,
+      }),
+    );
+  }
+
+  if (conflict) {
+    decorators.push(
+      ApiConflictResponse({
+        description: 'Conflicto (valor duplicado)',
+        type: ErrorResponseDto,
+      }),
+    );
+  }
+
+  if (gone) {
+    decorators.push(
+      ApiGoneResponse({
+        description: 'Recurso o token ya no disponible',
         type: ErrorResponseDto,
       }),
     );

@@ -2,7 +2,7 @@
 
 Guía de contexto para desarrollar con eficiencia en este repositorio. Resume propósito, setup, convenciones y forma de trabajo del equipo.
 
-> **Alcance:** solo el backend NestJS. Frontend, simulador IoT y documentación de diseño viven fuera de este repo.
+> **Alcance:** solo el backend NestJS. Frontend y simulador IoT viven fuera de este repo. La documentación de diseño de dominio (diagrama de clases) **sí** vive aquí bajo [`docs/diseño/`](docs/diseño/).
 
 ---
 
@@ -15,10 +15,25 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 - Autenticación y usuarios (JWT)
 - Fincas, parcelas y cultivos
 - Reportes
+- Solicitudes de digitalización
 
 ### Estado actual
 
-Scaffold NestJS listo para crecer. Implementado: `HealthModule` (`GET /api/v1/health`). Placeholders (aún no montados en `AppModule`)
+**Épica 1 — Gestionar el Acceso** implementada:
+
+| Módulo | Contenido |
+| --- | --- |
+| `health` | `GET /health` |
+| `auth` | Login, registro admin finca / invitado, reset y cambio de contraseña, primer acceso |
+| `usuarios` | Entidad + servicio de usuarios |
+| `fincas` | Stub `Finca`, `UsuarioFinca`, `InvitacionFinca` |
+| `roles` | STI `Rol` / `RolSistema` / `RolFinca` + seed de códigos |
+| `solicitudes-digitalizacion` | `POST /solicitudes-digitalizacion` |
+| `database/seed` | Admins Croply del equipo (Diego, Rodrigo, Paula) |
+
+Placeholders (sin lógica de negocio aún): `parcelas`, `cultivos`, `reportes`.
+
+Contrato: [`docs/epicas/Contrato de API — Épica 1 Gestionar el Acceso.md`](docs/epicas/Contrato%20de%20API%20—%20Épica%201%20Gestionar%20el%20Acceso.md).
 
 ---
 
@@ -54,11 +69,23 @@ pnpm start:dev
 | Swagger UI | `http://localhost:3000/api/v1/docs` |
 | OpenAPI JSON | `http://localhost:3000/api/v1/docs-json` |
 
-Variables clave (ver `.env.example`): `PORT`, `API_PREFIX`, `SWAGGER_ENABLED`, `DB_*`, `JWT_*`, `CORS_ORIGIN`, `THROTTLE_*`.
+Variables clave (ver `.env.example`): `PORT`, `API_PREFIX`, `SWAGGER_ENABLED`, `DB_*`, `JWT_*`, `CORS_ORIGIN`, `THROTTLE_*`, `SEED_ADMIN_PASSWORD`.
+
+### Credenciales de prueba (seed)
+
+Al arrancar, si la DB responde, se crean (si no existen) tres usuarios `ADMIN_CROPLY`:
+
+| Persona | Email | Contraseña |
+| --- | --- | --- |
+| Diego Páez | `diego@croply.app` | `CroplyAdmin123!` (o `SEED_ADMIN_PASSWORD`) |
+| Rodrigo Sanz | `rodrigo@croply.app` | misma |
+| Paula Rodríguez | `paula@croply.app` | misma |
+
+Estado: `Activo`. Seed idempotente (`src/database/seed`).
 
 ### Migraciones
 
-Preferir migraciones TypeORM automaticas durante el desarrollo. Mantener `DB_SYNCHRONIZE=true` (valor por defecto del ejemplo).
+Preferir `DB_SYNCHRONIZE=true` en desarrollo local (valor por defecto del ejemplo). En entornos serios: migraciones TypeORM (`pnpm migration:*`).
 
 ### Comandos útiles
 
@@ -80,32 +107,44 @@ pnpm format
 
 ```
 src/
-├── main.ts                 # Bootstrap: helmet, CORS, ValidationPipe, Swagger
-├── app.module.ts           # Root; importar aquí cada feature module
+├── main.ts                 # Bootstrap: helmet, CORS, ValidationPipe, filter global, Swagger
+├── app.module.ts           # Root; feature modules + SeedModule
 ├── config/                 # Swagger config, constantes de tags
-├── database/               # TypeORM root + migrations/
+├── database/
+│   ├── database.module.ts
+│   ├── migrations/
+│   └── seed/               # Admins Croply de desarrollo
 ├── common/
-│   ├── dto/                # Paginación, errores, respuestas compartidas
+│   ├── dto/                # Paginación, ErrorResponse (errorCode/field), respuestas
 │   ├── decorators/         # @ApiAuth, @ApiErrorResponses, @ApiPaginatedResponse
-│   ├── swagger/            # setup + isSwaggerEnabled
-│   └── guards|filters|...  # Preparados (stubs) para cross-cutting
-├── utils/
+│   ├── exceptions/         # DomainException + helpers ERR-01/02/03
+│   ├── filters/            # AllExceptionsFilter
+│   ├── mailer/             # MailerStubService (log de links)
+│   ├── enums/              # EstadoUsuario, roles, etc.
+│   └── swagger/
 └── modules/
-    ├── health/             # Implementado — referencia de estilo
-    ├── auth|usuarios|fincas|.../  # Pendientes
+    ├── health/
+    ├── auth/               # JWT, guards, endpoints /auth/*
+    ├── usuarios/
+    ├── fincas/
+    ├── roles/
+    ├── solicitudes-digitalizacion/
+    ├── parcelas/           # placeholder
+    ├── cultivos/           # placeholder
+    └── reportes/           # placeholder
 ```
 
 Path aliases (`tsconfig.json`): `@modules/*`, `@config/*`, `@common/*`, `@database/*`.
 
 ### Roles (equipo de 3)
 
-Cada integrante combina varios roles. Para PRs a `main`, la revisión prioritaria es del Arquitecto.
-
 | Persona | Roles principales |
 | --- | --- |
 | **Rodrigo Sanz** | Coordinador de proyecto; desarrollo FE/BE; análisis funcional |
 | **Diego Páez** | **Arquitecto de Software**; desarrollo FE/BE; análisis funcional |
 | **Paula Rodríguez** | Desarrollo frontend; análisis funcional; QA |
+
+Para PRs a `main`, la revisión prioritaria es del Arquitecto.
 
 ### Comunicación
 
@@ -122,13 +161,11 @@ Cada integrante combina varios roles. Para PRs a `main`, la revisión prioritari
 ### Naming
 
 - Carpetas de módulos en **español** (`fincas`, `cultivos`, `parcelas`).
-- Tags Swagger / lenguaje de dominio en **español** (`Fincas`, `Cultivos`, `Parcelas`).
+- Tags Swagger / lenguaje de dominio en **español**.
 - Archivos Nest: `*.module.ts`, `*.controller.ts`, `*.service.ts`, `*.entity.ts`, `*.dto.ts`, `*.spec.ts`.
 - DTOs: `CreateXDto`, `UpdateXDto`, `XResponseDto`, `XQueryDto`.
-- Clases en PascalCase; atributos, métodos y variables de código en snake_case; constantes en `SCREAMING_SNAKE` (`SWAGGER_TAGS`).
-- Nombres en la base de datos (Entidades) en snake_case
-
-Mapeo tag ↔ carpeta (detalle en `docs/swagger-guidelines.md`):
+- Clases en PascalCase; atributos, métodos y variables de código en snake_case; constantes en `SCREAMING_SNAKE`.
+- Columnas DB en snake_case; JSON de API según contrato (mezcla `id_Usuario` / `accessToken`).
 
 | Tag Swagger | Módulo |
 | --- | --- |
@@ -138,11 +175,20 @@ Mapeo tag ↔ carpeta (detalle en `docs/swagger-guidelines.md`):
 | Fincas | `modules/fincas` |
 | Cultivos | `modules/cultivos` |
 | Parcelas | `modules/parcelas` |
-| ... | |
+| Reportes | `modules/reportes` |
+| SolicitudesDigitalizacion | `modules/solicitudes-digitalizacion` |
 
 ### Capas por feature
 
-`*.module.ts` → `*.controller.ts` → `*.service.ts` → `entities/` + `dto/`. Registrar entidades con `TypeOrmModule.forFeature([...])` dentro del feature module. Exportar vía `index.ts` (barrel).
+`*.module.ts` → `*.controller.ts` → `*.service.ts` → `entities/` + `dto/`. Registrar entidades con `TypeOrmModule.forFeature([...])`. Exportar vía `index.ts`.
+
+### Errores API (shape transversal)
+
+```json
+{ "statusCode": 400, "errorCode": "REQUIRED_FIELD", "field": "email", "message": "Campo requerido" }
+```
+
+Implementado en `AllExceptionsFilter` + `DomainException`. Ver contrato Épica 1 (ERR-01/02/03).
 
 ### Commits (Conventional Commits)
 
@@ -150,22 +196,13 @@ Mapeo tag ↔ carpeta (detalle en `docs/swagger-guidelines.md`):
 tipo(scope): descripción corta en minúsculas
 ```
 
-Tipos habituales: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`.
-
-Ejemplos: `feat(farms): agregar listado paginado de fincas`, `fix(auth): corregir expiración de refresh token`.
+Tipos: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`.
 
 ### Swagger / contrato API
 
-Documentación OpenAPI **junto al código**. Checklist mínimo por endpoint:
+Checklist por endpoint: `@ApiTags`, `@ApiOperation`, DTOs + `@ApiProperty`, respuesta de éxito, `@ApiErrorResponses`, `@ApiAuth()` si JWT.
 
-1. `@ApiTags(SWAGGER_TAGS.X)` en el controller
-2. `@ApiOperation({ summary, description })`
-3. Body/query/params tipados con DTOs + `@ApiProperty`
-4. Respuesta de éxito (`@ApiOkResponse` / `@ApiCreatedResponse` / `@ApiPaginatedResponse`)
-5. Errores con `@ApiErrorResponses`
-6. Si requiere JWT: `@ApiAuth()`
-
-Reutilizar decoradores y DTOs de `src/common` antes de inventar esquemas nuevos. Guía completa: [`docs/swagger-guidelines.md`](docs/swagger-guidelines.md).
+Guía: [`docs/swagger-guidelines.md`](docs/swagger-guidelines.md).
 
 ---
 
@@ -176,117 +213,121 @@ Reutilizar decoradores y DTOs de `src/common` antes de inventar esquemas nuevos.
 | Runtime / lenguaje | Node ≥ 20, TypeScript ~5.4 |
 | Framework | NestJS 11 |
 | ORM / DB | TypeORM 0.3 + PostgreSQL 16 |
-| Auth (deps listas) | JWT, Passport (local/jwt), bcrypt |
+| Auth | JWT, Passport JWT, bcrypt |
 | Validación | class-validator + class-transformer |
 | Docs API | @nestjs/swagger |
 | Seguridad HTTP | helmet, compression, throttler |
 | Package manager | pnpm |
-| Tests | Jest, @nestjs/testing, supertest |
+| Tests | Jest, @nestjs/testing |
 
 ### Fuera de este repo (contexto)
 
-Integraciones previstas a nivel proyecto (no setup en este scaffold): Railway (deploy futuro), Open-Meteo (clima), Croply IoT Simulator / series temporales. No bloquean el desarrollo local de módulos CRUD/auth.
+Railway (deploy futuro), Open-Meteo (clima), Croply IoT Simulator. No bloquean el desarrollo local de auth/CRUD.
 
 ---
 
-## 6. Decisiones arquitectónicas y principios de diseño
+## 6. Decisiones arquitectónicas
 
-1. **API modular Nest** — un feature module por dominio; el root (`AppModule`) solo orquesta imports.
-2. **Contrato primero** — OpenAPI generado desde controllers/DTOs es la fuente de verdad para frontend y QA.
-3. **PostgreSQL para datos transaccionales** — usuarios, fincas, parcelas, cultivos, tareas, etc.
-4. **Auth JWT + refresh** — variables ya definidas en `.env.example`; el módulo `auth`/`users` es el siguiente paso natural.
-5. **Validación y seguridad en el borde** — `ValidationPipe` global (`whitelist`, `forbidNonWhitelisted`, `transform`), CORS configurable, rate limiting, helmet (CSP relajado fuera de producción para Swagger).
-6. **Prefijo global `API_PREFIX`** — el controller solo declara el segmento local (`@Controller('health')` → `/api/v1/health`). En OpenAPI, el **server** es el origen (`http://localhost:3000`), sin repetir `api/v1`.
+1. **API modular Nest** — un feature module por dominio; `AppModule` solo orquesta.
+2. **Contrato primero** — OpenAPI + docs de épica; el frontend se programa contra el contrato.
+3. **PostgreSQL** para datos transaccionales.
+4. **Auth JWT** — access token en login; refresh previsto en `.env` pero **fuera de alcance** de Épica 1.
+5. **Validación y seguridad en el borde** — `ValidationPipe` global, CORS, throttle, helmet, filter de excepciones.
+6. **Prefijo `API_PREFIX`** — el controller solo declara el segmento local. Server OpenAPI = origen sin prefijo.
+7. **Mailer stub** en desarrollo (links en log); SMTP real fuera de alcance actual.
+8. **UML ↔ código**: ver [`docs/diseño/Contexto — Diagrama de clases.md`](docs/diseño/Contexto%20—%20Diagrama%20de%20clases.md).
+
+### Regla de login (Épica 1)
+
+- `Inactivo` → 403 `ACCOUNT_NOT_ACTIVE`
+- `Pendiente` sin cambio forzado de clave → 403
+- `Pendiente` + `debe_cambiar_contrasena: true` → 200 (habilita HU-AC-06)
+- `Activo` → 200
 
 ---
 
-## 7. Flujo de trabajo
+## 7. Fuera de alcance (hoy)
 
-### Ramas
+Respecto de Épica 1 y del diagrama completo:
+
+- CRUD de fincas, parcelas, cultivos, reportes
+- `Permiso` / `RolPermiso` / RBAC granular
+- `LogOperaciones`, notificaciones
+- SMTP real
+- Refresh token como endpoint
+- Suite e2e Nest (`test/jest-e2e.json` pendiente)
+- CI (GitHub Actions) y deploy Railway en este repo
+- Config ESLint/Prettier de proyecto cerrada (scripts existen; no asumir que `pnpm lint` está listo)
+
+---
+
+## 8. Flujo de trabajo
 
 | Rama | Propósito |
 | --- | --- |
-| `main` | Producción / versión estable. Solo merge desde `develop` vía PR aprobado |
-| `develop` | Integración de features validadas |
-| `feature/nombre-descriptivo` | Trabajo de funcionalidad (desde `develop`) |
-| `fix/descripcion-breve` | Bugs (desde `develop`; hotfix crítico puede salir de `main`) |
+| `main` | Producción / estable. Merge desde `develop` vía PR |
+| `develop` | Integración de features |
+| `feature/nombre-descriptivo` | Funcionalidad (desde `develop`) |
+| `fix/descripcion-breve` | Bugs |
 | `docs/nombre` | Solo documentación |
 
 No hay push directo a `main` ni `develop`.
 
-### Deploy (hoy vs objetivo)
-
-| Hoy | Objetivo de diseño |
+| Hoy | Objetivo |
 | --- | --- |
-| Desarrollo y prueba en máquina local | Deploy en Railway; CI (GitHub Actions) al integrar |
+| Desarrollo local | Railway + CI al integrar |
 
 ---
 
-## 8. Procesos de testing y calidad
+## 9. Testing y calidad
 
-### Estándar: TDD con Jest
+Estándar: **TDD** (red → green) en seams acordados. Skill: [`.agent/skills/Test-Driven Development/`](.agent/skills/Test-Driven%20Development/).
 
-Al agregar o cambiar lógica de un módulo, trabajar en ciclo **red → green**:
+Seams actuales de Épica 1: `AllExceptionsFilter`, `AuthService`, `SolicitudesDigitalizacionService`, `SeedService`.
 
-1. Escribir el test que falla (comportamiento en la interfaz pública / seam acordado).
-2. Implementar lo mínimo para pasarlo.
-3. Repetir en slices verticales; no acoplar tests a detalles internos.
+Antes de pasar a revisión:
 
-Referencia de práctica TDD en el repo: [`.agent/skills/Test-Driven Development/`](.agent/skills/Test-Driven%20Development/).
-
-### Qué cubrir
-
-- **Unitarios** de servicios y reglas de negocio con mocks (sin Postgres real).
-- Scripts: `pnpm test`, `pnpm test:watch`, `pnpm test:cov`.
-- **E2E**: script `pnpm test:e2e` existe, pero la carpeta `test/` / `jest-e2e.json` **aún no está armada** — documentar e implementar al adoptar e2e de verdad.
-
-### Antes de pasar una tarjeta a revisión
-
-- [ ] Tests del cambio en verde
-- [ ] Checklist Swagger del endpoint (sección 4)
-- [ ] Validación local (`pnpm start:dev` + probar en Swagger si aplica)
-- [ ] Commit con Conventional Commits
-
-### Deuda conocida de calidad
-
-- Dependencias ESLint/Prettier y scripts `lint`/`format` presentes; **falta config de proyecto** (eslint/prettier) — no asumir que `pnpm lint` está listo sin verificar.
-- Sin workflows CI en este repo todavía.
+- [ ] Tests en verde
+- [ ] Checklist Swagger
+- [ ] Probar en Swagger si aplica
+- [ ] Commit Conventional Commits
 
 ---
 
-## 9. Troubleshooting común
+## 10. Troubleshooting
 
 | Síntoma | Qué revisar |
 | --- | --- |
-| La app no arranca / error de conexión a DB | Postgres local levantado; `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` en `.env`; base creada |
-| Swagger no carga o assets bloqueados | `SWAGGER_ENABLED`; fuera de `production` helmet desactiva CSP a propósito en `main.ts` |
-| URLs duplicadas tipo `/api/v1/api/v1/...` en OpenAPI | El server OpenAPI debe ser solo el origen (`http://localhost:3000`), no incluir `API_PREFIX` |
-| Endpoint 404 de un módulo nuevo | ¿Está importado el feature module en `app.module.ts`? ¿Coincide el path del `@Controller`? |
-| Schema desfasado o tablas inexistentes | Correr `pnpm migration:run`; no activar `DB_SYNCHRONIZE=true` como atajo en entornos serios |
-| `pnpm test:e2e` falla de entrada | Falta `test/jest-e2e.json` — deuda conocida |
-| `pnpm lint` / `format` confusos | Config ESLint/Prettier de proyecto aún no cerrada |
+| App no arranca / error DB | Postgres; `DB_*` en `.env`; base creada |
+| Swagger bloqueado | `SWAGGER_ENABLED`; CSP relajado fuera de `production` |
+| URLs `/api/v1/api/v1/...` en OpenAPI | Server OpenAPI solo origen |
+| Endpoint 404 | ¿Módulo importado en `AppModule`? ¿Path del `@Controller`? |
+| No hay admins para login | Seed al arrancar; emails `*@croply.app`; ver logs `SeedService` |
+| Schema / tablas | `DB_SYNCHRONIZE=true` en local; migraciones en entornos serios |
+| `pnpm test:e2e` | Falta `test/jest-e2e.json` |
 
-Health de humo: `GET http://localhost:3000/api/v1/health` debe responder status del servicio.
+Health: `GET /api/v1/health`. Login de humo: `POST /api/v1/auth/login` con un admin del seed.
 
 ---
 
-## 10. Contactos y referencias
-
-### Equipo
+## 11. Contactos y referencias
 
 - **Rodrigo Sanz** — Coordinador
-- **Diego Páez** — Arquitecto de Software (review prioritario a `main`)
+- **Diego Páez** — Arquitecto (review prioritario a `main`)
 - **Paula Rodríguez** — Frontend / QA
-
-Canales: WhatsApp (día a día), Discord (técnico), Notion (tablero).
 
 ### Docs en este repo
 
-- [`README.md`](README.md) — setup rápido
-- [`docs/swagger-guidelines.md`](docs/swagger-guidelines.md) — contrato OpenAPI
-- [`.env.example`](.env.example) — variables documentadas
-- [`.agent/skills/Test-Driven Development/`](.agent/skills/Test-Driven%20Development/) — práctica TDD
+| Doc | Contenido |
+| --- | --- |
+| [`README.md`](README.md) | Setup rápido |
+| [`CONTEXT.md`](CONTEXT.md) | Este archivo |
+| [`docs/swagger-guidelines.md`](docs/swagger-guidelines.md) | OpenAPI |
+| [`docs/epicas/Contrato de API — Épica 1 ...`](docs/epicas/) | Contrato Épica 1 |
+| [`docs/diseño/Contexto — Diagrama de clases.md`](docs/diseño/Contexto%20—%20Diagrama%20de%20clases.md) | UML ↔ implementación |
+| [`docs/diseño/Diagrama UML - Diagrama de clases.jpg`](docs/diseño/Diagrama%20UML%20-%20Diagrama%20de%20clases.jpg) | Imagen UML |
+| [`.env.example`](.env.example) | Variables |
 
 ---
 
-*Documento vivo: actualizarlo cuando cambie el flujo real (CI, Railway, primer módulo de dominio, o convenciones de lint).*
+*Documento vivo: actualizarlo cuando cambie el alcance real (nueva épica, CI, Railway, o convenciones).*

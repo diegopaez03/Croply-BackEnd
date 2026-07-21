@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import * as compression from 'compression';
 import { AppModule } from './app.module';
 import { isSwaggerEnabled, setupSwagger } from './common/swagger';
+import { AllExceptionsFilter } from './common/filters';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -30,6 +31,9 @@ async function bootstrap() {
 
   // ── Global prefix ─────────────────────────────────────────────
   app.setGlobalPrefix(apiPrefix);
+
+  // ── Global exception filter ───────────────────────────────────
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // ── Global validation pipe ────────────────────────────────────
   app.useGlobalPipes(

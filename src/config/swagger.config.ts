@@ -13,7 +13,8 @@ export const SWAGGER_TAGS = {
   FINCAS: 'Fincas',
   CULTIVOS: 'Cultivos',
   PARCELAS: 'Parcelas',
-  REPORTS: 'Reports',
+  REPORTS: 'Reportes',
+  SOLICITUDES_DIGITALIZACION: 'SolicitudesDigitalizacion',
 } as const;
 
 export type SwaggerTag = (typeof SWAGGER_TAGS)[keyof typeof SWAGGER_TAGS];
@@ -46,7 +47,7 @@ Permite administrar usuarios, fincas, parcelas, cultivos y reportes asociados a 
 
 La mayoría de los endpoints requieren un JWT Bearer Token.
 
-1. Obtener token vía \`POST /auth/login\` (cuando esté disponible).
+1. Obtener token vía \`POST /auth/login\`.
 2. Incluir el header: \`Authorization: Bearer <token>\`.
 
 ## Convenciones
@@ -56,7 +57,7 @@ La mayoría de los endpoints requieren un JWT Bearer Token.
 | Formato | JSON (\`application/json\`) |
 | Prefijo | \`/${options.apiPrefix}\` |
 | Fechas | ISO 8601 (\`YYYY-MM-DDTHH:mm:ss.sssZ\`) |
-| Errores | Objeto \`ErrorResponse\` con \`statusCode\`, \`message\`, \`error\`, \`timestamp\`, \`path\` |
+| Errores | Objeto con \`statusCode\`, \`errorCode\`, \`message\` y opcionalmente \`field\` |
 
 ## Ambientes
 
@@ -83,7 +84,11 @@ La mayoría de los endpoints requieren un JWT Bearer Token.
     .addTag(SWAGGER_TAGS.FINCAS, 'Fincas')
     .addTag(SWAGGER_TAGS.CULTIVOS, 'Cultivos')
     .addTag(SWAGGER_TAGS.PARCELAS, 'Parcelas')
-    .addTag(SWAGGER_TAGS.REPORTS, 'Reportes e informes');
+    .addTag(SWAGGER_TAGS.REPORTS, 'Reportes e informes')
+    .addTag(
+      SWAGGER_TAGS.SOLICITUDES_DIGITALIZACION,
+      'Solicitudes de digitalización de finca',
+    );
 
   if (options.nodeEnv === 'production') {
     builder.addServer('https://api.croply.app', 'Producción');

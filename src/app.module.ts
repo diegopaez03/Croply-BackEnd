@@ -2,7 +2,13 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { DatabaseModule } from './database/database.module';
+import { SeedModule } from './database/seed';
 import { HealthModule } from './modules/health';
+import { AuthModule } from './modules/auth';
+import { UsuariosModule } from './modules/usuarios';
+import { FincasModule } from './modules/fincas';
+import { RolesModule } from './modules/roles';
+import { SolicitudesDigitalizacionModule } from './modules/solicitudes-digitalizacion';
 
 /**
  * Root application module.
@@ -27,8 +33,16 @@ import { HealthModule } from './modules/health';
     // ── Database ─────────────────────────────────────────────────
     DatabaseModule,
 
-    // ── Feature Modules (add here as developed) ──────────────────
+    // ── Feature Modules ──────────────────────────────────────────
     HealthModule,
+    RolesModule,
+    UsuariosModule,
+    FincasModule,
+    AuthModule,
+    SolicitudesDigitalizacionModule,
+
+    // ── Seed (desarrollo: admins del equipo) ─────────────────────
+    SeedModule,
   ],
 })
 export class AppModule {}
