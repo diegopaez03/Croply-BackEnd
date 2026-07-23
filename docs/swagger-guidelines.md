@@ -163,26 +163,41 @@ Usar `@ApiErrorResponses()` y activar solo los códigos relevantes
 
 ## Autenticación en Swagger UI
 
-1. Obtener JWT (endpoint de login, cuando exista).
+1. Obtener JWT con `POST /api/v1/auth/login` (usar un admin del seed, ej. `diego@croply.app`).
 2. En Swagger UI → **Authorize** → pegar el token (sin prefijo `Bearer`).
 3. `persistAuthorization` está activo: el token se conserva al recargar en desarrollo.
 
 El nombre del security scheme es **`access-token`**. Debe coincidir con `@ApiBearerAuth('access-token')` / `@ApiAuth()`.
 
+## Shape de errores
+
+Alineado al contrato de Épica 1 (`ErrorResponseDto`):
+
+```json
+{
+  "statusCode": 400,
+  "errorCode": "REQUIRED_FIELD",
+  "field": "email",
+  "message": "Campo requerido"
+}
+```
+
+Usar `@ApiErrorResponses()` y activar solo los códigos relevantes (`forbidden`, `conflict`, `gone`, etc.).
+
 ## Tags del dominio
 
-Los valores de tag en Swagger coinciden con `SWAGGER_TAGS` (texto visible en la UI).
-Los módulos en código pueden usar nombres de carpeta en inglés; el tag documentado es el de la constante.
+Los valores de tag en Swagger coinciden con `SWAGGER_TAGS`. Las carpetas de módulos están en **español**.
 
 | Constante `SWAGGER_TAGS` | Tag en Swagger | Módulo (carpeta) |
 | --- | --- | --- |
 | `HEALTH` | Health | `modules/health` |
 | `AUTH` | Auth | `modules/auth` |
-| `USUARIOS` | Usuarios | `modules/users` |
-| `FINCAS` | Fincas | `modules/farms` |
-| `CULTIVOS` | Cultivos | `modules/crops` |
-| `PARCELAS` | Parcelas | `modules/plots` |
-| `REPORTS` | Reports | `modules/reports` |
+| `USUARIOS` | Usuarios | `modules/usuarios` |
+| `FINCAS` | Fincas | `modules/fincas` |
+| `CULTIVOS` | Cultivos | `modules/cultivos` |
+| `PARCELAS` | Parcelas | `modules/parcelas` |
+| `REPORTS` | Reportes | `modules/reportes` |
+| `SOLICITUDES_DIGITALIZACION` | SolicitudesDigitalizacion | `modules/solicitudes-digitalizacion` |
 
 Al agregar un dominio nuevo:
 
@@ -210,6 +225,8 @@ Tras cambiar opciones del plugin, reiniciar `pnpm start:dev`.
 | `src/common/dto/*` | Envelopes, paginación y errores compartidos |
 | `src/common/decorators/*` | `@ApiAuth`, `@ApiErrorResponses`, `@ApiPaginatedResponse` |
 | `src/modules/health/*` | Endpoint de ejemplo documentado de punta a punta |
+| `src/modules/auth/*` | Login y resto de HU de acceso (Épica 1) |
+| `docs/diseño/Contexto — Diagrama de clases.md` | UML ↔ entidades implementadas |
 
 ## Anti-patrones a evitar
 
