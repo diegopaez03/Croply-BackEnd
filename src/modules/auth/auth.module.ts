@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -13,12 +13,13 @@ import { ResetsContrasena } from './entities/resets-contrasena.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AdminCroplyGuard } from './guards/admin-croply.guard';
+import { AdminFincaGuard } from './guards/admin-finca.guard';
 
 @Module({
   imports: [
-    UsuariosModule,
-    FincasModule,
-    RolesModule,
+    forwardRef(() => UsuariosModule),
+    forwardRef(() => FincasModule),
+    forwardRef(() => RolesModule),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -40,8 +41,17 @@ import { AdminCroplyGuard } from './guards/admin-croply.guard';
     JwtStrategy,
     JwtAuthGuard,
     AdminCroplyGuard,
+    AdminFincaGuard,
     MailerStubService,
   ],
-  exports: [AuthService, JwtAuthGuard, JwtModule, JwtStrategy],
+  exports: [
+    AuthService,
+    JwtAuthGuard,
+    AdminCroplyGuard,
+    AdminFincaGuard,
+    JwtModule,
+    JwtStrategy,
+    MailerStubService,
+  ],
 })
 export class AuthModule {}

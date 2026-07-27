@@ -30,6 +30,9 @@ export class InvitacionFinca {
   @Column({ name: 'fecha_respuesta', type: 'timestamptz', nullable: true })
   fecha_respuesta: Date | null;
 
+  @Column({ name: 'fecha_cancelacion', type: 'timestamptz', nullable: true })
+  fecha_cancelacion: Date | null;
+
   @Column({
     type: 'enum',
     enum: EstadoInvitacion,

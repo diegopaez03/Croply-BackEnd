@@ -40,6 +40,9 @@ export class Usuario {
   @Column({ name: 'debe_cambiar_contrasena', default: false })
   debe_cambiar_contrasena: boolean;
 
+  @Column({ name: 'token_version', type: 'int', default: 0 })
+  token_version: number;
+
   @CreateDateColumn({ name: 'fecha_alta', type: 'timestamptz' })
   fecha_alta: Date;
 

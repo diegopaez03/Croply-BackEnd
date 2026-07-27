@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { DomainException } from '../../../common/exceptions';
 import { UsuariosService } from '../../usuarios/usuarios.service';
 import { AuthJwtPayload } from '../auth.service';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
@@ -22,8 +23,23 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: AuthJwtPayload): Promise<Usuario> {
     const usuario = await this.usuarios_service.find_by_id(payload.sub);
     if (!usuario) {
-      return null as unknown as Usuario;
+      throw new DomainException(
+        'UNAUTHORIZED',
+        'Token ausente, inválido o expirado',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
+
+    const expected = usuario.token_version ?? 0;
+    const actual = payload.token_version ?? 0;
+    if (actual !== expected) {
+      throw new DomainException(
+        'UNAUTHORIZED',
+        'La sesión fue invalidada. Iniciá sesión nuevamente.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     return usuario;
   }
 }

@@ -2,10 +2,15 @@ import {
   ChildEntity,
   Column,
   Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   TableInheritance,
 } from 'typeorm';
 import { TipoRol } from '../../../common/enums';
+import { Finca } from '../../fincas/entities/finca.entity';
+import { RolPermiso } from './rol-permiso.entity';
 
 @Entity('roles')
 @TableInheritance({ column: { type: 'varchar', name: 'tipo', default: TipoRol.SISTEMA } })
@@ -16,11 +21,17 @@ export abstract class Rol {
   @Column({ name: 'nombre_rol' })
   nombre_rol: string;
 
+  @Column({ name: 'descripcion', type: 'text', nullable: true })
+  descripcion: string | null;
+
   @Column({ name: 'fecha_alta_rol', type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   fecha_alta_rol: Date;
 
   @Column({ name: 'fecha_baja_rol', type: 'timestamptz', nullable: true })
   fecha_baja_rol: Date | null;
+
+  @OneToMany(() => RolPermiso, (rp) => rp.rol)
+  rol_permisos: RolPermiso[];
 }
 
 @ChildEntity(TipoRol.SISTEMA)
@@ -33,4 +44,8 @@ export class RolSistema extends Rol {
 export class RolFinca extends Rol {
   @Column({ name: 'codigo_rol_finca', unique: true })
   codigo_rol_finca: string;
+
+  @ManyToOne(() => Finca, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'id_finca' })
+  finca: Finca | null;
 }

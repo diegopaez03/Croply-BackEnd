@@ -41,6 +41,7 @@ export interface AuthJwtPayload {
   email: string;
   debe_cambiar_contrasena: boolean;
   rol_sistema: string | null;
+  token_version: number;
 }
 
 @Injectable()
@@ -100,8 +101,8 @@ export class AuthService {
     }
 
     let rol_sistema = null;
-    if (dto.id_Rol != null) {
-      rol_sistema = await this.roles_service.find_rol_sistema_by_id(dto.id_Rol);
+    if (dto.id_rol != null) {
+      rol_sistema = await this.roles_service.find_rol_sistema_by_id(dto.id_rol);
     }
 
     const usuario = await this.usuarios_service.create({
@@ -118,13 +119,13 @@ export class AuthService {
 
     return {
       message: 'Usuario registrado correctamente',
-      id_Usuario: Number(usuario.id_usuario),
+      id_usuario: Number(usuario.id_usuario),
       email: usuario.email,
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       telefono: usuario.telefono,
       estado: usuario.estado,
-      id_Rol: usuario.rol_sistema ? Number(usuario.rol_sistema.id_rol) : null,
+      id_rol: usuario.rol_sistema ? Number(usuario.rol_sistema.id_rol) : null,
       fecha_alta: usuario.fecha_alta.toISOString(),
       fecha_baja: usuario.fecha_baja,
     };
@@ -163,13 +164,13 @@ export class AuthService {
     return {
       valido: true,
       email_invitado: invitacion.email_invitado,
-      id_InvitacionFinca: Number(invitacion.id_invitacion_finca),
+      id_invitacion_finca: Number(invitacion.id_invitacion_finca),
     };
   }
 
   async registrar_invitado(dto: RegistrarInvitadoDto) {
     const invitacion = await this.fincas_service.find_invitacion_by_id(
-      dto.id_InvitacionFinca,
+      dto.id_invitacion_finca,
     );
 
     if (
@@ -222,7 +223,7 @@ export class AuthService {
     return {
       message: 'Registro completado con éxito.',
       usuario: {
-        id_Usuario: Number(usuario.id_usuario),
+        id_usuario: Number(usuario.id_usuario),
         email: usuario.email,
         nombre: usuario.nombre,
         apellido: usuario.apellido,
@@ -398,6 +399,7 @@ export class AuthService {
       email: usuario.email,
       debe_cambiar_contrasena: usuario.debe_cambiar_contrasena,
       rol_sistema: usuario.rol_sistema?.codigo ?? null,
+      token_version: usuario.token_version ?? 0,
     };
   }
 
@@ -409,13 +411,13 @@ export class AuthService {
           uf.fecha_fin_rol == null || uf.fecha_fin_rol.getTime() > now,
       )
       .map((uf) => ({
-        id_Finca: Number(uf.finca.id_finca),
+        id_finca: Number(uf.finca.id_finca),
         nombre_finca: uf.finca.nombre_finca,
         rol_finca: uf.rol_finca.codigo_rol_finca,
       }));
 
     return {
-      id_Usuario: Number(usuario.id_usuario),
+      id_usuario: Number(usuario.id_usuario),
       email: usuario.email,
       nombre: usuario.nombre,
       apellido: usuario.apellido,
