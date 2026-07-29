@@ -36,12 +36,23 @@ import { ContrasenaPrimerAccesoDto } from './dto/contrasena-primer-acceso.dto';
 
 const RESET_TOKEN_TTL_HOURS = 24;
 
+export interface FincaRol {
+  id_finca: number;
+  nombre_finca: string;
+  rol_finca: string;
+}
+
 export interface AuthJwtPayload {
   sub: number;
   email: string;
   debe_cambiar_contrasena: boolean;
   rol_sistema: string | null;
   token_version: number;
+  nombre: string;
+  apellido: string;
+  estado: EstadoUsuario;
+  fecha_alta: string;
+  fincas: FincaRol[];
 }
 
 @Injectable()
@@ -400,12 +411,17 @@ export class AuthService {
       debe_cambiar_contrasena: usuario.debe_cambiar_contrasena,
       rol_sistema: usuario.rol_sistema?.codigo ?? null,
       token_version: usuario.token_version ?? 0,
+      nombre: usuario.nombre,
+      apellido: usuario.apellido,
+      estado: usuario.estado,
+      fecha_alta: usuario.fecha_alta.toISOString(),
+      fincas: this.map_fincas_vigentes(usuario),
     };
   }
 
-  private map_usuario_login(usuario: Usuario) {
+  private map_fincas_vigentes(usuario: Usuario): FincaRol[] {
     const now = Date.now();
-    const fincas = (usuario.usuario_fincas ?? [])
+    return (usuario.usuario_fincas ?? [])
       .filter(
         (uf) =>
           uf.fecha_fin_rol == null || uf.fecha_fin_rol.getTime() > now,
@@ -415,7 +431,9 @@ export class AuthService {
         nombre_finca: uf.finca.nombre_finca,
         rol_finca: uf.rol_finca.codigo_rol_finca,
       }));
+  }
 
+  private map_usuario_login(usuario: Usuario) {
     return {
       id_usuario: Number(usuario.id_usuario),
       email: usuario.email,
@@ -424,7 +442,7 @@ export class AuthService {
       estado: usuario.estado,
       fecha_alta: usuario.fecha_alta.toISOString(),
       rol_sistema: usuario.rol_sistema?.codigo ?? null,
-      fincas,
+      fincas: this.map_fincas_vigentes(usuario),
     };
   }
 

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthModule } from '../auth';
+import { AuthModule } from '../auth/auth.module';
 import { LogOperacionesModule } from '../log-operaciones';
 import { SolicitudDigitalizacionFinca } from './entities/solicitud-digitalizacion-finca.entity';
 import { SolicitudesDigitalizacionService } from './solicitudes-digitalizacion.service';

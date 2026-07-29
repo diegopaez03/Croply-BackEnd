@@ -18,11 +18,9 @@ import {
 } from '@nestjs/swagger';
 import { ApiAuth, ApiErrorResponses } from '../../common/decorators';
 import { SWAGGER_TAGS } from '../../common/swagger';
-import {
-  AdminFincaGuard,
-  CurrentUser,
-  JwtAuthGuard,
-} from '../auth';
+import { AdminFincaGuard } from '../auth/guards/admin-finca.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { RolesService } from '../roles/roles.service';

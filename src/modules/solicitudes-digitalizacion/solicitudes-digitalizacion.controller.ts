@@ -24,10 +24,8 @@ import { ActualizarEstadoSolicitudDto } from './dto/actualizar-estado-solicitud.
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
-import {
-  AdminCroplyGuard,
-  JwtAuthGuard,
-} from '../auth';
+import { AdminCroplyGuard } from '../auth/guards/admin-croply.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags(SWAGGER_TAGS.SOLICITUDES_DIGITALIZACION)
 @Controller('solicitudes-digitalizacion')

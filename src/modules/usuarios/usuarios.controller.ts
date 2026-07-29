@@ -15,11 +15,9 @@ import {
 } from '@nestjs/swagger';
 import { ApiAuth, ApiErrorResponses } from '../../common/decorators';
 import { SWAGGER_TAGS } from '../../common/swagger';
-import {
-  AdminCroplyGuard,
-  CurrentUser,
-  JwtAuthGuard,
-} from '../auth';
+import { AdminCroplyGuard } from '../auth/guards/admin-croply.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Usuario } from './entities/usuario.entity';
 import {
   ActualizarEstadoUsuarioDto,
