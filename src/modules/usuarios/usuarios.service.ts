@@ -15,6 +15,7 @@ import { build_page_size_pagination } from '../../common/dto';
 import { LogOperacionesService } from '../log-operaciones';
 import { RolesService } from '../roles/roles.service';
 import { FincasService } from '../fincas/fincas.service';
+import { UsuarioFinca } from '../fincas/entities/usuario-finca.entity';
 import { Usuario } from './entities/usuario.entity';
 import {
   ActualizarEstadoUsuarioDto,
@@ -27,6 +28,8 @@ export class UsuariosService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuario_repo: Repository<Usuario>,
+    @InjectRepository(UsuarioFinca)
+    private readonly usuario_finca_repo: Repository<UsuarioFinca>,
     private readonly roles_service: RolesService,
     private readonly fincas_service: FincasService,
     private readonly log_service: LogOperacionesService,
@@ -223,7 +226,22 @@ export class UsuariosService {
     const listQb = this.usuario_repo
       .createQueryBuilder('u')
       .leftJoinAndSelect('u.rol_sistema', 'rol')
-      .where('u.rol_sistema IS NOT NULL');
+      .where(
+        `(
+          rol.id_rol IS NOT NULL
+          OR NOT EXISTS (
+            SELECT 1 FROM usuario_finca uf_any
+            WHERE uf_any.id_usuario = u.id_usuario
+          )
+          OR EXISTS (
+            SELECT 1 FROM usuario_finca uf_adm
+            INNER JOIN roles r_adm ON r_adm.id_rol = uf_adm.id_rol_finca
+            WHERE uf_adm.id_usuario = u.id_usuario
+              AND r_adm.codigo_rol_finca = :codigo_admin_finca
+          )
+        )`,
+        { codigo_admin_finca: CODIGO_ADMIN_FINCA },
+      );
 
     this.apply_usuario_filters(listQb, query, 'rol');
 
@@ -236,21 +254,36 @@ export class UsuariosService {
       .getMany();
 
     return {
-      usuarios: usuarios.map((u) => this.map_usuario_list_item(u, true)),
+      usuarios: usuarios.map((u) => this.map_usuario_croply_item(u)),
       pagination: build_page_size_pagination(page, pageSize, totalItems),
     };
   }
 
-  async listar_ambito_finca(id_finca: number, query: ListarUsuariosQueryDto) {
+  /**
+   * Listado por vinculación usuario-finca: una fila por finca. Con varias
+   * fincas (multi-finca) un mismo usuario aparece una vez por cada una.
+   */
+  async listar_ambito_finca(
+    ids_finca: number[],
+    query: ListarUsuariosQueryDto,
+  ) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
 
-    const listQb = this.usuario_repo
-      .createQueryBuilder('u')
-      .innerJoinAndSelect('u.usuario_fincas', 'uf')
+    if (ids_finca.length === 0) {
+      return {
+        usuarios: [],
+        pagination: build_page_size_pagination(page, pageSize, 0),
+      };
+    }
+
+    const listQb = this.usuario_finca_repo
+      .createQueryBuilder('uf')
+      .innerJoinAndSelect('uf.usuario', 'u')
       .innerJoinAndSelect('uf.finca', 'f')
       .leftJoinAndSelect('uf.rol_finca', 'rol')
-      .where('f.id_finca = :id_finca', { id_finca });
+      .where('f.id_finca IN (:...ids_finca)', { ids_finca })
+      .andWhere('(uf.fecha_fin_rol IS NULL OR uf.fecha_fin_rol > NOW())');
 
     if (query.search?.trim()) {
       const term = `%${query.search.trim().toLowerCase()}%`;
@@ -267,17 +300,16 @@ export class UsuariosService {
     }
 
     const totalItems = await listQb.getCount();
-    const usuarios = await listQb
+    const vinculaciones = await listQb
       .orderBy('u.apellido', 'ASC')
       .addOrderBy('u.nombre', 'ASC')
+      .addOrderBy('f.id_finca', 'ASC')
       .skip((page - 1) * pageSize)
       .take(pageSize)
       .getMany();
 
     return {
-      usuarios: usuarios.map((u) =>
-        this.map_usuario_list_item(u, false, id_finca),
-      ),
+      usuarios: vinculaciones.map((uf) => this.map_usuario_finca_item(uf)),
       pagination: build_page_size_pagination(page, pageSize, totalItems),
     };
   }
@@ -302,36 +334,42 @@ export class UsuariosService {
     }
   }
 
-  private map_usuario_list_item(
-    usuario: Usuario,
-    sistema: boolean,
-    id_finca?: number,
-  ) {
-    let rol: { id_rol: number; nombre_rol: string } | null = null;
-    if (sistema && usuario.rol_sistema) {
-      rol = {
-        id_rol: Number(usuario.rol_sistema.id_rol),
-        nombre_rol: usuario.rol_sistema.nombre_rol,
-      };
-    } else if (id_finca != null) {
-      const uf = (usuario.usuario_fincas ?? []).find(
-        (x) => Number(x.finca?.id_finca) === Number(id_finca),
-      );
-      if (uf?.rol_finca) {
-        rol = {
-          id_rol: Number(uf.rol_finca.id_rol),
-          nombre_rol: uf.rol_finca.nombre_rol,
-        };
-      }
-    }
-
+  private map_usuario_croply_item(usuario: Usuario) {
     return {
       id_usuario: Number(usuario.id_usuario),
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       email: usuario.email,
       telefono: usuario.telefono,
-      rol,
+      rol: usuario.rol_sistema
+        ? {
+            id_rol: Number(usuario.rol_sistema.id_rol),
+            nombre_rol: usuario.rol_sistema.nombre_rol,
+          }
+        : null,
+      estado: usuario.estado,
+    };
+  }
+
+  private map_usuario_finca_item(uf: UsuarioFinca) {
+    const usuario = uf.usuario;
+    return {
+      id_usuario: Number(usuario.id_usuario),
+      id_usuario_finca: Number(uf.id_usuario_finca),
+      nombre: usuario.nombre,
+      apellido: usuario.apellido,
+      email: usuario.email,
+      telefono: usuario.telefono,
+      rol: uf.rol_finca
+        ? {
+            id_rol: Number(uf.rol_finca.id_rol),
+            nombre_rol: uf.rol_finca.nombre_rol,
+          }
+        : null,
+      finca: {
+        id_finca: Number(uf.finca.id_finca),
+        nombre_finca: uf.finca.nombre_finca,
+      },
       estado: usuario.estado,
     };
   }

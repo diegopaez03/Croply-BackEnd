@@ -17,10 +17,10 @@ import {
 } from '@nestjs/swagger';
 import { SWAGGER_TAGS } from '../../common/swagger';
 import { ApiAuth, ApiErrorResponses } from '../../common/decorators';
-import { PageSizePaginationQueryDto } from '../../common/dto';
 import { SolicitudesDigitalizacionService } from './solicitudes-digitalizacion.service';
 import { CrearSolicitudDigitalizacionDto } from './dto/crear-solicitud-digitalizacion.dto';
 import { ActualizarEstadoSolicitudDto } from './dto/actualizar-estado-solicitud.dto';
+import { ListarSolicitudesQueryDto } from './dto/listar-solicitudes-query.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
@@ -53,10 +53,14 @@ export class SolicitudesDigitalizacionController {
   @Get()
   @UseGuards(JwtAuthGuard, AdminCroplyGuard)
   @ApiAuth()
-  @ApiOperation({ summary: 'Listar solicitudes de digitalización' })
+  @ApiOperation({
+    summary: 'Listar solicitudes de digitalización',
+    description:
+      'Soporta búsqueda por nombre/correo (`search`) y filtro por `estado`.',
+  })
   @ApiOkResponse({ description: 'Listado paginado' })
-  @ApiErrorResponses()
-  listar(@Query() query: PageSizePaginationQueryDto) {
+  @ApiErrorResponses({ badRequest: true })
+  listar(@Query() query: ListarSolicitudesQueryDto) {
     return this.solicitudes_service.listar(query);
   }
 

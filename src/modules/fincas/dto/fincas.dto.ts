@@ -1,5 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsInt, IsNotEmpty, Min } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsEmail, IsInt, IsNotEmpty, IsOptional, Min } from 'class-validator';
 import {
   ActualizarPermisosDto,
   CrearRolFincaDto,
@@ -23,6 +24,19 @@ export class AsignarRolUsuarioFincaDto {
   @IsInt()
   @Min(1)
   id_rol: number;
+}
+
+export class ListarUsuariosFincaQueryDto extends ListarUsuariosQueryDto {
+  @ApiPropertyOptional({
+    example: 12,
+    description:
+      'Acota el listado a una finca. Sin este parámetro se devuelven los usuarios de todas las fincas administradas.',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_finca?: number;
 }
 
 export { CrearRolFincaDto, ActualizarPermisosDto, ListarUsuariosQueryDto };

@@ -4,13 +4,14 @@ import { AuthModule } from '../auth/auth.module';
 import { FincasModule } from '../fincas';
 import { LogOperacionesModule } from '../log-operaciones';
 import { RolesModule } from '../roles';
+import { UsuarioFinca } from '../fincas/entities/usuario-finca.entity';
 import { Usuario } from './entities/usuario.entity';
 import { UsuariosController } from './usuarios.controller';
 import { UsuariosService } from './usuarios.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Usuario]),
+    TypeOrmModule.forFeature([Usuario, UsuarioFinca]),
     LogOperacionesModule,
     forwardRef(() => RolesModule),
     forwardRef(() => FincasModule),

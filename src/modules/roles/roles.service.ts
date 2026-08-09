@@ -79,11 +79,24 @@ export class RolesService implements OnModuleInit {
   }
 
   async find_rol_sistema_by_id(id_rol: number): Promise<RolSistema | null> {
-    return this.rol_sistema_repo.findOne({ where: { id_rol } });
+    return this.rol_sistema_repo.findOne({
+      where: { id_rol },
+      relations: ['rol_permisos', 'rol_permisos.permiso'],
+    });
   }
 
   async find_rol_finca_by_codigo(codigo: string): Promise<RolFinca | null> {
     return this.rol_finca_repo.findOne({ where: { codigo_rol_finca: codigo } });
+  }
+
+  async find_rol_finca_by_nombre(
+    id_finca: number,
+    nombre_rol: string,
+  ): Promise<RolFinca | null> {
+    return this.rol_finca_repo.findOne({
+      where: { finca: { id_finca }, nombre_rol, fecha_baja_rol: IsNull() },
+      relations: ['finca', 'rol_permisos', 'rol_permisos.permiso'],
+    });
   }
 
   async find_rol_finca_by_id(id_rol: number): Promise<RolFinca | null> {
@@ -96,6 +109,7 @@ export class RolesService implements OnModuleInit {
   async listar_roles_sistema() {
     const roles = await this.rol_sistema_repo.find({
       where: { fecha_baja_rol: IsNull() },
+      relations: ['rol_permisos', 'rol_permisos.permiso'],
       order: { id_rol: 'ASC' },
     });
 
@@ -423,26 +437,31 @@ export class RolesService implements OnModuleInit {
       id_rol: Number(rol.id_rol),
       nombre_rol: rol.nombre_rol,
       descripcion: rol.descripcion,
+      permisos: this.map_permisos(rol),
       cantidad_usuarios_asignados: cantidad,
     };
   }
 
   private async map_rol_finca(rol: RolFinca, id_finca: number) {
     const cantidad = await this.count_usuarios_rol_finca(id_finca, rol.id_rol);
-    const permisos = (rol.rol_permisos ?? [])
-      .filter((rp) => rp.permiso)
-      .map((rp) => ({
-        id_permiso: Number(rp.permiso.id_permiso),
-        nombre_permiso: rp.permiso.nombre_permiso,
-      }));
 
     return {
       id_rol: Number(rol.id_rol),
       nombre_rol: rol.nombre_rol,
       descripcion: rol.descripcion,
-      permisos,
+      permisos: this.map_permisos(rol),
       cantidad_usuarios_asignados: cantidad,
     };
+  }
+
+  private map_permisos(rol: Rol) {
+    return (rol.rol_permisos ?? [])
+      .filter((rp) => rp.permiso)
+      .map((rp) => ({
+        id_permiso: Number(rp.permiso.id_permiso),
+        nombre_permiso: rp.permiso.nombre_permiso,
+      }))
+      .sort((a, b) => a.id_permiso - b.id_permiso);
   }
 
   private async count_usuarios_rol_finca(
@@ -462,7 +481,7 @@ export class RolesService implements OnModuleInit {
   private async require_rol_sistema_activo(
     id_rol: number,
   ): Promise<RolSistema> {
-    const rol = await this.rol_sistema_repo.findOne({ where: { id_rol } });
+    const rol = await this.find_rol_sistema_by_id(id_rol);
     if (!rol || rol.fecha_baja_rol != null) {
       throw resourceNotFound();
     }

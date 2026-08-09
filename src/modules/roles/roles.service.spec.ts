@@ -81,6 +81,35 @@ describe('RolesService', () => {
     expect(result.cantidad_usuarios_asignados).toBe(0);
   });
 
+  it('incluye los permisos asignados en el listado de roles de sistema', async () => {
+    rol_sistema_repo.find.mockResolvedValue([
+      {
+        id_rol: 5,
+        nombre_rol: 'Administrador de Finca',
+        descripcion: null,
+        fecha_baja_rol: null,
+        rol_permisos: [
+          { permiso: { id_permiso: 4, nombre_permiso: 'Reportes' } },
+          {
+            permiso: {
+              id_permiso: 1,
+              nombre_permiso: 'Gestión de finca y parcelas',
+            },
+          },
+        ],
+      },
+    ]);
+    usuario_repo.count.mockResolvedValue(12);
+
+    const { roles } = await service.listar_roles_sistema();
+
+    expect(roles[0].permisos).toEqual([
+      { id_permiso: 1, nombre_permiso: 'Gestión de finca y parcelas' },
+      { id_permiso: 4, nombre_permiso: 'Reportes' },
+    ]);
+    expect(roles[0].cantidad_usuarios_asignados).toBe(12);
+  });
+
   it('lista permisos por ámbito', async () => {
     permiso_repo.find.mockResolvedValue([
       {

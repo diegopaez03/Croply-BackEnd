@@ -6,12 +6,20 @@ describe('SolicitudesDigitalizacionService', () => {
   let solicitud_repo: {
     create: jest.Mock;
     save: jest.Mock;
-    findAndCount: jest.Mock;
+    createQueryBuilder: jest.Mock;
     findOne: jest.Mock;
   };
+  let list_qb: Record<string, jest.Mock>;
   let log_service: { registrar: jest.Mock };
 
   beforeEach(() => {
+    list_qb = {
+      andWhere: jest.fn(() => list_qb),
+      orderBy: jest.fn(() => list_qb),
+      skip: jest.fn(() => list_qb),
+      take: jest.fn(() => list_qb),
+      getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+    };
     solicitud_repo = {
       create: jest.fn((x) => x),
       save: jest.fn(async (x) => ({
@@ -20,7 +28,7 @@ describe('SolicitudesDigitalizacionService', () => {
         fecha_solicitud: new Date('2026-07-14T19:40:00Z'),
         estado: x.estado ?? EstadoSolicitud.PENDIENTE,
       })),
-      findAndCount: jest.fn(),
+      createQueryBuilder: jest.fn(() => list_qb),
       findOne: jest.fn(),
     };
     log_service = { registrar: jest.fn().mockResolvedValue(undefined) };
@@ -57,7 +65,7 @@ describe('SolicitudesDigitalizacionService', () => {
   });
 
   it('lista solicitudes ordenadas con paginación', async () => {
-    solicitud_repo.findAndCount.mockResolvedValue([
+    list_qb.getManyAndCount.mockResolvedValue([
       [
         {
           id_solicitud_df: 801,
@@ -74,6 +82,25 @@ describe('SolicitudesDigitalizacionService', () => {
     const result = await service.listar({ page: 1, pageSize: 10 });
     expect(result.solicitudes).toHaveLength(1);
     expect(result.pagination.totalItems).toBe(1);
+    expect(list_qb.orderBy).toHaveBeenCalledWith('s.fecha_solicitud', 'DESC');
+    expect(list_qb.andWhere).not.toHaveBeenCalled();
+  });
+
+  it('aplica búsqueda por nombre/correo y filtro por estado', async () => {
+    await service.listar({
+      page: 1,
+      pageSize: 10,
+      search: '  Pedro ',
+      estado: EstadoSolicitud.CONTACTADO,
+    });
+
+    expect(list_qb.andWhere).toHaveBeenCalledWith(
+      expect.stringContaining('LOWER(s.nombre_completo) LIKE :term'),
+      { term: '%pedro%' },
+    );
+    expect(list_qb.andWhere).toHaveBeenCalledWith('s.estado = :estado', {
+      estado: EstadoSolicitud.CONTACTADO,
+    });
   });
 
   it('actualiza estado de solicitud', async () => {

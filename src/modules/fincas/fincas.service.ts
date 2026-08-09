@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, MoreThan, Repository } from 'typeorm';
 import {
+  CODIGO_ADMIN_FINCA,
   EstadoInvitacion,
   EstadoUsuario,
   TipoOperacion,
@@ -41,12 +42,89 @@ export class FincasService {
     return this.finca_repo.findOne({ where: { id_finca } });
   }
 
+  async find_finca_by_nombre(nombre_finca: string): Promise<Finca | null> {
+    return this.finca_repo.findOne({ where: { nombre_finca } });
+  }
+
+  async crear_finca(data: Partial<Finca>): Promise<Finca> {
+    return this.finca_repo.save(this.finca_repo.create(data));
+  }
+
+  async find_usuario_finca(
+    id_usuario: number,
+    id_finca: number,
+  ): Promise<UsuarioFinca | null> {
+    return this.usuario_finca_repo.findOne({
+      where: { usuario: { id_usuario }, finca: { id_finca } },
+      relations: ['usuario', 'finca', 'rol_finca'],
+    });
+  }
+
   async require_finca(id_finca: number): Promise<Finca> {
     const finca = await this.find_finca_by_id(id_finca);
     if (!finca || finca.fecha_baja_finca != null) {
       throw resourceNotFound();
     }
     return finca;
+  }
+
+  /** Vinculaciones vigentes del usuario, opcionalmente solo donde es Admin de Finca. */
+  private vinculaciones_vigentes(
+    usuario: Usuario,
+    solo_admin = false,
+  ): UsuarioFinca[] {
+    const now = Date.now();
+    return (usuario.usuario_fincas ?? []).filter(
+      (uf) =>
+        uf.finca != null &&
+        (uf.fecha_fin_rol == null || uf.fecha_fin_rol.getTime() > now) &&
+        (!solo_admin ||
+          uf.rol_finca?.codigo_rol_finca === CODIGO_ADMIN_FINCA),
+    );
+  }
+
+  listar_mis_fincas(usuario: Usuario) {
+    const fincas = this.vinculaciones_vigentes(usuario)
+      .map((uf) => ({
+        id_finca: Number(uf.finca.id_finca),
+        nombre_finca: uf.finca.nombre_finca,
+        rol_finca: uf.rol_finca?.codigo_rol_finca ?? null,
+        nombre_rol: uf.rol_finca?.nombre_rol ?? null,
+        es_admin: uf.rol_finca?.codigo_rol_finca === CODIGO_ADMIN_FINCA,
+      }))
+      .sort((a, b) => a.id_finca - b.id_finca);
+
+    return { fincas };
+  }
+
+  /**
+   * Fincas sobre las que el usuario tiene alcance como Admin de Finca.
+   * `id_finca` acota el resultado a una sola y falla si no la administra.
+   */
+  resolver_fincas_administradas(
+    usuario: Usuario,
+    id_finca?: number,
+  ): number[] {
+    const ids = this.vinculaciones_vigentes(usuario, true).map((uf) =>
+      Number(uf.finca.id_finca),
+    );
+
+    if (ids.length === 0) {
+      throw new DomainException(
+        'FORBIDDEN',
+        'No tenés permisos para realizar esta acción',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    if (id_finca == null) {
+      return ids;
+    }
+
+    if (!ids.includes(Number(id_finca))) {
+      throw resourceNotFound();
+    }
+    return [Number(id_finca)];
   }
 
   async find_invitacion_by_id(
@@ -280,6 +358,11 @@ export class FincasService {
       recurso: `UsuarioFinca:${uf.id_usuario_finca}`,
     });
 
-    return { message: 'Rol asignado correctamente.' };
+    return {
+      message: 'Rol asignado correctamente.',
+      id_usuario_finca: Number(uf.id_usuario_finca),
+      id_rol: Number(rol.id_rol),
+      nombre_rol: rol.nombre_rol,
+    };
   }
 }

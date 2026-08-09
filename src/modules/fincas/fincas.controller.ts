@@ -32,6 +32,7 @@ import { ListarUsuariosQueryDto } from '../usuarios/dto/usuarios.dto';
 import {
   AsignarRolUsuarioFincaDto,
   CrearInvitacionDto,
+  ListarUsuariosFincaQueryDto,
 } from './dto/fincas.dto';
 import { FincasService } from './fincas.service';
 
@@ -43,6 +44,41 @@ export class FincasController {
     private readonly roles_service: RolesService,
     private readonly usuarios_service: UsuariosService,
   ) {}
+
+  @Get('mis-fincas')
+  @UseGuards(JwtAuthGuard)
+  @ApiAuth()
+  @ApiOperation({
+    summary: 'Listar las fincas del usuario autenticado',
+    description:
+      'Alimenta el selector de finca activa. Devuelve una entrada por vinculación vigente.',
+  })
+  @ApiOkResponse({ description: 'Fincas del usuario' })
+  @ApiErrorResponses()
+  mis_fincas(@CurrentUser() usuario: Usuario) {
+    return this.fincas_service.listar_mis_fincas(usuario);
+  }
+
+  @Get('usuarios')
+  @UseGuards(JwtAuthGuard)
+  @ApiAuth()
+  @ApiOperation({
+    summary: 'Listar usuarios de todas las fincas administradas',
+    description:
+      'Vista multi-finca: cada fila incluye la finca a la que pertenece la vinculación. `id_finca` acota el listado a una finca puntual.',
+  })
+  @ApiOkResponse({ description: 'Listado paginado' })
+  @ApiErrorResponses({ forbidden: true, notFound: true })
+  listar_usuarios_multi_finca(
+    @Query() query: ListarUsuariosFincaQueryDto,
+    @CurrentUser() usuario: Usuario,
+  ) {
+    const ids_finca = this.fincas_service.resolver_fincas_administradas(
+      usuario,
+      query.id_finca,
+    );
+    return this.usuarios_service.listar_ambito_finca(ids_finca, query);
+  }
 
   @Get(':id_finca/roles')
   @UseGuards(JwtAuthGuard, AdminFincaGuard)
@@ -153,7 +189,7 @@ export class FincasController {
     @Param('id_finca', ParseIntPipe) id_finca: number,
     @Query() query: ListarUsuariosQueryDto,
   ) {
-    return this.usuarios_service.listar_ambito_finca(id_finca, query);
+    return this.usuarios_service.listar_ambito_finca([id_finca], query);
   }
 
   @Post(':id_finca/invitaciones')

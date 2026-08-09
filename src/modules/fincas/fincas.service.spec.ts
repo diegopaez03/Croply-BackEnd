@@ -1,5 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
-import { EstadoInvitacion } from '../../common/enums';
+import { CODIGO_ADMIN_FINCA, EstadoInvitacion } from '../../common/enums';
 import { FincasService } from './fincas.service';
 
 describe('FincasService', () => {
@@ -88,6 +88,77 @@ describe('FincasService', () => {
     ).rejects.toMatchObject({
       errorCode: 'PENDING_INVITATION_EXISTS',
       status: HttpStatus.CONFLICT,
+    });
+  });
+
+  describe('alcance multi-finca', () => {
+    const admin_multi_finca = {
+      usuario_fincas: [
+        {
+          finca: { id_finca: 1, nombre_finca: 'Finca Demo Croply' },
+          rol_finca: {
+            codigo_rol_finca: CODIGO_ADMIN_FINCA,
+            nombre_rol: 'Administrador de Finca',
+          },
+          fecha_fin_rol: null,
+        },
+        {
+          finca: { id_finca: 2, nombre_finca: 'Finca Demo Sur' },
+          rol_finca: {
+            codigo_rol_finca: CODIGO_ADMIN_FINCA,
+            nombre_rol: 'Administrador de Finca',
+          },
+          fecha_fin_rol: null,
+        },
+        {
+          finca: { id_finca: 3, nombre_finca: 'Finca Ajena' },
+          rol_finca: { codigo_rol_finca: 'F3_OPERARIO', nombre_rol: 'Operario' },
+          fecha_fin_rol: null,
+        },
+      ],
+    };
+
+    it('devuelve todas las fincas vigentes del usuario para el selector', () => {
+      const { fincas } = service.listar_mis_fincas(admin_multi_finca as never);
+
+      expect(fincas.map((f) => f.id_finca)).toEqual([1, 2, 3]);
+      expect(fincas[2].es_admin).toBe(false);
+    });
+
+    it('excluye vinculaciones vencidas', () => {
+      const { fincas } = service.listar_mis_fincas({
+        usuario_fincas: [
+          {
+            finca: { id_finca: 1, nombre_finca: 'Vencida' },
+            rol_finca: { codigo_rol_finca: CODIGO_ADMIN_FINCA },
+            fecha_fin_rol: new Date('2020-01-01T00:00:00Z'),
+          },
+        ],
+      } as never);
+
+      expect(fincas).toEqual([]);
+    });
+
+    it('resuelve solo las fincas administradas', () => {
+      expect(
+        service.resolver_fincas_administradas(admin_multi_finca as never),
+      ).toEqual([1, 2]);
+    });
+
+    it('acota a una finca puntual y rechaza las que no administra', () => {
+      expect(
+        service.resolver_fincas_administradas(admin_multi_finca as never, 2),
+      ).toEqual([2]);
+
+      expect(() =>
+        service.resolver_fincas_administradas(admin_multi_finca as never, 3),
+      ).toThrow(expect.objectContaining({ errorCode: 'RESOURCE_NOT_FOUND' }));
+    });
+
+    it('rechaza a quien no administra ninguna finca', () => {
+      expect(() =>
+        service.resolver_fincas_administradas({ usuario_fincas: [] } as never),
+      ).toThrow(expect.objectContaining({ errorCode: 'FORBIDDEN' }));
     });
   });
 });

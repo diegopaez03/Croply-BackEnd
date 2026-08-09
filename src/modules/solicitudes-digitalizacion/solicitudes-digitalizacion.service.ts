@@ -2,13 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EstadoSolicitud, TipoOperacion } from '../../common/enums';
-import { build_page_size_pagination, PageSizePaginationQueryDto } from '../../common/dto';
+import { build_page_size_pagination } from '../../common/dto';
 import { resourceNotFound } from '../../common/exceptions';
 import { LogOperacionesService } from '../log-operaciones';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { SolicitudDigitalizacionFinca } from './entities/solicitud-digitalizacion-finca.entity';
 import { CrearSolicitudDigitalizacionDto } from './dto/crear-solicitud-digitalizacion.dto';
 import { ActualizarEstadoSolicitudDto } from './dto/actualizar-estado-solicitud.dto';
+import { ListarSolicitudesQueryDto } from './dto/listar-solicitudes-query.dto';
 
 @Injectable()
 export class SolicitudesDigitalizacionService {
@@ -56,15 +57,28 @@ export class SolicitudesDigitalizacionService {
     };
   }
 
-  async listar(query: PageSizePaginationQueryDto) {
+  async listar(query: ListarSolicitudesQueryDto) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
 
-    const [solicitudes, totalItems] = await this.solicitud_repo.findAndCount({
-      order: { fecha_solicitud: 'DESC' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    });
+    const listQb = this.solicitud_repo.createQueryBuilder('s');
+
+    if (query.search?.trim()) {
+      const term = `%${query.search.trim().toLowerCase()}%`;
+      listQb.andWhere(
+        '(LOWER(s.nombre_completo) LIKE :term OR LOWER(s.correo_electronico) LIKE :term)',
+        { term },
+      );
+    }
+    if (query.estado) {
+      listQb.andWhere('s.estado = :estado', { estado: query.estado });
+    }
+
+    const [solicitudes, totalItems] = await listQb
+      .orderBy('s.fecha_solicitud', 'DESC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .getManyAndCount();
 
     return {
       solicitudes: solicitudes.map((s) => ({
