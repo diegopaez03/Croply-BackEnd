@@ -9,6 +9,7 @@ import { UsuariosModule } from './modules/usuarios';
 import { FincasModule } from './modules/fincas';
 import { RolesModule } from './modules/roles';
 import { SolicitudesDigitalizacionModule } from './modules/solicitudes-digitalizacion';
+import { LogOperacionesModule } from './modules/log-operaciones';
 
 /**
  * Root application module.
@@ -35,6 +36,7 @@ import { SolicitudesDigitalizacionModule } from './modules/solicitudes-digitaliz
 
     // ── Feature Modules ──────────────────────────────────────────
     HealthModule,
+    LogOperacionesModule,
     RolesModule,
     UsuariosModule,
     FincasModule,

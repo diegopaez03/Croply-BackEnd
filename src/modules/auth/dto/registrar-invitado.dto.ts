@@ -5,7 +5,7 @@ export class RegistrarInvitadoDto {
   @ApiProperty({ example: 102 })
   @IsInt()
   @Min(1)
-  id_InvitacionFinca: number;
+  id_invitacion_finca: number;
 
   @ApiProperty({ example: 'Luis' })
   @IsString()

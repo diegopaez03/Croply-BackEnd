@@ -10,6 +10,7 @@ export const SWAGGER_TAGS = {
   HEALTH: 'Health',
   AUTH: 'Auth',
   USUARIOS: 'Usuarios',
+  ROLES: 'Roles',
   FINCAS: 'Fincas',
   CULTIVOS: 'Cultivos',
   PARCELAS: 'Parcelas',
@@ -81,6 +82,7 @@ La mayoría de los endpoints requieren un JWT Bearer Token.
     .addTag(SWAGGER_TAGS.HEALTH, 'Estado y disponibilidad del servicio')
     .addTag(SWAGGER_TAGS.AUTH, 'Registro, login y renovación de tokens')
     .addTag(SWAGGER_TAGS.USUARIOS, 'Gestión de usuarios')
+    .addTag(SWAGGER_TAGS.ROLES, 'Roles y permisos')
     .addTag(SWAGGER_TAGS.FINCAS, 'Fincas')
     .addTag(SWAGGER_TAGS.CULTIVOS, 'Cultivos')
     .addTag(SWAGGER_TAGS.PARCELAS, 'Parcelas')

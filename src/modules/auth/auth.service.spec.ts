@@ -79,6 +79,7 @@ describe('AuthService', () => {
         nombre: 'Juan',
         apellido: 'Pérez',
         debe_cambiar_contrasena: false,
+        token_version: 0,
         fecha_alta: new Date('2026-03-15T10:00:00Z'),
         rol_sistema: null,
         usuario_fincas: [
@@ -99,7 +100,7 @@ describe('AuthService', () => {
       expect(result.expiresIn).toBe(3600);
       expect(result.debe_cambiar_contrasena).toBe(false);
       expect(result.usuario).toEqual({
-        id_Usuario: 45,
+        id_usuario: 45,
         email: 'usuario@finca.com',
         nombre: 'Juan',
         apellido: 'Pérez',
@@ -108,7 +109,7 @@ describe('AuthService', () => {
         rol_sistema: null,
         fincas: [
           {
-            id_Finca: 12,
+            id_finca: 12,
             nombre_finca: 'La Esperanza',
             rol_finca: 'ADMIN_FINCA',
           },
@@ -164,6 +165,7 @@ describe('AuthService', () => {
         nombre: 'Carlos',
         apellido: 'Gómez',
         debe_cambiar_contrasena: true,
+        token_version: 0,
         fecha_alta: new Date('2026-07-14T15:30:00Z'),
         rol_sistema: null,
         usuario_fincas: [],
@@ -200,12 +202,12 @@ describe('AuthService', () => {
         apellido: 'Gómez',
         telefono: '+5493511234567',
         contrasena_temporal: 'TempClave123!',
-        id_Rol: null,
+        id_rol: null,
         estado: EstadoUsuario.PENDIENTE,
       });
 
       expect(result.message).toBe('Usuario registrado correctamente');
-      expect(result.id_Usuario).toBe(46);
+      expect(result.id_usuario).toBe(46);
       expect(usuarios_service.create).toHaveBeenCalledWith(
         expect.objectContaining({
           debe_cambiar_contrasena: true,
@@ -223,7 +225,7 @@ describe('AuthService', () => {
           nombre: 'A',
           apellido: 'B',
           contrasena_temporal: 'TempClave123!',
-          id_Rol: null,
+          id_rol: null,
           estado: EstadoUsuario.PENDIENTE,
         }),
       ).rejects.toMatchObject({
@@ -252,7 +254,7 @@ describe('AuthService', () => {
       await expect(service.validar_invitacion(plain)).resolves.toEqual({
         valido: true,
         email_invitado: 'luis_invitado@finca.com',
-        id_InvitacionFinca: 102,
+        id_invitacion_finca: 102,
       });
     });
 

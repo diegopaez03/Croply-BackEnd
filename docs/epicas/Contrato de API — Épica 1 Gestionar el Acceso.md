@@ -2,11 +2,11 @@
 
 > Este documento define lo que el **backend debe implementar y devolver**, y lo que el **frontend puede esperar recibir**. No es una definición unilateral del frontend — cada endpoint, código de error y shape de respuesta listado acá es responsabilidad del backend implementarlo tal cual está escrito. El frontend se programa contra esta definición (vía mocks mientras el backend no esté listo), pero la definición en sí es un acuerdo entre ambas partes, no una imposición de un lado sobre el otro.
 >
->
 > Revisión hecha contra el Diagrama de Clases y el detalle completo de Criterios de Aceptación de cada HU.
->
 
 ---
+
+
 
 ## Errores transversales (aplican a toda la Épica 1, y en general a todo el sistema)
 
@@ -59,17 +59,15 @@ Esto normalmente se resuelve con un **exception filter global** en NestJS (`@Cat
 *Frontend debe:* mostrar un toast genérico con ese mensaje para cualquier error que no matchee ERR-01/ERR-02 ni un error específico documentado más abajo.
 
 > Nota de implementación frontend: como `field` viaja en la respuesta de ERR-01/ERR-02, el frontend puede resolver esto con **una sola función genérica** (ej. `handleFormError(error, setFieldError)`), reutilizada en todos los formularios — no un handler distinto por pantalla. Pero esto solo funciona si el backend efectivamente devuelve el shape acordado arriba.
->
 
 Los endpoints de abajo solo detallan errores **específicos de esa HU** que no entran en este patrón genérico (ej. mensajes de cuenta inactiva, token expirado) — esos si son particulares y el backend los implementa puntualmente en el endpoint correspondiente.
 
 ## Convención transversal — Respuestas exitosas con mensaje al usuario
 
 > Esta convención no es exclusiva de la Épica 1: aplica a **todo endpoint del sistema**,
-en cualquier épica, que dispare una acción visible para el usuario (crear, actualizar,
-confirmar, dar de baja, etc.). Los contratos de las épicas siguientes no necesitan
-redefinirla — solo deben cumplirla al definir cada endpoint nuevo.
->
+> en cualquier épica, que dispare una acción visible para el usuario (crear, actualizar,
+> confirmar, dar de baja, etc.). Los contratos de las épicas siguientes no necesitan
+> redefinirla — solo deben cumplirla al definir cada endpoint nuevo.
 
 **Backend debe:** en toda respuesta `200 OK` o `201 Created` de un endpoint que dispare
 una acción visible para el usuario, incluir siempre un campo `message` de nivel superior
@@ -94,10 +92,14 @@ transversales.
 
 ---
 
+
+
 ## HU-AC-01. Iniciar sesión en la plataforma
 
 - **Método HTTP y Ruta:** `POST /api/v1/auth/login`
 - **Autenticación:** Pública
+
+
 
 ### Request
 
@@ -108,6 +110,8 @@ transversales.
 }
 ```
 
+
+
 ### Respuesta Exitosa (`200 OK`)
 
 ```json
@@ -116,7 +120,7 @@ transversales.
   "expiresIn": 3600,
   "debe_cambiar_contrasena": false,
   "usuario": {
-  "id_Usuario": 45,
+  "id_usuario": 45,
   "email": "[usuario@finca.com](mailto:usuario@finca.com)",
   "nombre": "Juan",
   "apellido": "Pérez",
@@ -124,19 +128,20 @@ transversales.
   "fecha_alta": "2026-03-15T10:00:00Z",
   "rol_sistema": null,
   "fincas": [
-  { "id_Finca": 12, "nombre_finca": "La Esperanza", "rol_finca": "ADMIN_FINCA" }
+  { "id_finca": 12, "nombre_finca": "La Esperanza", "rol_finca": "ADMIN_FINCA" }
   ] 
  }
 }
 ```
 
 > `debe_cambiar_contrasena: true` es lo que dispara el flujo forzado de HU-AC-06 apenas loguea. El frontend debe bloquear cualquier navegación mientras este flag esté en `true` (ver HU-AC-06 más abajo).
-`rol_sistema` es `null` si el usuario no tiene rol global (ej. es solo Administrador de Finca), o un código tipo `"ADMIN_CROPLY"` si lo tiene. `fincas` es un array. El mismo payload va incluido en el JWT.
->
+> `rol_sistema` es `null` si el usuario no tiene rol global (ej. es solo Administrador de Finca), o un código tipo `"ADMIN_CROPLY"` si lo tiene. `fincas` es un array. El mismo payload va incluido en el JWT.
+
+
 
 ### Errores — deben diferenciarse, no usar un solo mensaje genérico
 
-**`401 Unauthorized`** — credenciales incorrectas (HU no permite indicar cuál campo está mal):
+`401 Unauthorized` — credenciales incorrectas (HU no permite indicar cuál campo está mal):
 
 ```json
 {
@@ -146,7 +151,7 @@ transversales.
 }
 ```
 
-**`403 Forbidden`** — cuenta con credenciales correctas pero no apta para operar:
+`403 Forbidden` — cuenta con credenciales correctas pero no apta para operar:
 
 ```json
 {
@@ -167,11 +172,15 @@ El frontend distingue el mensaje a mostrar por `errorCode`, no por el texto del 
 
 ---
 
+
+
 ## HU-AC-02. Registrar Administrador de Finca desde panel Croply
 
 - **Método HTTP y Ruta:** `POST /api/v1/auth/registrar-admin-finca`
 - **Autenticación:** Requerida (Rol: Administrador Croply)
 - **Headers:** `Authorization: Bearer <JWT>`
+
+
 
 ### Request
 
@@ -184,36 +193,41 @@ Según el formulario descripto en la HU (Nombre, Apellido, Correo, Teléfono opc
   "apellido": "Gómez",
   "telefono": "+5493511234567",
   "contrasena_temporal": "TempClave123!",
-  "id_Rol": null,
+  "id_rol": null,
   "estado": "Pendiente"
 }
 ```
 
 > `estado`: obligatorio, uno de `Activo | Inactivo | Pendiente`, default visual `Pendiente` (el usuario puede cambiarlo en el form).
->
+
+
 
 ### Respuesta Exitosa (`201 Created`)
 
 ```json
 {
  "message": "Usuario registrado correctamente",
-  "id_Usuario": 46,
+  "id_usuario": 46,
   "email": "nuevoadmin@finca.com",
   "nombre": "Carlos",
   "apellido": "Gómez",
   "telefono": "+5493511234567",
   "estado": "Pendiente",
-  "id_Rol": null,
+  "id_rol": null,
   "fecha_alta": "2026-07-14T15:30:00Z",
   "fecha_baja": null
 }
 ```
+
+
 
 ### Errores
 
 `VALIDATION_ERROR` (campo vacío) y `EMAIL_ALREADY_EXISTS` (email duplicado) → ver sección **Errores transversales** (ERR-01 y ERR-02) al inicio del documento. No hay errores particulares de esta HU fuera de esos dos.
 
 ---
+
+
 
 ## HU-AC-03. Registrar usuario invitado mediante enlace de invitación
 
@@ -226,17 +240,17 @@ Esta HU necesita **dos** endpoints, no uno: validar el token antes de mostrar el
 
 Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar el email y detectar si el enlace ya fue usado o expiró.
 
-**`200 OK`** — token válido:
+`200 OK` — token válido:
 
 ```json
 {
   "valido": true,
   "email_invitado": "luis_invitado@finca.com",
-  "id_InvitacionFinca": 102
+  "id_invitacion_finca": 102
 }
 ```
 
-**`410 Gone`** — token ya usado:
+`410 Gone` — token ya usado:
 
 ```json
 {
@@ -246,7 +260,7 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 }
 ```
 
-**`410 Gone`** — token expirado (mismo status, distinto código/mensaje según la HU):
+`410 Gone` — token expirado (mismo status, distinto código/mensaje según la HU):
 
 ```json
 {
@@ -256,21 +270,27 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 }
 ```
 
+
+
 ### 3b. Completar registro
 
 - **Método HTTP y Ruta:** `POST /api/v1/auth/registrar-invitado`
 - **Autenticación:** Pública (token validado en el paso anterior)
 
+
+
 ### Request
 
 ```json
 {
-  "id_InvitacionFinca": 102,
+  "id_invitacion_finca": 102,
   "nombre": "Luis",
   "apellido": "Martínez",
   "contrasena": "InvitadoClave2026!"
 }
 ```
+
+
 
 ### Respuesta Exitosa (`201 Created`)
 
@@ -278,7 +298,7 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 {
   "message": "Registro completado con éxito.",
   "usuario": {
-    "id_Usuario": 47,
+    "id_usuario": 47,
     "email": "luis_invitado@finca.com",
     "nombre": "Luis",
     "apellido": "Martínez",
@@ -290,12 +310,18 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 
 ---
 
+
+
 ## HU-AC-04. Recuperar contraseña olvidada
+
+
 
 ### 4a. Solicitar el enlace de recuperación
 
 - **Método HTTP y Ruta:** `POST /api/v1/auth/olvide-mi-contrasena`
 - **Autenticación:** Pública
+
+
 
 ### Request
 
@@ -305,6 +331,8 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 }
 ```
 
+
+
 ### Respuesta (`200 OK`) — siempre el mismo mensaje, exista o no la cuenta (por seguridad, tal cual pide la HU)
 
 ```json
@@ -313,10 +341,14 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 }
 ```
 
+
+
 ### 4b. Restablecer la contraseña con el token del mail
 
 - **Método HTTP y Ruta:** `POST /api/v1/auth/resetear-contrasena`
 - **Autenticación:** Pública (usa el `token_hash` del mail)
+
+
 
 ### Request
 
@@ -328,6 +360,8 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 }
 ```
 
+
+
 ### Respuesta Exitosa (`200 OK`)
 
 ```json
@@ -337,9 +371,11 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 }
 ```
 
+
+
 ### Errores
 
-**`400 Bad Request`** — contraseñas no coinciden:
+`400 Bad Request` — contraseñas no coinciden:
 
 ```json
 {
@@ -349,7 +385,7 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 }
 ```
 
-**`410 Gone`** — token usado o expirado:
+`410 Gone` — token usado o expirado:
 
 ```json
 {
@@ -361,11 +397,15 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 
 ---
 
+
+
 ## HU-AC-05. Modificar contraseña desde el perfil
 
 - **Método HTTP y Ruta:** `PUT /api/v1/auth/cambio-contrasena`
 - **Autenticación:** Requerida
 - **Headers:** `Authorization: Bearer <JWT>`
+
+
 
 ### Request
 
@@ -377,6 +417,8 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 }
 ```
 
+
+
 ### Respuesta Exitosa (`200 OK`)
 
 ```json
@@ -386,9 +428,11 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 }
 ```
 
+
+
 ### Errores
 
-**`400 Bad Request`** — contraseña actual incorrecta (error específico de esta HU, no entra en el patrón transversal porque no es "campo vacío" ni "duplicado"):
+`400 Bad Request` — contraseña actual incorrecta (error específico de esta HU, no entra en el patrón transversal porque no es "campo vacío" ni "duplicado"):
 
 ```json
 {
@@ -398,7 +442,7 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 }
 ```
 
-**`400 Bad Request`** — nueva contraseña no coincide con confirmación:
+`400 Bad Request` — nueva contraseña no coincide con confirmación:
 
 ```json
 {
@@ -410,6 +454,8 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 
 ---
 
+
+
 ## HU-AC-06. Cambiar contraseña en primer acceso
 
 **Reescrito completo** — el contrato original modelaba esto como flujo por token de mail, pero la HU dice que ocurre inmediatamente después de un login exitoso con contraseña temporal. Es un endpoint **autenticado** (usa el JWT que ya devolvió el login con `debe_cambiar_contrasena: true`), no uno público con token.
@@ -417,6 +463,8 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
 - **Método HTTP y Ruta:** `PUT /api/v1/auth/contrasena-primer-acceso`
 - **Autenticación:** Requerida (JWT obtenido en el login, aunque `debe_cambiar_contrasena` sea `true`)
 - **Headers:** `Authorization: Bearer <JWT>`
+
+
 
 ### Request
 
@@ -426,6 +474,8 @@ Se llama al cargar la pantalla, antes de mostrar el formulario, para precargar e
   "confirmar_contrasena": "MiPrimerClaveSegura1!"
 }
 ```
+
+
 
 ### Respuesta Exitosa (`200 OK`)
 
@@ -439,14 +489,17 @@ Cambia el estado del usuario de `Pendiente` a `Activo` y marca `debe_cambiar_con
 ```
 
 > Nota de implementación frontend: mientras `debe_cambiar_contrasena` sea `true`, el router debe bloquear cualquier ruta que no sea esta pantalla (así lo pide explícitamente la HU: "Espero que el sistema bloquee la navegación... hasta que el cambio sea completado").
->
 
 ---
+
+
 
 ## HU-AC-07. Solicitar digitalización de finca
 
 - **Método HTTP y Ruta:** `POST /api/v1/solicitudes-digitalizacion`
 - **Autenticación:** Pública (landing) — también accesible autenticado desde "Mi Finca", sin diferencias en el payload salvo lo indicado abajo
+
+
 
 ### Request
 
@@ -465,14 +518,15 @@ Cambia el estado del usuario de `Pendiente` a `Activo` y marca `debe_cambiar_con
 ```
 
 > Todos los campos del formulario son **obligatorios, excepto el campo “comentario_adicional” que es opcional.**
->
+
+
 
 ### Respuesta Exitosa (`201 Created`)
 
 ```json
 {
  "message": "¡Solicitud enviada con éxito! Nuestro equipo se pondrá en contacto a la brevedad.",
-  "id_Solicitud": 801,
+  "id_solicitud_df": 801,
   "nombre_completo": "Pedro Picapiedra",
   "correo_electronico": "pedro@cantera.com",
   "estado": "Pendiente",
@@ -482,31 +536,37 @@ Cambia el estado del usuario de `Pendiente` a `Activo` y marca `debe_cambiar_con
 
 ---
 
+
+
 ## Convención de naming
 
-Se mantiene la mezcla `camelCase` / `snake_case` **tal cual figura en el contrato y en el DC/UML del proyecto** (ej. `id_Usuario`, `fecha_alta`, `accessToken`). No se homogeniza a un único estilo — el frontend debe tipar los DTOs respetando esto exactamente.
+Los identificadores van en `snake_case` minúsculas (`id_usuario`, `id_rol`, `id_finca`, `id_invitacion_finca`, `id_solicitud_df`). Se mantiene la mezcla con `camelCase` solo donde el contrato lo define explícitamente (ej. `accessToken`, `expiresIn`).
 
 Valores de `EstadoUsuario` en la API: `Pendiente` | `Activo` | `Inactivo` (el UML muestra `Activa`/`Inactiva`; el contrato API manda).
 
-Diagrama de clases y decisiones UML↔código: [`docs/diseño/Contexto — Diagrama de clases.md`](../diseño/Contexto%20—%20Diagrama%20de%20clases.md).
+Diagrama de clases y decisiones UML↔código: `[docs/diseño/Contexto — Diagrama de clases.md](../diseño/Contexto%20—%20Diagrama%20de%20clases.md)`.
 
 ---
+
+
 
 ## Estado de implementación (backend) — Épica 1
 
 Implementado en NestJS (`api/v1`):
 
-| HU | Endpoint | Estado |
-| --- | --- | --- |
-| AC-01 | `POST /auth/login` | Implementado |
-| AC-02 | `POST /auth/registrar-admin-finca` | Implementado (JWT + `ADMIN_CROPLY`) |
-| AC-03a | `GET /auth/validar-invitacion/:token` | Implementado |
-| AC-03b | `POST /auth/registrar-invitado` | Implementado |
-| AC-04a | `POST /auth/olvide-mi-contrasena` | Implementado (mailer **stub**: log en consola) |
-| AC-04b | `POST /auth/resetear-contrasena` | Implementado |
-| AC-05 | `PUT /auth/cambio-contrasena` | Implementado |
-| AC-06 | `PUT /auth/contrasena-primer-acceso` | Implementado |
-| AC-07 | `POST /solicitudes-digitalizacion` | Implementado (público; JWT opcional) |
+
+| HU     | Endpoint                              | Estado                                         |
+| ------ | ------------------------------------- | ---------------------------------------------- |
+| AC-01  | `POST /auth/login`                    | Implementado                                   |
+| AC-02  | `POST /auth/registrar-admin-finca`    | Implementado (JWT + `ADMIN_CROPLY`)            |
+| AC-03a | `GET /auth/validar-invitacion/:token` | Implementado                                   |
+| AC-03b | `POST /auth/registrar-invitado`       | Implementado                                   |
+| AC-04a | `POST /auth/olvide-mi-contrasena`     | Implementado (mailer **stub**: log en consola) |
+| AC-04b | `POST /auth/resetear-contrasena`      | Implementado                                   |
+| AC-05  | `PUT /auth/cambio-contrasena`         | Implementado                                   |
+| AC-06  | `PUT /auth/contrasena-primer-acceso`  | Implementado                                   |
+| AC-07  | `POST /solicitudes-digitalizacion`    | Implementado (público; JWT opcional)           |
+
 
 Errores transversales ERR-01 / ERR-02 / ERR-03 vía `AllExceptionsFilter` global.
 
@@ -519,6 +579,8 @@ Errores transversales ERR-01 / ERR-02 / ERR-03 vía `AllExceptionsFilter` global
 - Refresh token (variables en `.env` existen; este contrato no lo exige)
 - Tests e2e Nest (`test/` aún no armado)
 - Deploy Railway / CI en este repo
+
+
 
 ### Credenciales de prueba (seed desarrollo)
 

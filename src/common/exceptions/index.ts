@@ -5,4 +5,6 @@ export {
   requiredField,
   duplicateValue,
   unexpectedError,
+  resourceNotFound,
+  resourceInUse,
 } from './domain.exception';

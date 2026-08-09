@@ -4,7 +4,7 @@
 > Imagen de referencia: [`Diagrama UML - Diagrama de clases.jpg`](./Diagrama%20UML%20-%20Diagrama%20de%20clases.jpg)  
 > Ubicación: `docs/diseño/`
 
-Este archivo traduce el diagrama a lenguaje útil para backend, frontend y QA: qué modela cada clase, cómo se relacionan, qué enums existen y **qué decisiones de implementación** tomó el backend respecto del UML (especialmente en Épica 1).
+Este archivo traduce el diagrama a lenguaje útil para backend, frontend y QA: qué modela cada clase, cómo se relacionan, qué enums existen y **qué decisiones de implementación** tomó el backend respecto del UML (Épicas 1 y 2).
 
 ---
 
@@ -15,7 +15,7 @@ El diagrama de clases es el **modelo de dominio conceptual** del sistema Croply:
 No es un dump 1:1 de tablas TypeORM. En backend:
 
 - Se implementan las entidades **necesarias por épica**.
-- El contrato de API puede ajustar nombres JSON (`id_Usuario` vs `id_usuario`) y valores de enum.
+- El contrato de API usa identificadores JSON en `snake_case` minúsculas (`id_usuario`, `id_rol`, …).
 - Campos o relaciones que el UML no detalla pero una HU exige (ej. token de invitación, `debe_cambiar_contrasena`) se documentan como **extensiones al modelo**.
 
 ---
@@ -26,13 +26,13 @@ Bloques principales visibles en el diagrama:
 
 | Bloque | Clases clave | Notas |
 | --- | --- | --- |
-| Acceso / identidad | `Usuario`, `Rol`, `RolSistema`, `RolFinca`, `UsuarioFinca`, `ResetsContrasena`, `InvitacionFinca`, `Permiso`, `RolPermiso` | Núcleo de Épica 1 |
-| Onboarding | `SolicitudDigitalizacionFinca` | HU-AC-07 |
-| Finca / terreno | `Finca`, parcelas, ubicaciones | Parcialmente en Épica 1 (stub `Finca`) |
-| Producción | Cultivos, épocas, planes | Fuera de Épica 1 |
-| Operación de campo | Tareas, notas, planes de acción | Fuera de Épica 1 |
+| Acceso / identidad | `Usuario`, `Rol`, `RolSistema`, `RolFinca`, `UsuarioFinca`, `ResetsContrasena`, `InvitacionFinca`, `Permiso`, `RolPermiso` | Épicas 1 y 2 |
+| Onboarding | `SolicitudDigitalizacionFinca` | HU-AC-07 / HU-GU-13 |
+| Finca / terreno | `Finca`, parcelas, ubicaciones | Stub `Finca` + roles/invitaciones Épica 2 |
+| Producción | Cultivos, épocas, planes | Fuera de alcance actual |
+| Operación de campo | Tareas, notas, planes de acción | Fuera de alcance actual |
 | Clima / IoT | Condiciones, transmisiones, sensores | Fuera de este backend o épicas posteriores |
-| Transversal | `LogOperaciones`, `Notificacion` | Fuera de Épica 1 |
+| Transversal | `LogOperaciones`, `Notificacion` | `LogOperaciones` en Épica 2; notificaciones pendientes |
 
 ---
 
@@ -42,7 +42,7 @@ Bloques principales visibles en el diagrama:
 
 | Atributo UML | Tipo (diagrama) | Notas de implementación |
 | --- | --- | --- |
-| `id_usuario` | Long | PK `bigint`; en JSON del contrato: `id_Usuario` |
+| `id_usuario` | Long | PK `bigint`; JSON: `id_usuario` |
 | `email` | String | Único, normalizado a minúsculas |
 | `contrasena` | String | Hash bcrypt (nunca plain text) |
 | `estado` | EstadoUsuario | Ver §5 — API usa `Activo` / `Inactivo` / `Pendiente` |
@@ -55,6 +55,7 @@ Bloques principales visibles en el diagrama:
 | Campo | Tipo | Uso |
 | --- | --- | --- |
 | `debe_cambiar_contrasena` | boolean | `true` tras registro con contraseña temporal; dispara flujo de primer acceso |
+| `token_version` | int | Invalidación de JWT al inactivar cuenta (HU-GU-06) |
 
 ### 3.2 Roles (herencia)
 
@@ -68,6 +69,8 @@ Rol <<abstract>>
 | --- | --- |
 | Herencia JPA-style | STI: tabla `roles` + discriminator `tipo` (`sistema` \| `finca`) |
 | `Usuario` → `RolSistema` multiplicidad **1** | Relación **opcional** (`null` si el usuario solo opera en fincas) — alineado al contrato (`rol_sistema: null`) |
+| `Rol.descripcion` | Text nullable (Épica 2) |
+| `RolFinca.id_finca` | Nullable: `null` = plantilla seed (`ADMIN_FINCA`); no null = rol custom de esa finca |
 
 ### 3.3 `UsuarioFinca`
 
@@ -78,7 +81,7 @@ Asociación Usuario ↔ Finca con rol de finca.
 | `fecha_asociacion_rol` | Alta del vínculo |
 | `fecha_fin_rol` | Si no es null y ya pasó, el vínculo no se incluye en el login |
 
-El login arma el array `fincas[]` con `{ id_Finca, nombre_finca, rol_finca }` a partir de `UsuarioFinca` vigentes.
+El login arma el array `fincas[]` con `{ id_finca, nombre_finca, rol_finca }` a partir de `UsuarioFinca` vigentes.
 
 ### 3.4 `ResetsContrasena`
 
@@ -97,7 +100,7 @@ El login arma el array `fincas[]` con `{ id_Finca, nombre_finca, rol_finca }` a 
 
 | Atributo UML | Uso |
 | --- | --- |
-| `id_invitacion_finca` | PK; en API: `id_InvitacionFinca` |
+| `id_invitacion_finca` | PK; en API: `id_invitacion_finca` |
 | `email_invitado` | Precarga del formulario de registro |
 | `fecha_envio`, `fecha_respuesta` | Ciclo de vida |
 | `estado` | EstadoInvitacion |
@@ -110,6 +113,7 @@ Relaciones: composición desde `Finca`; `invitadoPor` (Usuario); `usuarioRegistr
 | --- | --- |
 | `token_hash` | Validar `GET /auth/validar-invitacion/:token` |
 | `fecha_fin_vigencia` | Distinguir `INVITATION_EXPIRED` |
+| `fecha_cancelacion` | Cancelación al inactivar usuario Pendiente (HU-GU-06) |
 
 ### 3.6 `SolicitudDigitalizacionFinca`
 
@@ -118,7 +122,7 @@ Campos del formulario de landing (nombre, correo, teléfono, ubicación, parcela
 | UML | Backend |
 | --- | --- |
 | Relación a `Usuario` multiplicidad 1 | **`id_usuario` opcional** — el endpoint es público; si hay JWT se asocia, si no queda null |
-| `id_solicitudDF` | En API: `id_Solicitud` |
+| `id_solicitudDF` | En API: `id_solicitud_df` |
 
 ### 3.7 `Finca` (mínimo para login)
 
@@ -142,8 +146,8 @@ Campos del formulario de landing (nombre, correo, teléfono, ubicación, parcela
 | Finca ◆— InvitacionFinca | 1 — 0..\* | Composición |
 | InvitacionFinca — RolFinca | * — 1 | Rol ofrecido |
 | InvitacionFinca — Usuario (registrado) | * — 0..1 | |
-| Rol — RolPermiso — Permiso | N:M | **No implementado** en Épica 1 |
-| Usuario — LogOperaciones | 1 — 0..\* | **No implementado** |
+| Rol — RolPermiso — Permiso | N:M | Implementado en Épica 2 |
+| Usuario — LogOperaciones | 1 — 0..\* | Implementado en Épica 2 (side-effect) |
 | Usuario — Notificacion | 1 — 0..\* | **No implementado** |
 
 ---
@@ -155,7 +159,7 @@ Campos del formulario de landing (nombre, correo, teléfono, ubicación, parcela
 | Enum | Valores UML |
 | --- | --- |
 | `EstadoUsuario` | `Pendiente`, `Activa`, `Inactiva` |
-| `EstadoInvitacion` | `Pendiente`, `Aceptada`, `Rechazada` |
+| `EstadoInvitacion` | `Pendiente`, `Aceptada`, `Rechazada` (+ API: `Cancelada`) |
 | `EstadoSolicitud` | `Pendiente`, `Contactado`, `Aprobada`, `Rechazada` |
 | `TipoOperacion` | `Éxito`, `Fallo`, `Operacion_destructiva` |
 | `TipoNotificacion` | varios (alerta climática, IA, etc.) |
@@ -165,7 +169,7 @@ Campos del formulario de landing (nombre, correo, teléfono, ubicación, parcela
 | Enum | Valores API |
 | --- | --- |
 | `EstadoUsuario` | `Pendiente`, **`Activo`**, **`Inactivo`** (masculino, como el contrato) |
-| `EstadoInvitacion` | igual al UML |
+| `EstadoInvitacion` | UML + `Cancelada` |
 | `EstadoSolicitud` | igual al UML |
 
 Códigos de rol usados hoy:
@@ -177,16 +181,17 @@ Códigos de rol usados hoy:
 
 ## 6. Decisiones de alineación UML ↔ contrato ↔ código
 
-Acordadas al implementar Épica 1:
+Acordadas al implementar Épicas 1 y 2:
 
-1. **Naming JSON del contrato** (`id_Usuario`, `id_Finca`, `Activo`/`Inactivo`) sobre el naming literal del UML.
-2. **`debe_cambiar_contrasena`** en `Usuario`.
-3. **`token_hash` + vigencia** en `InvitacionFinca`.
+1. **Naming JSON** en minúsculas (`id_usuario`, `id_finca`, `id_solicitud_df`) + `Activo`/`Inactivo`.
+2. **`debe_cambiar_contrasena`** y **`token_version`** en `Usuario`.
+3. **`token_hash` + vigencia + `fecha_cancelacion`** en `InvitacionFinca`.
 4. **`RolSistema` opcional** en Usuario.
 5. **`id_usuario` opcional** en solicitud de digitalización.
-6. **`id_finca` numérico**.
-7. **Solo entidades mínimas de Épica 1** — sin `Permiso`, `RolPermiso`, `LogOperaciones`, notificaciones ni dominio agrícola completo.
-8. **Mailer stub** — no hay clase de correo en el UML; el envío de links se loguea en consola en desarrollo.
+6. **`id_finca` numérico**; **`RolFinca.id_finca` nullable** (plantilla vs custom).
+7. **Épica 2:** `Permiso`, `RolPermiso`, `LogOperaciones` + seed de catálogo (7 sistema / 3 finca).
+8. **Mailer stub** — envío de links (reset e invitaciones) se loguea en consola en desarrollo.
+9. **AuthZ HTTP por rol** (Admin Croply / Admin Finca); permisos como dato de ABM, no middleware granular.
 
 ### Regla de login vs estados (aclaración al contrato)
 
@@ -208,25 +213,26 @@ Ver nota actualizada en el contrato de Épica 1.
 | Concepto UML | Módulo / ubicación |
 | --- | --- |
 | Usuario | `src/modules/usuarios` |
-| Rol / RolSistema / RolFinca | `src/modules/roles` |
+| Rol / RolSistema / RolFinca / Permiso / RolPermiso | `src/modules/roles` |
 | Finca, UsuarioFinca, InvitacionFinca | `src/modules/fincas` |
 | ResetsContrasena + endpoints auth | `src/modules/auth` |
 | SolicitudDigitalizacionFinca | `src/modules/solicitudes-digitalizacion` |
-| Seed admins desarrollo | `src/database/seed` |
+| LogOperaciones | `src/modules/log-operaciones` |
+| Seed admins / permisos | `src/database/seed` + `RolesService` |
 
 ---
 
-## 8. Fuera del diagrama / fuera de Épica 1 (recordatorio)
+## 8. Fuera del diagrama / fuera de alcance actual (recordatorio)
 
 No confundir “está en el diagrama” con “está implementado”:
 
 - CRUD de fincas, parcelas, cultivos, reportes
-- RBAC fino (`Permiso` / `RolPermiso`)
-- `LogOperaciones`, notificaciones
-- Refresh token persistido (vars en `.env` existen; contrato Épica 1 no lo exige)
+- RBAC middleware por permiso individual
+- Notificaciones
+- Refresh token persistido (vars en `.env` existen; contrato no lo exige)
 - SMTP real, e2e Nest armado, CI/Railway
 
-Detalle operativo: [`CONTEXT.md`](../../CONTEXT.md) y contrato en [`docs/epicas/`](../epicas/).
+Detalle operativo: [`CONTEXT.md`](../../CONTEXT.md) y contratos en [`docs/epicas/`](../epicas/).
 
 ---
 
@@ -238,4 +244,4 @@ Detalle operativo: [`CONTEXT.md`](../../CONTEXT.md) y contrato en [`docs/epicas/
 
 ---
 
-*Documento vivo. Última actualización alineada a la implementación de Épica 1 (Gestionar el Acceso).*
+*Documento vivo. Última actualización alineada a la implementación de Épica 2 (Administrar Usuarios y Roles).*

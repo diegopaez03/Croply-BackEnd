@@ -19,21 +19,22 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 
 ### Estado actual
 
-**Épica 1 — Gestionar el Acceso** implementada:
+**Épica 1 — Gestionar el Acceso** y **Épica 2 — Administrar Usuarios y Roles** implementadas:
 
 | Módulo | Contenido |
 | --- | --- |
 | `health` | `GET /health` |
 | `auth` | Login, registro admin finca / invitado, reset y cambio de contraseña, primer acceso |
-| `usuarios` | Entidad + servicio de usuarios |
-| `fincas` | Stub `Finca`, `UsuarioFinca`, `InvitacionFinca` |
-| `roles` | STI `Rol` / `RolSistema` / `RolFinca` + seed de códigos |
-| `solicitudes-digitalizacion` | `POST /solicitudes-digitalizacion` |
-| `database/seed` | Admins Croply del equipo (Diego, Rodrigo, Paula) |
+| `usuarios` | Perfil `/me`, listado Croply, asignar rol sistema, cambiar estado |
+| `fincas` | Roles de finca, usuarios de finca (scoped y multi-finca), invitaciones, asignación de rol |
+| `roles` | ABM roles sistema, catálogo de permisos, `Permiso` / `RolPermiso` |
+| `solicitudes-digitalizacion` | Alta pública + listado/detalle/estado (Admin Croply) |
+| `log-operaciones` | Auditoría interna (HU-GU-12), sin endpoint FE |
+| `database/seed` | Admins Croply + fincas demo con su Admin de Finca y empleados + roles + catálogo de permisos |
 
 Placeholders (sin lógica de negocio aún): `parcelas`, `cultivos`, `reportes`.
 
-Contrato: [`docs/epicas/Contrato de API — Épica 1 Gestionar el Acceso.md`](docs/epicas/Contrato%20de%20API%20—%20Épica%201%20Gestionar%20el%20Acceso.md).
+Contratos: [`docs/epicas/`](docs/epicas/).
 
 ---
 
@@ -73,15 +74,23 @@ Variables clave (ver `.env.example`): `PORT`, `API_PREFIX`, `SWAGGER_ENABLED`, `
 
 ### Credenciales de prueba (seed)
 
-Al arrancar, si la DB responde, se crean (si no existen) tres usuarios `ADMIN_CROPLY`:
+Al arrancar, si la DB responde, se crean (si no existen) los usuarios de desarrollo. Todos con estado `Activo` y la misma contraseña: `CroplyAdmin123!` (o `SEED_ADMIN_PASSWORD`). Seed idempotente (`src/database/seed`).
 
-| Persona | Email | Contraseña |
+**Admin Croply:**
+
+| Persona | Email |
+| --- | --- |
+| Diego Páez | `diego@croply.app` |
+| Rodrigo Sanz | `rodrigo@croply.app` |
+| Paula Rodríguez | `paula@croply.app` |
+
+**Ámbito finca** — dos fincas demo (`Finca Demo Croply`, `Finca Demo Sur`) para poder probar el selector multi-finca:
+
+| Rol | Email | Alcance |
 | --- | --- | --- |
-| Diego Páez | `diego@croply.app` | `CroplyAdmin123!` (o `SEED_ADMIN_PASSWORD`) |
-| Rodrigo Sanz | `rodrigo@croply.app` | misma |
-| Paula Rodríguez | `paula@croply.app` | misma |
-
-Estado: `Activo`. Seed idempotente (`src/database/seed`).
+| Administrador de Finca | `admin.finca@croply.app` | Ambas fincas |
+| Encargado | `encargado.finca@croply.app` | Finca Demo Croply |
+| Operario | `operario.finca@croply.app` | Finca Demo Croply |
 
 ### Migraciones
 
@@ -125,9 +134,10 @@ src/
 └── modules/
     ├── health/
     ├── auth/               # JWT, guards, endpoints /auth/*
-    ├── usuarios/
-    ├── fincas/
-    ├── roles/
+    ├── usuarios/           # perfil, listados, estado, rol sistema
+    ├── fincas/             # roles finca, usuarios, invitaciones
+    ├── roles/              # ABM sistema, permisos
+    ├── log-operaciones/    # auditoría interna
     ├── solicitudes-digitalizacion/
     ├── parcelas/           # placeholder
     ├── cultivos/           # placeholder
@@ -165,13 +175,14 @@ Para PRs a `main`, la revisión prioritaria es del Arquitecto.
 - Archivos Nest: `*.module.ts`, `*.controller.ts`, `*.service.ts`, `*.entity.ts`, `*.dto.ts`, `*.spec.ts`.
 - DTOs: `CreateXDto`, `UpdateXDto`, `XResponseDto`, `XQueryDto`.
 - Clases en PascalCase; atributos, métodos y variables de código en snake_case; constantes en `SCREAMING_SNAKE`.
-- Columnas DB en snake_case; JSON de API según contrato (mezcla `id_Usuario` / `accessToken`).
+- Columnas DB en snake_case; JSON de API con `id_*` en minúsculas (`id_usuario`, `id_rol`, …) y `camelCase` solo donde el contrato lo pide (`accessToken`).
 
 | Tag Swagger | Módulo |
 | --- | --- |
 | Health | `modules/health` |
 | Auth | `modules/auth` |
 | Usuarios | `modules/usuarios` |
+| Roles | `modules/roles` |
 | Fincas | `modules/fincas` |
 | Cultivos | `modules/cultivos` |
 | Parcelas | `modules/parcelas` |
@@ -236,6 +247,7 @@ Railway (deploy futuro), Open-Meteo (clima), Croply IoT Simulator. No bloquean e
 6. **Prefijo `API_PREFIX`** — el controller solo declara el segmento local. Server OpenAPI = origen sin prefijo.
 7. **Mailer stub** en desarrollo (links en log); SMTP real fuera de alcance actual.
 8. **UML ↔ código**: ver [`docs/diseño/Contexto — Diagrama de clases.md`](docs/diseño/Contexto%20—%20Diagrama%20de%20clases.md).
+9. **Multi-finca** — un usuario puede administrar varias fincas. El alcance nunca se infiere del JWT: viaja en la URL (`/fincas/:id_finca/...`) o en la query (`/fincas/usuarios?id_finca=`). `GET /fincas/mis-fincas` alimenta el selector de finca activa del frontend.
 
 ### Regla de login (Épica 1)
 
@@ -248,11 +260,11 @@ Railway (deploy futuro), Open-Meteo (clima), Croply IoT Simulator. No bloquean e
 
 ## 7. Fuera de alcance (hoy)
 
-Respecto de Épica 1 y del diagrama completo:
+Respecto del diagrama completo y épicas futuras:
 
 - CRUD de fincas, parcelas, cultivos, reportes
-- `Permiso` / `RolPermiso` / RBAC granular
-- `LogOperaciones`, notificaciones
+- RBAC middleware por permiso individual (los permisos se administran; la auth HTTP sigue por rol)
+- Notificaciones
 - SMTP real
 - Refresh token como endpoint
 - Suite e2e Nest (`test/jest-e2e.json` pendiente)
@@ -283,7 +295,7 @@ No hay push directo a `main` ni `develop`.
 
 Estándar: **TDD** (red → green) en seams acordados. Skill: [`.agent/skills/Test-Driven Development/`](.agent/skills/Test-Driven%20Development/).
 
-Seams actuales de Épica 1: `AllExceptionsFilter`, `AuthService`, `SolicitudesDigitalizacionService`, `SeedService`.
+Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`.
 
 Antes de pasar a revisión:
 

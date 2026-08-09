@@ -38,7 +38,7 @@ export class RegistrarAdminFincaDto {
   @ApiPropertyOptional({ example: null, nullable: true })
   @ValidateIf((_, v) => v !== null && v !== undefined)
   @IsOptional()
-  id_Rol?: number | null;
+  id_rol?: number | null;
 
   @ApiProperty({ enum: EstadoUsuario, example: EstadoUsuario.PENDIENTE })
   @IsEnum(EstadoUsuario)
