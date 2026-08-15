@@ -91,19 +91,7 @@ export class AuthService {
       );
     }
 
-    const expires_in_raw = this.config.get<string>('JWT_EXPIRES_IN', '1h');
-    const expiresIn = parse_expires_in_seconds(expires_in_raw);
-    const accessToken = await this.jwt_service.signAsync(
-      this.build_jwt_payload(usuario),
-      { expiresIn: expires_in_raw as number | `${number}${'s' | 'm' | 'h' | 'd'}` },
-    );
-
-    return {
-      accessToken,
-      expiresIn,
-      debe_cambiar_contrasena: usuario.debe_cambiar_contrasena,
-      usuario: this.map_usuario_login(usuario),
-    };
+    return this.emitir_sesion(usuario);
   }
 
   async registrar_admin_finca(dto: RegistrarAdminFincaDto) {
@@ -377,10 +365,14 @@ export class AuthService {
     usuario.estado = EstadoUsuario.ACTIVO;
     await this.usuarios_service.save(usuario);
 
+    const actualizado =
+      (await this.usuarios_service.find_by_id(id_usuario)) ?? usuario;
+
     return {
       success: true,
       message:
         'Contraseña configurada con éxito. Su cuenta ya se encuentra activa.',
+      ...(await this.emitir_sesion(actualizado)),
     };
   }
 
@@ -402,6 +394,24 @@ export class AuthService {
       }
     }
     return null;
+  }
+
+  private async emitir_sesion(usuario: Usuario) {
+    const expires_in_raw = this.config.get<string>('JWT_EXPIRES_IN', '1h');
+    const expiresIn = parse_expires_in_seconds(expires_in_raw);
+    const accessToken = await this.jwt_service.signAsync(
+      this.build_jwt_payload(usuario),
+      {
+        expiresIn: expires_in_raw as number | `${number}${'s' | 'm' | 'h' | 'd'}`,
+      },
+    );
+
+    return {
+      accessToken,
+      expiresIn,
+      debe_cambiar_contrasena: usuario.debe_cambiar_contrasena,
+      usuario: this.map_usuario_login(usuario),
+    };
   }
 
   private build_jwt_payload(usuario: Usuario): AuthJwtPayload {
