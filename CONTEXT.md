@@ -19,7 +19,7 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 
 ### Estado actual
 
-**Épica 1 — Gestionar el Acceso** y **Épica 2 — Administrar Usuarios y Roles** implementadas:
+**Épica 1 — Gestionar el Acceso**, **Épica 2 — Administrar Usuarios y Roles** y **Épica 4 — Planificar Cultivos** (HU-BC-01 a HU-BC-05) implementadas:
 
 | Módulo | Contenido |
 | --- | --- |
@@ -30,9 +30,12 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 | `roles` | ABM roles sistema, catálogo de permisos, `Permiso` / `RolPermiso` |
 | `solicitudes-digitalizacion` | Alta pública + listado/detalle/estado (Admin Croply) |
 | `log-operaciones` | Auditoría interna (HU-GU-12), sin endpoint FE |
-| `database/seed` | Admins Croply + fincas demo con su Admin de Finca y empleados + roles + catálogo de permisos |
+| `cultivos` | Biblioteca de cultivos base y variedades; plantillas de plan base (hitos/tareas); búsqueda y filtros |
+| `database/seed` | Admins Croply + fincas demo + biblioteca demo (Tomate, Ajo, plantilla general de Tomate) + roles + catálogo de permisos |
 
-Placeholders (sin lógica de negocio aún): `parcelas`, `cultivos`, `reportes`.
+Placeholders (sin lógica de negocio aún): `parcelas`, `reportes`.
+
+**HU-BC-06** (generar/editar plan de acción en parcela) **no está implementada**: depende de Épica 3 (`Parcela`, `PlanAccion`) y Épica 5 (ABM `TipoTarea` / entidad `Tarea`). Ver [`docs/diseño/Contexto — Diagrama de clases.md`](docs/diseño/Contexto%20—%20Diagrama%20de%20clases.md) § HU-BC-06.
 
 Contratos: [`docs/epicas/`](docs/epicas/).
 
@@ -92,6 +95,8 @@ Al arrancar, si la DB responde, se crean (si no existen) los usuarios de desarro
 | Encargado | `encargado.finca@croply.app` | Finca Demo Croply |
 | Operario | `operario.finca@croply.app` | Finca Demo Croply |
 
+**Biblioteca demo (Épica 4):** al arrancar se siembran (si no existen) el cultivo **Tomate** (variedades Perita y Redondo) con plantilla general `Plan de Cultivo de Tomate`, y el cultivo **Ajo** sin plantilla.
+
 ### Migraciones
 
 Preferir `DB_SYNCHRONIZE=true` en desarrollo local (valor por defecto del ejemplo). En entornos serios: migraciones TypeORM (`pnpm migration:*`).
@@ -140,9 +145,9 @@ src/
     ├── roles/              # ABM sistema, permisos
     ├── log-operaciones/    # auditoría interna
     ├── solicitudes-digitalizacion/
-    ├── parcelas/           # placeholder
-    ├── cultivos/           # placeholder
-    └── reportes/           # placeholder
+    ├── cultivos/               # biblioteca + plantillas base (Épica 4)
+    ├── parcelas/               # placeholder
+    └── reportes/               # placeholder
 ```
 
 Path aliases (`tsconfig.json`): `@modules/*`, `@config/*`, `@common/*`, `@database/*`.
@@ -263,7 +268,9 @@ Railway (deploy futuro), Open-Meteo (clima), Croply IoT Simulator. No bloquean e
 
 Respecto del diagrama completo y épicas futuras:
 
-- CRUD de fincas, parcelas, cultivos, reportes
+- CRUD de fincas, parcelas y reportes
+- HU-BC-06 (plan de acción real sobre parcela) — espera Épicas 3 y 5
+- ABM de `TipoTarea` / entidad `Tarea` (hoy hay un catálogo mock en `cultivos/tipo-tarea.catalog.ts`)
 - RBAC middleware por permiso individual (los permisos se administran; la auth HTTP sigue por rol)
 - Notificaciones
 - SMTP real
@@ -296,7 +303,7 @@ No hay push directo a `main` ni `develop`.
 
 Estándar: **TDD** (red → green) en seams acordados. Skill: [`.agent/skills/Test-Driven Development/`](.agent/skills/Test-Driven%20Development/).
 
-Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`.
+Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`, `CultivosBaseService`, `PlantillasBaseService`.
 
 Antes de pasar a revisión:
 

@@ -7,4 +7,6 @@ export {
   TipoOperacion,
   CODIGO_ADMIN_CROPLY,
   CODIGO_ADMIN_FINCA,
+  EpocaCultivo,
+  FormaSiembra,
 } from './estado.enum';
