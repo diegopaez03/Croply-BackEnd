@@ -46,7 +46,7 @@ export function ApiErrorResponses(options: ApiErrorResponsesOptions = {}) {
     internalServerError = true,
   } = options;
 
-  const decorators = [];
+  const decorators: MethodDecorator[] = [];
 
   if (badRequest) {
     decorators.push(

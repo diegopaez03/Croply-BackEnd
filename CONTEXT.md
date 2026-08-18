@@ -104,7 +104,8 @@ pnpm start:dev
 pnpm test
 pnpm test:cov
 pnpm test:e2e   # requiere carpeta test/ (aún pendiente de armar)
-pnpm lint
+pnpm lint       # análisis estático (no modifica archivos)
+pnpm lint:fix   # auto-fix opcional
 pnpm format
 ```
 
@@ -269,7 +270,7 @@ Respecto del diagrama completo y épicas futuras:
 - Refresh token como endpoint
 - Suite e2e Nest (`test/jest-e2e.json` pendiente)
 - CI (GitHub Actions) y deploy Railway en este repo
-- Config ESLint/Prettier de proyecto cerrada (scripts existen; no asumir que `pnpm lint` está listo)
+- Cerrar todos los findings de ESLint (la config está lista; el backlog vive en `docs/calidad/`)
 
 ---
 
@@ -300,6 +301,7 @@ Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosS
 Antes de pasar a revisión:
 
 - [ ] Tests en verde
+- [ ] `pnpm lint` ejecutado (no se espera cero findings todavía; ver `docs/calidad/`)
 - [ ] Checklist Swagger
 - [ ] Probar en Swagger si aplica
 - [ ] Commit Conventional Commits
@@ -339,6 +341,7 @@ Health: `GET /api/v1/health`. Login de humo: `POST /api/v1/auth/login` con un ad
 | [`docs/diseño/Contexto — Diagrama de clases.md`](docs/diseño/Contexto%20—%20Diagrama%20de%20clases.md) | UML ↔ implementación |
 | [`docs/diseño/Diagrama UML - Diagrama de clases.jpg`](docs/diseño/Diagrama%20UML%20-%20Diagrama%20de%20clases.jpg) | Imagen UML |
 | [`.env.example`](.env.example) | Variables |
+| [`docs/calidad/informe-analisis-estatico.md`](docs/calidad/informe-analisis-estatico.md) | ESLint: herramienta, Antes/Después |
 
 ---
 

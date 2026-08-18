@@ -59,4 +59,7 @@ async function bootstrap() {
   }
 }
 
-bootstrap();
+bootstrap().catch((err: unknown) => {
+  console.error('Failed to start Croply API', err);
+  process.exit(1);
+});
