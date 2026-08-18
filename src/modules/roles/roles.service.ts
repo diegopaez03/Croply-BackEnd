@@ -317,7 +317,7 @@ export class RolesService implements OnModuleInit {
 
     return {
       message: 'Rol creado correctamente',
-      ...(await this.map_rol_finca(completo!, id_finca)),
+      ...(await this.map_rol_finca(completo, id_finca)),
     };
   }
 
@@ -363,7 +363,7 @@ export class RolesService implements OnModuleInit {
 
     return {
       message: 'Rol actualizado correctamente',
-      ...(await this.map_rol_finca(completo!, id_finca)),
+      ...(await this.map_rol_finca(completo, id_finca)),
     };
   }
 

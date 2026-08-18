@@ -330,12 +330,19 @@ describe('AuthService', () => {
   });
 
   describe('contrasena_primer_acceso', () => {
-    it('activa la cuenta y limpia debe_cambiar_contrasena', async () => {
+    it('activa la cuenta, limpia debe_cambiar_contrasena y emite un JWT nuevo', async () => {
       const usuario = {
         id_usuario: 1,
+        email: 'pedro@martinez.com',
         estado: EstadoUsuario.PENDIENTE,
         debe_cambiar_contrasena: true,
         contrasena: 'hash',
+        nombre: 'Pedro',
+        apellido: 'Martinez',
+        token_version: 0,
+        fecha_alta: new Date('2026-08-14T12:00:00Z'),
+        rol_sistema: null,
+        usuario_fincas: [],
       };
       usuarios_service.find_by_id.mockResolvedValue(usuario);
       usuarios_service.save.mockImplementation(async (u) => u);
@@ -348,6 +355,17 @@ describe('AuthService', () => {
       expect(result.success).toBe(true);
       expect(usuario.estado).toBe(EstadoUsuario.ACTIVO);
       expect(usuario.debe_cambiar_contrasena).toBe(false);
+      expect(result.accessToken).toBe('jwt-token');
+      expect(result.debe_cambiar_contrasena).toBe(false);
+      expect(jwt_service.signAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sub: 1,
+          email: 'pedro@martinez.com',
+          debe_cambiar_contrasena: false,
+          estado: EstadoUsuario.ACTIVO,
+        }),
+        expect.any(Object),
+      );
     });
   });
 
