@@ -69,6 +69,32 @@ Si no existen tipos de sensor activos:
 
 ---
 
+### Consultar catálogo de códigos de tipo de sensor
+
+`GET /api/v1/tipos-sensor/codigos-disponibles`
+
+> Expone el catálogo cerrado de códigos soportados actualmente por el simulador
+> IoT, para que el frontend no necesite mantener una copia hardcodeada
+> desincronizada del backend. Es de solo lectura: no consulta la tabla
+> `tipos_sensor`, devuelve el catálogo fijo definido en el backend.
+
+```json
+{
+  "codigos_tipo_sensor": [
+    "TEMP_HUME_AMBIENTAL",
+    "HUMEDAD_SUELO",
+    "RADIACION_SOLAR",
+    "PRECIPITACION",
+    "PH"
+  ]
+}
+```
+
+> Mismo requisito de autenticación que el resto de HU-IoT-01 (Rol: Administrador
+> Croply). No introduce errores nuevos: solo aplica el 401/403 transversales.
+
+---
+
 ### Crear tipo de sensor
 
 `POST /api/v1/tipos-sensor`

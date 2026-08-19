@@ -272,6 +272,39 @@ Respecto del diagrama completo y épicas futuras:
 - CI (GitHub Actions) y deploy Railway en este repo
 - Cerrar todos los findings de ESLint (la config está lista; el backlog vive en `docs/calidad/`)
 
+
+### HU-IoT-01 — ABM de tipos de sensor (Épica 7)
+
+**Alcance implementado:** ABM completo de `TipoSensor` (`src/modules/tipos-sensor/`):
+listar, crear, editar y dar de baja (lógica), protegido con rol Administrador Croply.
+
+**Relación con el simulador IoT:** `codigo_tipo_sensor` es el campo puente entre
+Croply y el simulador externo, que expone un catálogo cerrado de 5 valores
+(`TEMP_HUME_AMBIENTAL`, `HUMEDAD_SUELO`, `RADIACION_SOLAR`, `PRECIPITACION`, `PH`).
+El catálogo vive como `enum CodigoTipoSensor` en `tipos-sensor/enums/`, local al
+módulo porque hoy ningún otro módulo lo necesita. Si el simulador incorpora un
+código nuevo, se amplía agregando un valor a ese enum — no requiere cambios en
+la arquitectura general.
+
+**Auditoría:** `TipoSensor` no tiene `id_usuario` ni `fecha_ultima_modificacion`
+propios (decisión de diseño, no un olvido). Alta, edición y baja se registran vía
+`LogOperacionesService.registrar(...)`, igual que en `roles`/`fincas`. La baja usa
+`TipoOperacion.OPERACION_DESTRUCTIVA`; alta y edición usan `TipoOperacion.EXITO`.
+
+**Pendiente conocido — `RESOURCE_IN_USE`:** el contrato exige bloquear la baja de
+un `TipoSensor` si tiene sensores físicos activos asociados. La entidad `Sensor`
+todavía no existe en el backend (pertenece a una épica/HU posterior, ej. HU-FP-04).
+Por eso, hoy, `DELETE /tipos-sensor/:id` **nunca devuelve 409** — la validación
+está aislada en `TiposSensorService.contar_sensores_activos_asociados()`, que
+retorna `0` de forma intencional y documentada en el propio código. Cuando se
+implemente `Sensor`, hay que: (1) reemplazar ese método por un `count()` real,
+(2) revisar y habilitar los tests actualmente marcados `it.skip` en
+`tipos-sensor.service.spec.ts`, (3) no fue necesario tocar el contrato ni el
+resto del flujo de baja.
+
+**Explícitamente fuera de esta HU:** no existe módulo `sensores/` ni entidad
+`Sensor`, ni siquiera parcial. No corresponde crearlos como parte de HU-IoT-01.
+
 ---
 
 ## 8. Flujo de trabajo
