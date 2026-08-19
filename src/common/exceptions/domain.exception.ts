@@ -18,7 +18,8 @@ export type DomainErrorCode =
   | 'NO_PERMISSIONS_SELECTED'
   | 'STATE_NOT_ALLOWED'
   | 'PENDING_INVITATION_EXISTS'
-  | 'USER_ALREADY_LINKED';
+  | 'USER_ALREADY_LINKED'
+  | 'INVALID_SENSOR_TYPE_CODE';
 
 export interface DomainExceptionBody {
   statusCode: number;

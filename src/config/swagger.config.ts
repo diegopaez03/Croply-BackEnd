@@ -15,6 +15,7 @@ export const SWAGGER_TAGS = {
   CULTIVOS: 'Cultivos',
   PARCELAS: 'Parcelas',
   REPORTS: 'Reportes',
+  TIPOS_SENSOR: 'TiposSensor',
   SOLICITUDES_DIGITALIZACION: 'SolicitudesDigitalizacion',
 } as const;
 
