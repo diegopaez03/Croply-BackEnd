@@ -424,6 +424,8 @@ export class PlantillasBaseService {
               find_tipo_tarea(tarea.id_tipo_tarea)?.nombre_tipo_tarea ??
               'Desconocido',
             descripcion_tp: tarea.descripcion_tp,
+            nombre_producto: tarea.nombre_producto ?? null,
+            dosis_aa: tarea.dosis_aa ?? null,
           })),
         })),
     };

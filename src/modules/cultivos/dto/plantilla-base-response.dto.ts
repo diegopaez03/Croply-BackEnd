@@ -67,6 +67,12 @@ export class TareaPlantillaDetalleDto {
 
   @ApiProperty({ example: 'Preparación de almácigo' })
   descripcion_tp: string;
+
+  @ApiPropertyOptional({ example: 'Cobre 50%', nullable: true })
+  nombre_producto?: string | null;
+
+  @ApiPropertyOptional({ example: '2 L/ha', nullable: true })
+  dosis_aa?: string | null;
 }
 
 export class HitoPlantillaDetalleDto {
