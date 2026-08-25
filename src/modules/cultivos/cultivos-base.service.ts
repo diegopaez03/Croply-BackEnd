@@ -82,7 +82,9 @@ export class CultivosBaseService {
   }
 
   async detalle(id_cultivo_base: number) {
-    const cultivo = await this.find_cultivo_activo(id_cultivo_base);
+    const cultivo = await this.find_cultivo_activo(id_cultivo_base, {
+      con_variedades: true,
+    });
     const pcvs = await this.pcvs_activas_de_cultivo(id_cultivo_base);
     const plantilla_general = pcvs.find((pcv) => pcv.variedad == null);
 
@@ -128,7 +130,9 @@ export class CultivosBaseService {
     dto: CrearCultivoBaseDto,
     actor: Usuario,
   ) {
-    const cultivo = await this.find_cultivo_activo(id_cultivo_base);
+    const cultivo = await this.find_cultivo_activo(id_cultivo_base, {
+      con_variedades: true,
+    });
     const nombre = dto.nombre_cultivo_base.trim();
     await this.asegurar_nombre_cultivo_libre(nombre, id_cultivo_base);
 
@@ -145,7 +149,8 @@ export class CultivosBaseService {
       cultivo.ciclo_productivo_cb = dto.ciclo_productivo_cb.trim();
     }
 
-    await this.cultivo_repo.save(cultivo);
+    const variedades_para_respuesta = cultivo.variedades ?? [];
+    await this.guardar_cultivo(cultivo);
 
     await this.log_service.registrar({
       usuario: actor,
@@ -156,7 +161,7 @@ export class CultivosBaseService {
 
     return {
       message: 'Cultivo actualizado correctamente',
-      ...this.map_listado(cultivo),
+      ...this.map_listado({ ...cultivo, variedades: variedades_para_respuesta }),
     };
   }
 
@@ -169,7 +174,7 @@ export class CultivosBaseService {
     }
 
     cultivo.fecha_baja_cb = new Date();
-    await this.cultivo_repo.save(cultivo);
+    await this.guardar_cultivo(cultivo);
 
     await this.log_service.registrar({
       usuario: actor,
@@ -197,7 +202,7 @@ export class CultivosBaseService {
         observaciones: dto.observaciones?.trim() || null,
         dias_a_cosecha: dto.dias_a_cosecha,
         fecha_baja: null,
-        cultivo_base: cultivo,
+        cultivo_base: { id_cultivo_base: Number(id_cultivo_base) },
       }),
     );
 
@@ -352,15 +357,27 @@ export class CultivosBaseService {
 
   private async find_cultivo_activo(
     id_cultivo_base: number,
+    options?: { con_variedades?: boolean },
   ): Promise<CultivoBase> {
     const cultivo = await this.cultivo_repo.findOne({
       where: { id_cultivo_base, fecha_baja_cb: IsNull() },
-      relations: ['variedades'],
+      relations: options?.con_variedades ? ['variedades'] : [],
     });
     if (!cultivo) {
       throw resourceNotFound();
     }
     return cultivo;
+  }
+
+  /**
+   * TypeORM trata `variedades: []` como “desvincular hijos” y pone
+   * `id_cultivo_base = NULL`. Nunca hay que guardar el padre con esa colección cargada.
+   */
+  private async guardar_cultivo(cultivo: CultivoBase): Promise<CultivoBase> {
+    delete (cultivo as { variedades?: Variedad[] }).variedades;
+    delete (cultivo as { plantilla_cultivo_variedades?: PlantillaCultivoVariedad[] })
+      .plantilla_cultivo_variedades;
+    return this.cultivo_repo.save(cultivo);
   }
 
   private async find_variedad_activa(
@@ -453,7 +470,7 @@ export class CultivosBaseService {
     );
     if (ciclo) {
       cultivo.ciclo_productivo_cb = ciclo;
-      await this.cultivo_repo.save(cultivo);
+      await this.guardar_cultivo(cultivo);
     }
     return cultivo.ciclo_productivo_cb;
   }

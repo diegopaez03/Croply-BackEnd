@@ -300,11 +300,20 @@ describe('CultivosBaseService', () => {
       ACTOR,
     );
 
+    expect(variedad_repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nombre_variedad: 'Perita',
+        cultivo_base: { id_cultivo_base: 45 },
+      }),
+    );
     expect(result.message).toBe('Variedad agregada correctamente');
     expect(result.id_variedad).toBe(12);
     expect(result.fecha_alta).toBe('2026-03-10');
     expect(result.en_uso).toBe(false);
     expect(result.ciclo_productivo_cb).toBe('75 días');
+    expect(cultivo_repo.save).toHaveBeenCalledWith(
+      expect.not.objectContaining({ variedades: expect.anything() }),
+    );
   });
 
   it('recalcula el ciclo como rango cuando hay varias variedades', async () => {
