@@ -27,4 +27,11 @@ export class ErrorResponseDto {
     example: 'email',
   })
   field?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Variedad en conflicto al asignar plantilla específica (ERR-07)',
+    example: 12,
+  })
+  id_variedad?: number;
 }

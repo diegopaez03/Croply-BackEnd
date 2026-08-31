@@ -36,3 +36,14 @@ export enum TipoOperacion {
 
 export const CODIGO_ADMIN_CROPLY = 'ADMIN_CROPLY';
 export const CODIGO_ADMIN_FINCA = 'ADMIN_FINCA';
+
+export enum EpocaCultivo {
+  TODO_EL_ANIO = 'Todo_el_anio',
+  PRIMAVERA_VERANO = 'Primavera_verano',
+  OTONIO_INVIERNO = 'Otonio_invierno',
+}
+
+export enum FormaSiembra {
+  DIRECTA = 'Directa',
+  ALMACIGO = 'Almacigo',
+}

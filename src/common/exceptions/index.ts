@@ -7,4 +7,6 @@ export {
   unexpectedError,
   resourceNotFound,
   resourceInUse,
+  emptySchedule,
+  varietyAlreadyAssigned,
 } from './domain.exception';

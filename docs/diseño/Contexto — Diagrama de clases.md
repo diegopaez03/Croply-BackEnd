@@ -4,7 +4,7 @@
 > Imagen de referencia: [`Diagrama UML - Diagrama de clases.jpg`](./Diagrama%20UML%20-%20Diagrama%20de%20clases.jpg)  
 > Ubicación: `docs/diseño/`
 
-Este archivo traduce el diagrama a lenguaje útil para backend, frontend y QA: qué modela cada clase, cómo se relacionan, qué enums existen y **qué decisiones de implementación** tomó el backend respecto del UML (Épicas 1 y 2).
+Este archivo traduce el diagrama a lenguaje útil para backend, frontend y QA: qué modela cada clase, cómo se relacionan, qué enums existen y **qué decisiones de implementación** tomó el backend respecto del UML (Épicas 1, 2 y 4).
 
 ---
 
@@ -29,8 +29,8 @@ Bloques principales visibles en el diagrama:
 | Acceso / identidad | `Usuario`, `Rol`, `RolSistema`, `RolFinca`, `UsuarioFinca`, `ResetsContrasena`, `InvitacionFinca`, `Permiso`, `RolPermiso` | Épicas 1 y 2 |
 | Onboarding | `SolicitudDigitalizacionFinca` | HU-AC-07 / HU-GU-13 |
 | Finca / terreno | `Finca`, parcelas, ubicaciones | Stub `Finca` + roles/invitaciones Épica 2 |
-| Producción | Cultivos, épocas, planes | Fuera de alcance actual |
-| Operación de campo | Tareas, notas, planes de acción | Fuera de alcance actual |
+| Producción | `CultivoBase`, `Variedad`, `PlantillaBase`, `PlantillaCultivoVariedad`, `HitoPlantilla`, `TareaPlantilla` | Épica 4 (HU-BC-01 a 05). `TipoTarea`/`Tarea` mock hasta Épica 5 |
+| Operación de campo | Tareas reales, notas, planes de acción | HU-BC-06 diferida (Épicas 3 y 5) |
 | Clima / IoT | Condiciones, transmisiones, sensores | Fuera de este backend o épicas posteriores |
 | Transversal | `LogOperaciones`, `Notificacion` | `LogOperaciones` en Épica 2; notificaciones pendientes |
 
@@ -149,6 +149,9 @@ Campos del formulario de landing (nombre, correo, teléfono, ubicación, parcela
 | Rol — RolPermiso — Permiso | N:M | Implementado en Épica 2 |
 | Usuario — LogOperaciones | 1 — 0..\* | Implementado en Épica 2 (side-effect) |
 | Usuario — Notificacion | 1 — 0..\* | **No implementado** |
+| CultivoBase ◆— Variedad | 1 — 0..\* | Épica 4; baja lógica |
+| PlantillaBase — PlantillaCultivoVariedad — CultivoBase / Variedad | 1 — 0..\* | Variedad opcional (null = general) |
+| PlantillaBase ◆— HitoPlantilla ◆— TareaPlantilla | 1 — 1..\* | ERR-06 si no hay tareas |
 
 ---
 
@@ -172,6 +175,13 @@ Campos del formulario de landing (nombre, correo, teléfono, ubicación, parcela
 | `EstadoInvitacion` | UML + `Cancelada` |
 | `EstadoSolicitud` | igual al UML |
 
+### Épica 4 (producción)
+
+| Enum | Valores API |
+| --- | --- |
+| `EpocaCultivo` | `Todo_el_anio`, `Primavera_verano`, `Otonio_invierno` |
+| `FormaSiembra` | `Directa`, `Almacigo` |
+
 Códigos de rol usados hoy:
 
 - Sistema: `ADMIN_CROPLY`
@@ -192,6 +202,10 @@ Acordadas al implementar Épicas 1 y 2:
 7. **Épica 2:** `Permiso`, `RolPermiso`, `LogOperaciones` + seed de catálogo (7 sistema / 3 finca).
 8. **Mailer stub** — envío de links (reset e invitaciones) se loguea en consola en desarrollo.
 9. **AuthZ HTTP por rol** (Admin Croply / Admin Finca); permisos como dato de ABM, no middleware granular.
+10. **Épica 4:** `CultivoBase`, `Variedad`, `PlantillaBase`, `PlantillaCultivoVariedad`, `HitoPlantilla`, `TareaPlantilla`. Extensiones al UML: `forma_siembra` (enum) en cultivo base; `observaciones` (string nullable) en variedad.
+11. **`TipoTarea` mock** — catálogo constante `TIPO_TAREA_CATALOG` (`src/modules/cultivos/tipo-tarea.catalog.ts`). El id `5` es “Aplicación de agroquímico” (valida `nombre_producto` y `dosis_aa`). Se reemplaza por entidad + ABM en Épica 5.
+12. **`en_uso`** de cultivo/variedad se calcula por filas activas de `PlantillaCultivoVariedad`. Cuando exista `Parcela` (Épica 3) hay que sumar asociaciones activas de parcela.
+13. **HU-BC-06 diferida** — no hay `PlanAccion` / `Tarea` real / ERR-08 (`TASK_NOT_EDITABLE`) hasta Épicas 3 y 5.
 
 ### Regla de login vs estados (aclaración al contrato)
 
@@ -218,15 +232,79 @@ Ver nota actualizada en el contrato de Épica 1.
 | ResetsContrasena + endpoints auth | `src/modules/auth` |
 | SolicitudDigitalizacionFinca | `src/modules/solicitudes-digitalizacion` |
 | LogOperaciones | `src/modules/log-operaciones` |
-| Seed admins / permisos | `src/database/seed` + `RolesService` |
+| Seed admins / permisos / biblioteca demo | `src/database/seed` + `RolesService` / `CultivosBaseService` |
+| CultivoBase, Variedad | `src/modules/cultivos` (`CultivosBaseService`) |
+| PlantillaBase, PCV, HitoPlantilla, TareaPlantilla | `src/modules/cultivos` (`PlantillasBaseService`) |
 
 ---
 
-## 8. Fuera del diagrama / fuera de alcance actual (recordatorio)
+## 8. Modelo de producción (Épica 4)
+
+Biblioteca agronómica global (no scoped a finca). Mutaciones: Admin Croply. Lecturas: Admin Croply **o** Admin de Finca vigente (`AdminCroplyOAdminFincaGuard`).
+
+### 8.1 `CultivoBase`
+
+| Atributo | Notas |
+| --- | --- |
+| `id_cultivo_base` | PK bigint |
+| `nombre_cultivo_base` | Único entre activos (trim) |
+| `descripcion_cb`, `epoca_cultivo`, `mes_siembra`, `ciclo_productivo_cb` | Ficha técnica |
+| `forma_siembra` | **Extensión al UML** — enum `FormaSiembra` |
+| `fecha_alta_cb` / `fecha_baja_cb` | Alta automática; baja lógica |
+
+`ciclo_productivo_cb` es manual al crear. Al agregar/editar/eliminar variedades se recalcula como rango de `dias_a_cosecha` (`"75 días"` o `"68-75 días"`). Si ya hay variedades, el PUT de ficha ignora el ciclo del body.
+
+### 8.2 `Variedad`
+
+Composición desde `CultivoBase`. Nombre único **dentro del mismo cultivo** activo. `observaciones` es **extensión al UML** (string nullable). `fecha_alta` en JSON: `YYYY-MM-DD`.
+
+### 8.3 `PlantillaBase` y `PlantillaCultivoVariedad`
+
+- `id_variedad` null = plantilla **general** del cultivo (a lo sumo una activa por cultivo).
+- `id_variedad` seteado = plantilla **específica**. Una variedad no puede estar en dos plantillas específicas activas (ERR-07 `VARIETY_ALREADY_ASSIGNED`).
+- Baja lógica siempre permitida (no aplica ERR-04). Editar no afecta planes reales (aún no existen).
+
+Prioridad al consultar (HU-BC-03): específica de la variedad, si no la general del cultivo. Campos `id_plantilla_general` / `id_plantilla_especifica` son **calculados**, no columnas.
+
+### 8.4 Hitos y tareas de plantilla
+
+`HitoPlantilla` (`nombre_hpb`, `orden_hpb`) → `TareaPlantilla` (`dia_relativo_tp`, `id_tipo_tarea`, `descripcion_tp`, `nombre_producto`, `dosis_aa`). Guardar sin ningún hito con tareas → ERR-06 `EMPTY_SCHEDULE`.
+
+`nombre_producto` / `dosis_aa` se persisten en `TareaPlantilla` hasta que Épica 5 modele `AplicacionAgroquimico`.
+
+### 8.5 Catálogo mock `TipoTarea` (deuda Épica 5)
+
+| `id_tipo_tarea` | `nombre_tipo_tarea` |
+| --- | --- |
+| 1 | Preparación del terreno |
+| 2 | Siembra |
+| 3 | Riego |
+| 4 | Fertilización |
+| 5 | Aplicación de agroquímico |
+| 6 | Control de malezas |
+| 7 | Cosecha |
+
+No hay endpoint de catálogo: el frontend puede hardcodear estos IDs hasta el ABM de Épica 5.
+
+### 8.6 HU-BC-06 diferida (Épicas 3 y 5)
+
+No implementar hasta existir `Parcela` / `PlanAccion` (Épica 3) y `TipoTarea` / `Tarea` reales (Épica 5):
+
+- Generar un plan de acción a partir de plantilla sobre una parcela
+- Editar/eliminar tareas de un plan real
+- ERR-08 `TASK_NOT_EDITABLE` (409) si la tarea no está `Pendiente`
+- `en_uso` por asociación activa de parcela
+
+Los cambios de plantilla **no** deben retroactivarse a planes ya copiados (regla a respetar cuando se implemente).
+
+---
+
+## 9. Fuera del diagrama / fuera de alcance actual (recordatorio)
 
 No confundir “está en el diagrama” con “está implementado”:
 
-- CRUD de fincas, parcelas, cultivos, reportes
+- CRUD de fincas, parcelas, reportes
+- HU-BC-06 y entidad `Tarea` / ABM `TipoTarea`
 - RBAC middleware por permiso individual
 - Notificaciones
 - Refresh token persistido (vars en `.env` existen; contrato no lo exige)
@@ -236,7 +314,7 @@ Detalle operativo: [`CONTEXT.md`](../../CONTEXT.md) y contratos en [`docs/epicas
 
 ---
 
-## 9. Cómo usar este documento
+## 10. Cómo usar este documento
 
 - Al **agregar una entidad** de una épica nueva: localizarla acá o en la imagen, decidir extensiones, actualizar esta sección y el contrato de la épica.
 - Al **discutir naming**: si hay conflicto UML vs contrato API, documentar la decisión aquí (como en §6).
@@ -244,4 +322,4 @@ Detalle operativo: [`CONTEXT.md`](../../CONTEXT.md) y contratos en [`docs/epicas
 
 ---
 
-*Documento vivo. Última actualización alineada a la implementación de Épica 2 (Administrar Usuarios y Roles).*
+*Documento vivo. Última actualización alineada a la implementación de Épica 4 (Planificar Cultivos, HU-BC-01 a HU-BC-05).*
