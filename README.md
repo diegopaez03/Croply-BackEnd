@@ -52,6 +52,7 @@ Detalle y fuera de alcance: [`CONTEXT.md`](./CONTEXT.md) y el [contrato de Épic
 | [docs/epicas/…](./docs/epicas/) | Contratos por épica |
 | [docs/diseño/Contexto — Diagrama de clases.md](./docs/diseño/Contexto%20—%20Diagrama%20de%20clases.md) | UML ↔ código |
 | [docs/diseño/Diagrama UML…](./docs/diseño/Diagrama%20UML%20-%20Diagrama%20de%20clases.jpg) | Imagen del diagrama |
+| [docs/calidad/informe-analisis-estatico.md](./docs/calidad/informe-analisis-estatico.md) | ESLint: herramienta, Antes/Después |
 
 Swagger se genera desde el código. Control: `SWAGGER_ENABLED` en `.env`.
 
@@ -67,10 +68,14 @@ pnpm migration:revert
 
 En desarrollo local el ejemplo usa `DB_SYNCHRONIZE=true`.
 
-## Tests
+## Tests y análisis estático
 
 ```bash
 pnpm test           # Unit tests
 pnpm test:cov       # Coverage
 pnpm test:e2e       # E2E (carpeta test/ aún pendiente)
+pnpm lint           # ESLint (reporte; no modifica archivos)
+pnpm lint:fix       # ESLint con auto-fix
 ```
+
+Informe de la primera y última corrida: [`docs/calidad/informe-analisis-estatico.md`](./docs/calidad/informe-analisis-estatico.md).
