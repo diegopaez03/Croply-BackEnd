@@ -10,6 +10,7 @@ import { FincasModule } from './modules/fincas';
 import { RolesModule } from './modules/roles';
 import { SolicitudesDigitalizacionModule } from './modules/solicitudes-digitalizacion';
 import { LogOperacionesModule } from './modules/log-operaciones';
+import { TiposSensorModule } from './modules/tipos-sensor';
 import { CultivosModule } from './modules/cultivos';
 
 /**
@@ -43,6 +44,7 @@ import { CultivosModule } from './modules/cultivos';
     FincasModule,
     AuthModule,
     SolicitudesDigitalizacionModule,
+    TiposSensorModule,
     CultivosModule,
 
     // ── Seed (desarrollo: admins del equipo) ─────────────────────
