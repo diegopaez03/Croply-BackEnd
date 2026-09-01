@@ -33,6 +33,15 @@ describe('SeedService', () => {
     find_usuario_finca: jest.Mock;
     create_usuario_finca: jest.Mock;
   };
+  let cultivos_service: {
+    find_activo_por_nombre: jest.Mock;
+    crear: jest.Mock;
+    agregar_variedad: jest.Mock;
+  };
+  let plantillas_service: {
+    find_activa_por_nombre: jest.Mock;
+    crear: jest.Mock;
+  };
   let config: { get: jest.Mock };
 
   beforeEach(() => {
@@ -73,12 +82,23 @@ describe('SeedService', () => {
       find_usuario_finca: jest.fn().mockResolvedValue(null),
       create_usuario_finca: jest.fn().mockResolvedValue(undefined),
     };
+    cultivos_service = {
+      find_activo_por_nombre: jest.fn().mockResolvedValue(null),
+      crear: jest.fn().mockResolvedValue({ id_cultivo_base: 45 }),
+      agregar_variedad: jest.fn().mockResolvedValue({ id_variedad: 12 }),
+    };
+    plantillas_service = {
+      find_activa_por_nombre: jest.fn().mockResolvedValue(null),
+      crear: jest.fn().mockResolvedValue({ id_plantilla_base: 3 }),
+    };
     config = { get: jest.fn().mockReturnValue(undefined) };
 
     service = new SeedService(
       usuarios_service as never,
       roles_service as never,
       fincas_service as never,
+      cultivos_service as never,
+      plantillas_service as never,
       config as unknown as ConfigService,
     );
   });
@@ -166,5 +186,25 @@ describe('SeedService', () => {
     expect(fincas_service.crear_finca).not.toHaveBeenCalled();
     expect(usuarios_service.create).not.toHaveBeenCalled();
     expect(fincas_service.create_usuario_finca).not.toHaveBeenCalled();
+  });
+
+  it('siembra la biblioteca de cultivos y la plantilla demo', async () => {
+    usuarios_service.find_by_email.mockResolvedValue({
+      id_usuario: 1,
+      email: 'diego@croply.app',
+    });
+    cultivos_service.find_activo_por_nombre
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id_cultivo_base: 45 })
+      .mockResolvedValueOnce(null);
+
+    await service.seed_biblioteca_cultivos();
+
+    expect(cultivos_service.crear).toHaveBeenCalledTimes(2);
+    expect(cultivos_service.agregar_variedad).toHaveBeenCalledTimes(2);
+    expect(plantillas_service.crear).toHaveBeenCalledWith(
+      expect.objectContaining({ nombre_pb: 'Plan de Cultivo de Tomate' }),
+      expect.objectContaining({ email: 'diego@croply.app' }),
+    );
   });
 });

@@ -41,7 +41,9 @@ Probar login: `POST /api/v1/auth/login` con `{ "email": "diego@croply.app", "con
 
 **Épica 1 — Gestionar el Acceso:** auth (login, registro admin/invitado, olvide/resetear/cambiar contraseña, primer acceso), solicitudes de digitalización, errores transversales, seed de admins.
 
-Detalle y fuera de alcance: [`CONTEXT.md`](./CONTEXT.md) y el [contrato de Épica 1](./docs/epicas/Contrato%20de%20API%20—%20Épica%201%20Gestionar%20el%20Acceso.md).
+**Épica 4 — Planificar Cultivos (HU-BC-01 a HU-BC-05):** biblioteca de cultivos base y variedades, plantillas de plan base, búsqueda y filtros. HU-BC-06 queda pendiente de las épicas 3 y 5.
+
+Detalle y fuera de alcance: [`CONTEXT.md`](./CONTEXT.md) y los [contratos de épica](./docs/epicas/).
 
 ## Documentación
 

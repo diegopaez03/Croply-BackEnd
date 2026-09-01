@@ -9,6 +9,8 @@ import { hash_password } from '../../modules/auth/auth.crypto';
 import { FincasService } from '../../modules/fincas/fincas.service';
 import { RolesService } from '../../modules/roles/roles.service';
 import { UsuariosService } from '../../modules/usuarios/usuarios.service';
+import { CultivosBaseService } from '../../modules/cultivos/cultivos-base.service';
+import { PlantillasBaseService } from '../../modules/cultivos/plantillas-base.service';
 import { Finca } from '../../modules/fincas/entities/finca.entity';
 import { RolFinca } from '../../modules/roles/entities/rol.entity';
 import { Usuario } from '../../modules/usuarios/entities/usuario.entity';
@@ -25,6 +27,13 @@ import {
   ROLES_FINCA_DEMO_SEED,
   SEED_FINCA_DEMO_ESTADO,
 } from './finca-demo.seed';
+import {
+  CULTIVO_AJO_SEED,
+  CULTIVO_TOMATE_SEED,
+  PLANTILLA_TOMATE_NOMBRE,
+  VARIEDADES_TOMATE_SEED,
+  plantilla_tomate_seed,
+} from './cultivos-demo.seed';
 
 @Injectable()
 export class SeedService implements OnModuleInit {
@@ -34,12 +43,15 @@ export class SeedService implements OnModuleInit {
     private readonly usuarios_service: UsuariosService,
     private readonly roles_service: RolesService,
     private readonly fincas_service: FincasService,
+    private readonly cultivos_service: CultivosBaseService,
+    private readonly plantillas_service: PlantillasBaseService,
     private readonly config: ConfigService,
   ) {}
 
   async onModuleInit(): Promise<void> {
     await this.seed_admin_usuarios();
     await this.seed_finca_demo();
+    await this.seed_biblioteca_cultivos();
   }
 
   async seed_admin_usuarios(): Promise<void> {
@@ -221,6 +233,73 @@ export class SeedService implements OnModuleInit {
       finca,
       rol_finca,
     });
+  }
+
+  /**
+   * Biblioteca agronómica de desarrollo (Tomate + Ajo y plantilla general de Tomate).
+   */
+  async seed_biblioteca_cultivos(): Promise<void> {
+    const actor = await this.usuarios_service.find_by_email(
+      ADMIN_USUARIOS_SEED[0].email,
+    );
+    if (!actor) {
+      this.logger.warn(
+        'No se pudo sembrar la biblioteca de cultivos: falta admin Croply',
+      );
+      return;
+    }
+
+    const tomate = await this.ensure_cultivo(
+      CULTIVO_TOMATE_SEED,
+      VARIEDADES_TOMATE_SEED,
+      actor,
+    );
+    await this.ensure_cultivo(CULTIVO_AJO_SEED, [], actor);
+
+    if (!tomate) {
+      return;
+    }
+
+    const plantilla_existente =
+      await this.plantillas_service.find_activa_por_nombre(
+        PLANTILLA_TOMATE_NOMBRE,
+      );
+    if (!plantilla_existente) {
+      await this.plantillas_service.crear(
+        plantilla_tomate_seed(Number(tomate.id_cultivo_base)),
+        actor,
+      );
+      this.logger.log(`Plantilla demo sembrada: ${PLANTILLA_TOMATE_NOMBRE}`);
+    }
+  }
+
+  private async ensure_cultivo(
+    datos: typeof CULTIVO_TOMATE_SEED,
+    variedades: typeof VARIEDADES_TOMATE_SEED,
+    actor: Usuario,
+  ) {
+    const existente = await this.cultivos_service.find_activo_por_nombre(
+      datos.nombre_cultivo_base,
+    );
+    if (existente) {
+      return existente;
+    }
+
+    const creado = await this.cultivos_service.crear(datos, actor);
+    for (const variedad of variedades) {
+      await this.cultivos_service.agregar_variedad(
+        creado.id_cultivo_base,
+        variedad,
+        actor,
+      );
+    }
+    this.logger.log(`Cultivo demo sembrado: ${datos.nombre_cultivo_base}`);
+
+    return (
+      (await this.cultivos_service.find_activo_por_nombre(
+        datos.nombre_cultivo_base,
+      )) ?? { id_cultivo_base: creado.id_cultivo_base }
+    );
   }
 
   private async seed_password_hash(): Promise<string> {

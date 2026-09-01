@@ -20,6 +20,8 @@ export type DomainErrorCode =
   | 'PENDING_INVITATION_EXISTS'
   | 'USER_ALREADY_LINKED'
   | 'INVALID_SENSOR_TYPE_CODE';
+  | 'EMPTY_SCHEDULE'
+  | 'VARIETY_ALREADY_ASSIGNED';
 
 export interface DomainExceptionBody {
   statusCode: number;
@@ -86,4 +88,24 @@ export function resourceNotFound(
 
 export function resourceInUse(message: string): DomainException {
   return new DomainException('RESOURCE_IN_USE', message, HttpStatus.CONFLICT);
+}
+
+export function emptySchedule(
+  message = 'La plantilla debe tener al menos un hito con una tarea para poder guardarse.',
+): DomainException {
+  return new DomainException(
+    'EMPTY_SCHEDULE',
+    message,
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
+export function varietyAlreadyAssigned(id_variedad?: number): DomainException {
+  return new DomainException(
+    'VARIETY_ALREADY_ASSIGNED',
+    'Esta variedad ya tiene una plantilla específica asignada.',
+    HttpStatus.CONFLICT,
+    undefined,
+    id_variedad !== undefined ? { id_variedad } : undefined,
+  );
 }

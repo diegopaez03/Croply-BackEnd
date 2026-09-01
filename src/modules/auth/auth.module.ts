@@ -14,6 +14,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AdminCroplyGuard } from './guards/admin-croply.guard';
 import { AdminFincaGuard } from './guards/admin-finca.guard';
+import { AdminCroplyOAdminFincaGuard } from './guards/admin-croply-o-admin-finca.guard';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { AdminFincaGuard } from './guards/admin-finca.guard';
     JwtAuthGuard,
     AdminCroplyGuard,
     AdminFincaGuard,
+    AdminCroplyOAdminFincaGuard,
     MailerStubService,
   ],
   exports: [
@@ -49,6 +51,7 @@ import { AdminFincaGuard } from './guards/admin-finca.guard';
     JwtAuthGuard,
     AdminCroplyGuard,
     AdminFincaGuard,
+    AdminCroplyOAdminFincaGuard,
     JwtModule,
     JwtStrategy,
     MailerStubService,

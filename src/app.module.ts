@@ -11,6 +11,7 @@ import { RolesModule } from './modules/roles';
 import { SolicitudesDigitalizacionModule } from './modules/solicitudes-digitalizacion';
 import { LogOperacionesModule } from './modules/log-operaciones';
 import { TiposSensorModule } from './modules/tipos-sensor';
+import { CultivosModule } from './modules/cultivos';
 
 /**
  * Root application module.
@@ -44,6 +45,7 @@ import { TiposSensorModule } from './modules/tipos-sensor';
     AuthModule,
     SolicitudesDigitalizacionModule,
     TiposSensorModule,
+    CultivosModule,
 
     // ── Seed (desarrollo: admins del equipo) ─────────────────────
     SeedModule,
