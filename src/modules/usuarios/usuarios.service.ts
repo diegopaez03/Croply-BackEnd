@@ -259,6 +259,29 @@ export class UsuariosService {
     };
   }
 
+  async listar_administradores_finca_disponibles() {
+    const usuarios = await this.usuario_repo
+      .createQueryBuilder('u')
+      .leftJoin('u.rol_sistema', 'rol')
+      .where('rol.id_rol IS NULL')
+      .andWhere('u.fecha_baja IS NULL')
+      .andWhere('u.estado != :estado_inactivo', {
+        estado_inactivo: EstadoUsuario.INACTIVO,
+      })
+      .orderBy('u.apellido', 'ASC')
+      .addOrderBy('u.nombre', 'ASC')
+      .getMany();
+
+    return {
+      usuarios: usuarios.map((usuario) => ({
+        id_usuario: Number(usuario.id_usuario),
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        email: usuario.email,
+      })),
+    };
+  }
+
   /**
    * Listado por vinculación usuario-finca: una fila por finca. Con varias
    * fincas (multi-finca) un mismo usuario aparece una vez por cada una.

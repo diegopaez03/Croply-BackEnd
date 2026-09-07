@@ -312,6 +312,42 @@ resto del flujo de baja.
 **Explícitamente fuera de esta HU:** no existe módulo `sensores/` ni entidad
 `Sensor`, ni siquiera parcial. No corresponde crearlos como parte de HU-IoT-01.
 
+### EP-03 — Etapa 1 (Fincas, Parcelas, Infraestructura IoT y Planes de Acción)
+
+**Alcance implementado:** ABM completo de Finca (propietario único vía UsuarioFinca, sin edición de ubicación tras creación), Parcela + ControladorSensor + Sensor (sin integración real con el simulador), PlanAccion/Hito/Tarea materializados desde plantillas de Épica 4 (sin ABM propio de Tarea), historial de cultivos por parcela, y código QR de parcela.
+
+**Ubicación de Finca no editable:** longitud/latitud/departamento/provincia se cargan solo al crear la finca. PUT /fincas/:id_finca no los incluye — está definido así en el contrato de Épica 3, no es una omisión.
+
+**EstadoPlanAccion — estados terminales, sin reactivación:** Activo es el único estado no terminal. Finalizado, FinalizadoPorContingencia e Inactivado son terminales: un PlanAccion que llega a cualquiera de esos tres nunca vuelve a Activo. Si se necesita un plan nuevo para la misma parcela, se crea un PlanAccion nuevo desde cero. No existe un campo motivo_finalizacion separado — la causa de finalización se representa únicamente con el valor del estado.
+
+**Integración con simulador IoT postergada a Épica 7:** en esta etapa, Sensor se crea con estado_senal: Sin_senal, ultimo_valor: null, fecha_ultima_lectura: null, e ip_sensor persistido pero sin uso funcional. No hay ninguna llamada HTTP al simulador, ni reintentos, ni notificaciones. La sincronización real, y la integración con la API de clima, se implementan al retomar Épica 7.
+
+**RESOURCE_IN_USE de TipoSensor (Épica 7) — ahora desbloqueable:** con Sensor ya implementado en esta etapa, TiposSensorService.contar_sensores_activos_asociados() puede reemplazarse por un count() real cuando se retome Épica 7. Habilitar también el test actualmente it.skip en tipos-sensor.service.spec.ts en ese momento.
+
+**Catálogo temporal de TipoTarea:** Tarea/TareaPlantilla usan id_tipo_tarea como número plano (sin FK), resuelto contra src/modules/cultivos/tipo-tarea.catalog.ts. Es intencional y temporal — Épica 5 reemplaza este catálogo por una entidad TipoTarea real. No implementar ABM real de TipoTarea/Tarea como parte de EP-03/EP-04.
+
+**Naming de ControladorSensor:** el nombre contractual definitivo del identificador es `id_controlador_sensor` (singular). Debe utilizarse de forma consistente en entidad, DTOs, requests y responses. No utilizar `id_controlador_sensores`.
+
+**Código QR en Etapa 1:** HU-FP-07 no depende de `GET /api/v1/parcelas/:id_parcela` de HU-FP-05, ya que HU-FP-05 queda fuera de la Etapa 1. El frontend determina si debe mostrar "Generar QR" o "Ver QR" utilizando `GET /api/v1/parcelas/:id_parcela/codigo-qr`: HTTP 200 indica que el QR existe; HTTP 404 con `RESOURCE_NOT_FOUND` indica que todavía no existe.
+
+**Integración con simulador y clima:** queda explícitamente postergada para Épica 7. Esta Etapa 1 solamente implementa las entidades y relaciones necesarias para Finca, Parcela, ControladorSensor y Sensor, sin realizar llamadas reales a APIs externas.
+
+**Pendientes para Épica 7:**
+
+* Integración real con el simulador IoT.
+* Integración con la API de clima.
+* RESOURCE_IN_USE real de TipoSensor.
+* HU IoT correspondiente.
+* Completar las funcionalidades que hayan quedado preparadas pero dependientes de la integración IoT.
+
+**Pendientes para Épica 5:**
+
+* TipoTarea real (entidad + ABM).
+* Tarea real con ABM propio.
+* Reemplazo del catálogo mock `tipo-tarea.catalog.ts`.
+* Migración de `id_tipo_tarea` desde número plano a FK real cuando corresponda.
+
+
 ---
 
 ## 8. Flujo de trabajo

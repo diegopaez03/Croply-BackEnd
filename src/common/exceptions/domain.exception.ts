@@ -21,7 +21,9 @@ export type DomainErrorCode =
   | 'USER_ALREADY_LINKED'
   | 'INVALID_SENSOR_TYPE_CODE'
   | 'EMPTY_SCHEDULE'
-  | 'VARIETY_ALREADY_ASSIGNED';
+  | 'VARIETY_ALREADY_ASSIGNED'
+  | 'INSUFFICIENT_AREA'
+  | 'FINCA_NOT_AVAILABLE';
 
 export interface DomainExceptionBody {
   statusCode: number;

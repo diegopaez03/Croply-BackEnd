@@ -47,3 +47,20 @@ export enum FormaSiembra {
   DIRECTA = 'Directa',
   ALMACIGO = 'Almacigo',
 }
+
+export enum EstadoParcela {
+  ACTIVA = 'Activa',
+  INACTIVA = 'Inactiva',
+}
+
+export enum EstadoTransmision {
+  TRANSMITIENDO = 'Transmitiendo',
+  SIN_SENAL = 'Sin_senal',
+}
+
+export enum EstadoPlanAccion {
+  ACTIVO = 'Activo',
+  FINALIZADO = 'Finalizado',
+  FINALIZADO_POR_CONTINGENCIA = 'FinalizadoPorContingencia',
+  INACTIVADO = 'Inactivado',
+}

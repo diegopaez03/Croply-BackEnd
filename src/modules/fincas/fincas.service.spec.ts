@@ -6,8 +6,14 @@ describe('FincasService', () => {
   let service: FincasService;
   let finca_repo: Record<string, jest.Mock>;
   let usuario_finca_repo: Record<string, jest.Mock>;
+  let usuario_repo: Record<string, jest.Mock>;
+  let parcela_repo: Record<string, jest.Mock>;
+  let sensor_repo: Record<string, jest.Mock>;
   let invitacion_repo: Record<string, jest.Mock>;
-  let roles_service: { find_rol_finca_by_id: jest.Mock };
+  let roles_service: {
+    find_rol_finca_by_id: jest.Mock;
+    find_rol_finca_by_codigo: jest.Mock;
+  };
   let mailer: { send_invitation: jest.Mock };
   let log_service: { registrar: jest.Mock };
 
@@ -17,6 +23,8 @@ describe('FincasService', () => {
         id_finca: 1,
         fecha_baja_finca: null,
       }),
+      create: jest.fn((x) => x),
+      save: jest.fn(async (x) => x),
     };
     usuario_finca_repo = {
       createQueryBuilder: jest.fn(() => ({
@@ -27,6 +35,17 @@ describe('FincasService', () => {
       })),
       findOne: jest.fn(),
       save: jest.fn(async (x) => x),
+      create: jest.fn((x) => x),
+    };
+    usuario_repo = { findOne: jest.fn() };
+    parcela_repo = { findOne: jest.fn() };
+    sensor_repo = {
+      createQueryBuilder: jest.fn(() => ({
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(0),
+      })),
     };
     invitacion_repo = {
       findOne: jest.fn(),
@@ -45,6 +64,7 @@ describe('FincasService', () => {
         finca: { id_finca: 1 },
         nombre_rol: 'Encargado',
       }),
+      find_rol_finca_by_codigo: jest.fn(),
     };
     mailer = { send_invitation: jest.fn().mockResolvedValue(undefined) };
     log_service = { registrar: jest.fn().mockResolvedValue(undefined) };
@@ -52,6 +72,9 @@ describe('FincasService', () => {
     service = new FincasService(
       finca_repo as never,
       usuario_finca_repo as never,
+      usuario_repo as never,
+      parcela_repo as never,
+      sensor_repo as never,
       invitacion_repo as never,
       roles_service as never,
       mailer as never,
@@ -89,6 +112,84 @@ describe('FincasService', () => {
       errorCode: 'PENDING_INVITATION_EXISTS',
       status: HttpStatus.CONFLICT,
     });
+  });
+
+  it('rechaza crear una finca con nombre duplicado', async () => {
+    await expect(
+      service.crear_finca_desde_dto(
+        {
+          nombre_finca: 'Finca Demo Croply',
+          provincia: 'Córdoba',
+          departamento: 'Capital',
+          longitud: '-64.1888',
+          latitud: '-31.4201',
+          superficie_finca: 10,
+        },
+        { id_usuario: 1 } as never,
+      ),
+    ).rejects.toMatchObject({
+      errorCode: 'DUPLICATE_VALUE',
+      field: 'nombre_finca',
+      status: HttpStatus.CONFLICT,
+    });
+  });
+
+  it('da de baja lógicamente una finca', async () => {
+    const result = await service.dar_baja_finca(1, { id_usuario: 1 } as never);
+
+    expect(finca_repo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ fecha_baja_finca: expect.any(Date) }),
+    );
+    expect(result.message).toBe(
+      'Finca dada de baja correctamente. Las parcelas y datos asociados fueron actualizados.',
+    );
+  });
+
+  it('asigna un propietario creando una nueva membresía vigente', async () => {
+    usuario_finca_repo.findOne.mockResolvedValue(null);
+    usuario_repo.findOne.mockResolvedValue({
+      id_usuario: 55,
+      estado: 'Activo',
+      fecha_baja: null,
+      rol_sistema: null,
+    });
+    roles_service.find_rol_finca_by_id.mockResolvedValue({
+      id_rol: 21,
+      codigo_rol_finca: 'ADMIN_FINCA',
+      fecha_baja_rol: null,
+      finca: null,
+    });
+    roles_service.find_rol_finca_by_codigo.mockResolvedValue({
+      id_rol: 21,
+      codigo_rol_finca: 'ADMIN_FINCA',
+    });
+
+    await service.asignar_propietario(1, 55, { id_usuario: 1 } as never);
+
+    expect(usuario_finca_repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        usuario: expect.objectContaining({ id_usuario: 55 }),
+        finca: expect.objectContaining({ id_finca: 1 }),
+        fecha_fin_rol: null,
+      }),
+    );
+    expect(usuario_finca_repo.save).toHaveBeenCalled();
+  });
+
+  it('cierra el propietario vigente al desvincularlo', async () => {
+    const propietario = {
+      id_usuario_finca: 10,
+      fecha_fin_rol: null,
+      usuario: { id_usuario: 55 },
+      finca: { id_finca: 1 },
+      rol_finca: { codigo_rol_finca: 'ADMIN_FINCA' },
+    };
+    usuario_finca_repo.findOne.mockResolvedValue(propietario);
+
+    await service.asignar_propietario(1, null, { id_usuario: 1 } as never);
+
+    expect(propietario.fecha_fin_rol).toEqual(expect.any(Date));
+    expect(usuario_finca_repo.save).toHaveBeenCalledWith(propietario);
   });
 
   describe('alcance multi-finca', () => {

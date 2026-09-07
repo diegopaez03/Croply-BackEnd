@@ -65,6 +65,16 @@ export class UsuariosController {
     return this.usuarios_service.listar_ambito_croply(query);
   }
 
+  @Get('administradores-finca-disponibles')
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Listar administradores de finca disponibles' })
+  @ApiOkResponse({ description: 'Usuarios disponibles como propietarios' })
+  @ApiErrorResponses()
+  listar_administradores_finca_disponibles() {
+    return this.usuarios_service.listar_administradores_finca_disponibles();
+  }
+
   @Put(':id_usuario/rol-sistema')
   @UseGuards(JwtAuthGuard, AdminCroplyGuard)
   @ApiAuth()

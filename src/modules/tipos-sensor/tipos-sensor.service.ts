@@ -126,6 +126,12 @@ export class TiposSensorService {
     return Object.values(CodigoTipoSensor);
   }
 
+  async find_activo_by_id(id_tipo_sensor: number): Promise<TipoSensor | null> {
+    return this.tipo_sensor_repo.findOne({
+      where: { id_tipo_sensor, fecha_baja: IsNull() },
+    });
+  }
+
   private validar_codigo_tipo_sensor(
     codigo_tipo_sensor: CodigoTipoSensor,
   ): void {

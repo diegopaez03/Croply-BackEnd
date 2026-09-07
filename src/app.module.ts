@@ -12,6 +12,8 @@ import { SolicitudesDigitalizacionModule } from './modules/solicitudes-digitaliz
 import { LogOperacionesModule } from './modules/log-operaciones';
 import { TiposSensorModule } from './modules/tipos-sensor';
 import { CultivosModule } from './modules/cultivos';
+import { ParcelasModule } from './modules/parcelas';
+import { PlanesAccionModule } from './modules/planes-accion';
 
 /**
  * Root application module.
@@ -46,6 +48,8 @@ import { CultivosModule } from './modules/cultivos';
     SolicitudesDigitalizacionModule,
     TiposSensorModule,
     CultivosModule,
+    ParcelasModule,
+    PlanesAccionModule,
 
     // ── Seed (desarrollo: admins del equipo) ─────────────────────
     SeedModule,
