@@ -15,6 +15,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AdminCroplyGuard } from './guards/admin-croply.guard';
 import { AdminFincaGuard } from './guards/admin-finca.guard';
 import { AdminCroplyOAdminFincaGuard } from './guards/admin-croply-o-admin-finca.guard';
+import { PermisoGuard } from './guards/permiso.guard';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { AdminCroplyOAdminFincaGuard } from './guards/admin-croply-o-admin-finca
     AdminCroplyGuard,
     AdminFincaGuard,
     AdminCroplyOAdminFincaGuard,
+    PermisoGuard,
   ],
   exports: [
     AuthService,
@@ -52,6 +54,7 @@ import { AdminCroplyOAdminFincaGuard } from './guards/admin-croply-o-admin-finca
     AdminCroplyGuard,
     AdminFincaGuard,
     AdminCroplyOAdminFincaGuard,
+    PermisoGuard,
     JwtModule,
     JwtStrategy,
   ],

@@ -86,6 +86,11 @@ describe('SolicitudesDigitalizacionService', () => {
     expect(list_qb.andWhere).not.toHaveBeenCalled();
   });
 
+  it('lista solicitudes en orden ascendente de fecha cuando se pide', async () => {
+    await service.listar({ page: 1, pageSize: 10, orden_fecha: 'ASC' });
+    expect(list_qb.orderBy).toHaveBeenCalledWith('s.fecha_solicitud', 'ASC');
+  });
+
   it('aplica búsqueda por nombre/correo y filtro por estado', async () => {
     await service.listar({
       page: 1,

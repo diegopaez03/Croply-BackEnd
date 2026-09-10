@@ -139,19 +139,19 @@ describe('FincasService', () => {
       expect(fincas).toEqual([]);
     });
 
-    it('resuelve solo las fincas administradas', () => {
+    it('resuelve las fincas con vinculación vigente', () => {
       expect(
         service.resolver_fincas_administradas(admin_multi_finca as never),
-      ).toEqual([1, 2]);
+      ).toEqual([1, 2, 3]);
     });
 
-    it('acota a una finca puntual y rechaza las que no administra', () => {
+    it('acota a una finca puntual y rechaza las que no tiene vigentes', () => {
       expect(
         service.resolver_fincas_administradas(admin_multi_finca as never, 2),
       ).toEqual([2]);
 
       expect(() =>
-        service.resolver_fincas_administradas(admin_multi_finca as never, 3),
+        service.resolver_fincas_administradas(admin_multi_finca as never, 99),
       ).toThrow(expect.objectContaining({ errorCode: 'RESOURCE_NOT_FOUND' }));
     });
 

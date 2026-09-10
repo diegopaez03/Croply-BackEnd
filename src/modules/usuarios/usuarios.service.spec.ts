@@ -83,7 +83,29 @@ describe('UsuariosService', () => {
 
     expect(result.estado).toBe(EstadoUsuario.INACTIVO);
     expect(usuario.token_version).toBe(1);
+    expect(usuario.fecha_baja).toBeInstanceOf(Date);
     expect(result.message).toBe('Estado de cuenta actualizado correctamente.');
+  });
+
+  it('limpia fecha_baja al reactivar un usuario inactivo', async () => {
+    const usuario = {
+      id_usuario: 46,
+      email: 'c@agro.com',
+      estado: EstadoUsuario.INACTIVO,
+      token_version: 1,
+      fecha_baja: new Date('2026-09-10T12:00:00Z'),
+      usuario_fincas: [],
+    };
+    usuario_repo.findOne.mockResolvedValue(usuario);
+
+    const result = await service.actualizar_estado(
+      46,
+      { estado: EstadoUsuario.ACTIVO },
+      { rol_sistema: { codigo: 'ADMIN_CROPLY' }, usuario_fincas: [] } as never,
+    );
+
+    expect(result.estado).toBe(EstadoUsuario.ACTIVO);
+    expect(usuario.fecha_baja).toBeNull();
   });
 
   it('cancela invitación al pasar de Pendiente a Inactivo', async () => {
@@ -104,6 +126,7 @@ describe('UsuariosService', () => {
     );
 
     expect(result.message).toContain('invitación pendiente fue cancelada');
+    expect(usuario.fecha_baja).toBeInstanceOf(Date);
     expect(
       fincas_service.cancelar_invitaciones_pendientes_por_email,
     ).toHaveBeenCalledWith('c@agro.com');

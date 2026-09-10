@@ -20,6 +20,9 @@ import { ApiAuth, ApiErrorResponses } from '../../common/decorators';
 import { SWAGGER_TAGS } from '../../common/swagger';
 import { AdminFincaGuard } from '../auth/guards/admin-finca.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermisoGuard } from '../auth/guards/permiso.guard';
+import { RequirePermiso } from '../auth/decorators/require-permiso.decorator';
+import { PERMISO_FINCA } from '../../common/enums';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { UsuariosService } from '../usuarios/usuarios.service';
@@ -60,7 +63,8 @@ export class FincasController {
   }
 
   @Get('usuarios')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({
     summary: 'Listar usuarios de todas las fincas administradas',
@@ -81,7 +85,8 @@ export class FincasController {
   }
 
   @Get(':id_finca/roles')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Listar roles de la finca' })
   @ApiOkResponse({ description: 'Roles de finca' })
@@ -91,7 +96,8 @@ export class FincasController {
   }
 
   @Post(':id_finca/roles')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Crear rol de finca' })
   @ApiCreatedResponse({ description: 'Rol creado' })
@@ -106,7 +112,8 @@ export class FincasController {
   }
 
   @Put(':id_finca/roles/:id_rol')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Editar rol de finca' })
   @ApiOkResponse({ description: 'Rol actualizado' })
@@ -126,7 +133,8 @@ export class FincasController {
   }
 
   @Delete(':id_finca/roles/:id_rol')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Dar de baja rol de finca' })
   @ApiOkResponse({ description: 'Rol dado de baja' })
@@ -140,7 +148,8 @@ export class FincasController {
   }
 
   @Put(':id_finca/roles/:id_rol/permisos')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Guardar permisos de un rol de finca' })
   @ApiOkResponse({ description: 'Permisos actualizados' })
@@ -160,7 +169,8 @@ export class FincasController {
   }
 
   @Put(':id_finca/usuarios/:id_usuario_finca/rol')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Asignar rol a usuario dentro de la finca' })
   @ApiOkResponse({ description: 'Rol asignado' })
@@ -180,7 +190,8 @@ export class FincasController {
   }
 
   @Get(':id_finca/usuarios')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Listar usuarios vinculados a la finca' })
   @ApiOkResponse({ description: 'Listado paginado' })
@@ -193,7 +204,8 @@ export class FincasController {
   }
 
   @Post(':id_finca/invitaciones')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Generar y enviar invitación por email' })
   @ApiCreatedResponse({ description: 'Invitación enviada' })

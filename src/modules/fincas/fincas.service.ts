@@ -105,7 +105,7 @@ export class FincasService {
     usuario: Usuario,
     id_finca?: number,
   ): number[] {
-    const ids = this.vinculaciones_vigentes(usuario, true).map((uf) =>
+    const ids = this.vinculaciones_vigentes(usuario).map((uf) =>
       Number(uf.finca.id_finca),
     );
 

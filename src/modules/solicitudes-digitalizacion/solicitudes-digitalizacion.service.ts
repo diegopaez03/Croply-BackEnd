@@ -74,8 +74,11 @@ export class SolicitudesDigitalizacionService {
       listQb.andWhere('s.estado = :estado', { estado: query.estado });
     }
 
+    const orden_fecha =
+      query.orden_fecha?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
     const [solicitudes, totalItems] = await listQb
-      .orderBy('s.fecha_solicitud', 'DESC')
+      .orderBy('s.fecha_solicitud', orden_fecha)
       .skip((page - 1) * pageSize)
       .take(pageSize)
       .getManyAndCount();

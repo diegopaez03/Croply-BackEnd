@@ -4,10 +4,6 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
-import {
-  CODIGO_ADMIN_CROPLY,
-  CODIGO_ADMIN_FINCA,
-} from '../../../common/enums';
 import { DomainException } from '../../../common/exceptions';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 
@@ -29,18 +25,16 @@ export class AdminCroplyOAdminFincaGuard implements CanActivate {
       );
     }
 
-    if (usuario.rol_sistema?.codigo === CODIGO_ADMIN_CROPLY) {
+    if (usuario.rol_sistema) {
       return true;
     }
 
     const now = Date.now();
-    const es_admin_finca = (usuario.usuario_fincas ?? []).some(
-      (uf) =>
-        uf.rol_finca?.codigo_rol_finca === CODIGO_ADMIN_FINCA &&
-        (uf.fecha_fin_rol == null || uf.fecha_fin_rol.getTime() > now),
+    const pertenece_a_finca = (usuario.usuario_fincas ?? []).some(
+      (uf) => uf.fecha_fin_rol == null || uf.fecha_fin_rol.getTime() > now,
     );
 
-    if (!es_admin_finca) {
+    if (!pertenece_a_finca) {
       throw new DomainException(
         'FORBIDDEN',
         'No tenés permisos para realizar esta acción',

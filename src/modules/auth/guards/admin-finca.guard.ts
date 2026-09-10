@@ -4,12 +4,11 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
-import { CODIGO_ADMIN_FINCA } from '../../../common/enums';
 import { DomainException } from '../../../common/exceptions';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 
 /**
- * Requiere JWT + membresía vigente como ADMIN_FINCA en `:id_finca` de la ruta.
+ * Requiere JWT + membresía vigente en `:id_finca` de la ruta.
  */
 @Injectable()
 export class AdminFincaGuard implements CanActivate {
@@ -30,14 +29,13 @@ export class AdminFincaGuard implements CanActivate {
     }
 
     const now = Date.now();
-    const es_admin = (usuario.usuario_fincas ?? []).some(
+    const pertenece = (usuario.usuario_fincas ?? []).some(
       (uf) =>
         Number(uf.finca?.id_finca) === id_finca &&
-        uf.rol_finca?.codigo_rol_finca === CODIGO_ADMIN_FINCA &&
         (uf.fecha_fin_rol == null || uf.fecha_fin_rol.getTime() > now),
     );
 
-    if (!es_admin) {
+    if (!pertenece) {
       throw new DomainException(
         'FORBIDDEN',
         'No tenés permisos para realizar esta acción',

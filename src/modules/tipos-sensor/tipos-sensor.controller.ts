@@ -20,6 +20,9 @@ import { SWAGGER_TAGS } from '../../common/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AdminCroplyGuard } from '../auth/guards/admin-croply.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermisoGuard } from '../auth/guards/permiso.guard';
+import { RequirePermiso } from '../auth/decorators/require-permiso.decorator';
+import { PERMISO_SISTEMA } from '../../common/enums';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { ActualizarTipoSensorDto } from './dto/actualizar-tipo-sensor.dto';
 import { CrearTipoSensorDto } from './dto/crear-tipo-sensor.dto';
@@ -31,7 +34,8 @@ export class TiposSensorController {
   constructor(private readonly tipos_sensor_service: TiposSensorService) {}
 
   @Get('codigos-disponibles')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Listar códigos disponibles de tipos de sensor' })
   @ApiOkResponse({ description: 'Catálogo de códigos de tipos de sensor' })
@@ -43,7 +47,8 @@ export class TiposSensorController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Listar tipos de sensor' })
   @ApiOkResponse({ description: 'Listado de tipos de sensor' })
@@ -53,7 +58,8 @@ export class TiposSensorController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Crear tipo de sensor' })
   @ApiCreatedResponse({ description: 'Tipo de sensor creado' })
@@ -66,7 +72,8 @@ export class TiposSensorController {
   }
 
   @Put(':id_tipo_sensor')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Editar tipo de sensor' })
   @ApiOkResponse({ description: 'Tipo de sensor actualizado' })
@@ -84,7 +91,8 @@ export class TiposSensorController {
   }
 
   @Delete(':id_tipo_sensor')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Dar de baja tipo de sensor' })
   @ApiOkResponse({ description: 'Tipo de sensor dado de baja' })

@@ -21,6 +21,9 @@ import { SWAGGER_TAGS } from '../../common/swagger';
 import { AdminCroplyGuard } from '../auth/guards/admin-croply.guard';
 import { AdminCroplyOAdminFincaGuard } from '../auth/guards/admin-croply-o-admin-finca.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermisoGuard } from '../auth/guards/permiso.guard';
+import { RequirePermiso } from '../auth/decorators/require-permiso.decorator';
+import { PERMISO_FINCA, PERMISO_SISTEMA } from '../../common/enums';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { PlantillasBaseService } from './plantillas-base.service';
@@ -39,7 +42,8 @@ export class PlantillasBaseController {
   constructor(private readonly plantillas_service: PlantillasBaseService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard, AdminCroplyOAdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyOAdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE, PERMISO_FINCA.TAREAS_CAMPO)
   @ApiAuth()
   @ApiOperation({
     summary: 'Listar plantillas de planes base',
@@ -55,7 +59,8 @@ export class PlantillasBaseController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Crear plantilla de plan base' })
   @ApiCreatedResponse({
@@ -76,7 +81,8 @@ export class PlantillasBaseController {
   }
 
   @Get(':id_plantilla_base')
-  @UseGuards(JwtAuthGuard, AdminCroplyOAdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyOAdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE, PERMISO_FINCA.TAREAS_CAMPO)
   @ApiAuth()
   @ApiOperation({
     summary: 'Ver detalle de plantilla',
@@ -94,7 +100,8 @@ export class PlantillasBaseController {
   }
 
   @Put(':id_plantilla_base')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({
     summary: 'Editar plantilla de plan base',
@@ -124,7 +131,8 @@ export class PlantillasBaseController {
   }
 
   @Delete(':id_plantilla_base')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({
     summary: 'Dar de baja lógica una plantilla',

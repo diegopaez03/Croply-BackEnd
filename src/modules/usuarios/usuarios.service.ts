@@ -40,9 +40,13 @@ export class UsuariosService {
       where: { email: email.toLowerCase() },
       relations: [
         'rol_sistema',
+        'rol_sistema.rol_permisos',
+        'rol_sistema.rol_permisos.permiso',
         'usuario_fincas',
         'usuario_fincas.finca',
         'usuario_fincas.rol_finca',
+        'usuario_fincas.rol_finca.rol_permisos',
+        'usuario_fincas.rol_finca.rol_permisos.permiso',
       ],
     });
   }
@@ -52,9 +56,13 @@ export class UsuariosService {
       where: { id_usuario },
       relations: [
         'rol_sistema',
+        'rol_sistema.rol_permisos',
+        'rol_sistema.rol_permisos.permiso',
         'usuario_fincas',
         'usuario_fincas.finca',
         'usuario_fincas.rol_finca',
+        'usuario_fincas.rol_finca.rol_permisos',
+        'usuario_fincas.rol_finca.rol_permisos.permiso',
       ],
     });
   }
@@ -176,12 +184,11 @@ export class UsuariosService {
     const estado_anterior = usuario.estado;
     usuario.estado = dto.estado;
 
-    if (
-      estado_anterior === EstadoUsuario.ACTIVO &&
-      dto.estado === EstadoUsuario.INACTIVO
-    ) {
-      usuario.token_version = (usuario.token_version ?? 0) + 1;
-      usuario.fecha_baja = new Date();
+    if (dto.estado === EstadoUsuario.INACTIVO) {
+      if (estado_anterior !== EstadoUsuario.INACTIVO) {
+        usuario.fecha_baja = new Date();
+        usuario.token_version = (usuario.token_version ?? 0) + 1;
+      }
     }
 
     if (dto.estado === EstadoUsuario.ACTIVO) {
@@ -197,8 +204,6 @@ export class UsuariosService {
         await this.fincas_service.cancelar_invitaciones_pendientes_por_email(
           usuario.email,
         );
-      usuario.token_version = (usuario.token_version ?? 0) + 1;
-      usuario.fecha_baja = new Date();
     }
 
     await this.save(usuario);
