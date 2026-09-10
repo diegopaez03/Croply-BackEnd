@@ -561,7 +561,7 @@ Implementado en NestJS (`api/v1`):
 | AC-02  | `POST /auth/registrar-admin-finca`    | Implementado (JWT + `ADMIN_CROPLY`)            |
 | AC-03a | `GET /auth/validar-invitacion/:token` | Implementado                                   |
 | AC-03b | `POST /auth/registrar-invitado`       | Implementado                                   |
-| AC-04a | `POST /auth/olvide-mi-contrasena`     | Implementado (mailer **stub**: log en consola) |
+| AC-04a | `POST /auth/olvide-mi-contrasena`     | Implementado (mail: consola en dev, Resend en production) |
 | AC-04b | `POST /auth/resetear-contrasena`      | Implementado                                   |
 | AC-05  | `PUT /auth/cambio-contrasena`         | Implementado                                   |
 | AC-06  | `PUT /auth/contrasena-primer-acceso`  | Implementado                                   |
@@ -575,7 +575,7 @@ Errores transversales ERR-01 / ERR-02 / ERR-03 vía `AllExceptionsFilter` global
 - CRUD completo de fincas / usuarios / parcelas / cultivos / reportes
 - `Permiso`, `RolPermiso`, RBAC granular
 - `LogOperaciones`, notificaciones
-- SMTP real (solo stub de mail)
+- SMTP propio (el envío real usa Resend cuando `NODE_ENV=production`)
 - Refresh token (variables en `.env` existen; este contrato no lo exige)
 - Tests e2e Nest (`test/` aún no armado)
 - Deploy Railway / CI en este repo

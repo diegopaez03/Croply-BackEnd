@@ -30,7 +30,8 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 | `roles` | ABM roles sistema, catálogo de permisos, `Permiso` / `RolPermiso` |
 | `solicitudes-digitalizacion` | Alta pública + listado/detalle/estado (Admin Croply) |
 | `log-operaciones` | Auditoría interna (HU-GU-12), sin endpoint FE |
-| `cultivos` | Biblioteca de cultivos base y variedades; plantillas de plan base (hitos/tareas); búsqueda y filtros |
+| `cultivos` | Biblioteca de cultivos base y variedades (incluye `imagen_url` opcional); plantillas de plan base (hitos/tareas); búsqueda y filtros |
+| `uploads` | `POST /uploads/imagenes` — subida mediada a Cloudinary (JWT) |
 | `database/seed` | Admins Croply + fincas demo + biblioteca demo (Tomate, Ajo, plantilla general de Tomate) + roles + catálogo de permisos |
 
 Placeholders (sin lógica de negocio aún): `parcelas`, `reportes`.
@@ -73,7 +74,7 @@ pnpm start:dev
 | Swagger UI | `http://localhost:3000/api/v1/docs` |
 | OpenAPI JSON | `http://localhost:3000/api/v1/docs-json` |
 
-Variables clave (ver `.env.example`): `PORT`, `API_PREFIX`, `SWAGGER_ENABLED`, `DB_*`, `JWT_*`, `CORS_ORIGIN`, `THROTTLE_*`, `SEED_ADMIN_PASSWORD`.
+Variables clave (ver `.env.example`): `PORT`, `API_PREFIX`, `SWAGGER_ENABLED`, `DB_*`, `JWT_*`, `CORS_ORIGIN`, `FRONTEND_URL`, `THROTTLE_*`, `SEED_ADMIN_PASSWORD`, `CLOUDINARY_*`, `RESEND_API_KEY`, `MAIL_FROM`.
 
 ### Credenciales de prueba (seed)
 
@@ -193,6 +194,7 @@ Para PRs a `main`, la revisión prioritaria es del Arquitecto.
 | Roles | `modules/roles` |
 | Fincas | `modules/fincas` |
 | Cultivos | `modules/cultivos` |
+| Uploads | `modules/uploads` |
 | Parcelas | `modules/parcelas` |
 | Reportes | `modules/reportes` |
 | SolicitudesDigitalizacion | `modules/solicitudes-digitalizacion` |
@@ -233,6 +235,8 @@ Guía: [`docs/swagger-guidelines.md`](docs/swagger-guidelines.md).
 | Framework | NestJS 11 |
 | ORM / DB | TypeORM 0.3 + PostgreSQL 16 |
 | Auth | JWT, Passport JWT, bcrypt |
+| Mail | Resend en `production`; log en consola fuera de producción |
+| Imágenes | Cloudinary (SDK) + multer en memoria |
 | Validación | class-validator + class-transformer |
 | Docs API | @nestjs/swagger |
 | Seguridad HTTP | helmet, compression, throttler |
@@ -253,9 +257,10 @@ Railway (deploy futuro), Open-Meteo (clima), Croply IoT Simulator. No bloquean e
 4. **Auth JWT** — access token en login; refresh previsto en `.env` pero **fuera de alcance** de Épica 1.
 5. **Validación y seguridad en el borde** — `ValidationPipe` global, CORS, throttle, helmet, filter de excepciones.
 6. **Prefijo `API_PREFIX`** — el controller solo declara el segmento local. Server OpenAPI = origen sin prefijo.
-7. **Mailer stub** en desarrollo (links en log); SMTP real fuera de alcance actual.
+7. **Mail según entorno** — `MailerService` + `MailProvider`: `NODE_ENV=production` envía con Resend; el resto loguea asunto y HTML en la consola del backend. Fallos de envío se loguean y **no** rompen el flujo (reset/invitación).
 8. **UML ↔ código**: ver [`docs/diseño/Contexto — Diagrama de clases.md`](docs/diseño/Contexto%20—%20Diagrama%20de%20clases.md).
-9. **Multi-finca** — un usuario puede administrar varias fincas. El alcance nunca se infiere del JWT: viaja en la URL (`/fincas/:id_finca/...`) o en la query (`/fincas/usuarios?id_finca=`). `GET /fincas/mis-fincas` alimenta el selector de finca activa del frontend.
+9. **Uploads mediados** — el frontend nunca habla con Cloudinary. `POST /uploads/imagenes` (JWT) recibe `multipart/form-data` (`archivo`), valida tipo/tamaño y sube el buffer. Cultivo base y variedad persisten solo `imagen_url`.
+10. **Multi-finca** — un usuario puede administrar varias fincas. El alcance nunca se infiere del JWT: viaja en la URL (`/fincas/:id_finca/...`) o en la query (`/fincas/usuarios?id_finca=`). `GET /fincas/mis-fincas` alimenta el selector de finca activa del frontend.
 
 ### Regla de login (Épica 1)
 
@@ -274,8 +279,7 @@ Respecto del diagrama completo y épicas futuras:
 - HU-BC-06 (plan de acción real sobre parcela) — espera Épicas 3 y 5
 - ABM de `TipoTarea` / entidad `Tarea` (hoy hay un catálogo mock en `cultivos/tipo-tarea.catalog.ts`)
 - RBAC middleware por permiso individual (los permisos se administran; la auth HTTP sigue por rol)
-- Notificaciones
-- SMTP real
+- Notificaciones push
 - Refresh token como endpoint
 - Suite e2e Nest (`test/jest-e2e.json` pendiente)
 - CI (GitHub Actions) y deploy Railway en este repo
@@ -338,7 +342,7 @@ No hay push directo a `main` ni `develop`.
 
 Estándar: **TDD** (red → green) en seams acordados. Skill: [`.agent/skills/Test-Driven Development/`](.agent/skills/Test-Driven%20Development/).
 
-Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`, `CultivosBaseService`, `PlantillasBaseService`.
+Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`, `CultivosBaseService`, `PlantillasBaseService`, `MailerService`, `UploadsService`.
 
 Antes de pasar a revisión:
 
@@ -361,6 +365,9 @@ Antes de pasar a revisión:
 | No hay admins para login | Seed al arrancar; emails `*@croply.app`; ver logs `SeedService` |
 | Schema / tablas | `DB_SYNCHRONIZE=true` en local; migraciones en entornos serios |
 | `pnpm test:e2e` | Falta `test/jest-e2e.json` |
+| Mail no llega en local | Esperado: fuera de `production` se loguea en consola (`[DEV MAIL]`) |
+| Mail no llega en production | `RESEND_API_KEY`, `MAIL_FROM`, `FRONTEND_URL`; revisar logs de `MailerService` |
+| Subida de imagen 500 | `CLOUDINARY_CLOUD_NAME` / `API_KEY` / `API_SECRET`; tipo JPEG/PNG/WebP y ≤ 5 MB |
 
 Health: `GET /api/v1/health`. Login de humo: `POST /api/v1/auth/login` con un admin del seed.
 

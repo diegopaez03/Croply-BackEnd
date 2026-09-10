@@ -195,6 +195,7 @@ Los valores de tag en Swagger coinciden con `SWAGGER_TAGS`. Las carpetas de mód
 | `USUARIOS` | Usuarios | `modules/usuarios` |
 | `FINCAS` | Fincas | `modules/fincas` |
 | `CULTIVOS` | Cultivos | `modules/cultivos` |
+| `UPLOADS` | Uploads | `modules/uploads` |
 | `PARCELAS` | Parcelas | `modules/parcelas` |
 | `REPORTS` | Reportes | `modules/reportes` |
 | `SOLICITUDES_DIGITALIZACION` | SolicitudesDigitalizacion | `modules/solicitudes-digitalizacion` |
@@ -226,6 +227,7 @@ Tras cambiar opciones del plugin, reiniciar `pnpm start:dev`.
 | `src/common/decorators/*` | `@ApiAuth`, `@ApiErrorResponses`, `@ApiPaginatedResponse` |
 | `src/modules/health/*` | Endpoint de ejemplo documentado de punta a punta |
 | `src/modules/auth/*` | Login y resto de HU de acceso (Épica 1) |
+| `src/modules/uploads/*` | `POST /uploads/imagenes` (multipart + Cloudinary) |
 | `docs/diseño/Contexto — Diagrama de clases.md` | UML ↔ entidades implementadas |
 
 ## Anti-patrones a evitar

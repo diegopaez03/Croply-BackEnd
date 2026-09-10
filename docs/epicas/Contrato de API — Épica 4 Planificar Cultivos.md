@@ -18,6 +18,8 @@
 
 **Resuelto:** Se creó el atributo “observaciones” de tipo String.
 
+**4. Campo `imagen_url`** — no está en el UML original. Se agregó como `varchar(500)` nullable en `CultivoBase` y `Variedad`. El archivo se sube **antes** de guardar la ficha, vía `POST /api/v1/uploads/imagenes`; el CRUD de cultivos/variedades solo persiste la URL. El renderizado de esas imágenes en listados y otras pantallas queda fuera de esta entrega.
+
 **3. HU-BC-06 depende de entidades de Épica 3** (`Parcela`, `PlanAccion`) que todavía no tienen contrato formal, ya que el orden de desarrollo acordado es Épica 4 → 7 → 3. Los endpoints de esa HU en este documento son la mejor definición posible con la información actual del DC, a revisar/confirmar cuando se escriba el contrato de Épica 3.
 
 **Resolución:** No se implementará la HU-BC-06 hasta que no estén desarrolladas las épicas 3 y 5.
@@ -107,7 +109,8 @@
       "epoca_cultivo": "Primavera_verano",
       "cantidad_variedades": 15,
       "ciclo_productivo_cb": "70-90 días",
-      "forma_siembra": "Almacigo"
+      "forma_siembra": "Almacigo",
+      "imagen_url": null
     }
   ]
 }
@@ -128,11 +131,14 @@
   "epoca_cultivo": "Primavera_verano",
   "mes_siembra": "Sep-Oct",
   "ciclo_productivo_cb": "70-90 días",
-  "forma_siembra": "Almacigo"
+  "forma_siembra": "Almacigo",
+  "imagen_url": "https://res.cloudinary.com/demo/image/upload/v1/croply/tomate.jpg"
 }
 ```
 
 > `ciclo_productivo_cb`: obligatorio SOLO al crear (todavía no hay variedades de donde calcularlo). Cuando se agregue la primera variedad, el backend recalcula este valor automáticamente como rango, y el valor manual queda sobreescrito de ahí en adelante.
+
+> `imagen_url`: opcional (`string | null`). El frontend primero sube el archivo a `POST /uploads/imagenes` y luego envía la `url` acá. Si no hay imagen, se omite o se manda `null`.
 
 > `fecha_alta_cb`: la pone el backend automáticamente al crear el cultivo
 
@@ -147,7 +153,8 @@
   "epoca_cultivo": "Primavera_verano",
   "mes_siembra": "Sep-Oct",
   "ciclo_productivo_cb": "70-90 días",
-  "forma_siembra": "Almacigo"
+  "forma_siembra": "Almacigo",
+  "imagen_url": "https://res.cloudinary.com/demo/image/upload/v1/croply/tomate.jpg"
 }
 ```
 
@@ -166,6 +173,7 @@
   "mes_siembra": "Sep-Oct",
   "ciclo_productivo_cb": "70-90 días",
   "forma_siembra": "Almacigo",
+  "imagen_url": "https://res.cloudinary.com/demo/image/upload/v1/croply/tomate.jpg",
   "variedades": [
     {
       "id_variedad": 12,
@@ -174,7 +182,8 @@
 			"observaciones": "Mas dulce, con menos semillas.",
       "dias_a_cosecha": 75,
       "fecha_alta": "2026-03-10",
-      "en_uso": true
+      "en_uso": true,
+      "imagen_url": null
     }
   ]
 }
@@ -204,7 +213,8 @@
   "nombre_variedad": "Perita",
   "distancia_plantacion": "30x60cm",
   "observaciones": "Mas dulce, con menos semillas.",
-  "dias_a_cosecha": 75
+  "dias_a_cosecha": 75,
+  "imagen_url": null
 }
 ```
 
@@ -220,7 +230,8 @@
 "dias_a_cosecha": 75,
 "fecha_alta": "2026-03-10",
 "en_uso": false,
-"ciclo_productivo_cb": "68-75 días"
+"ciclo_productivo_cb": "68-75 días",
+"imagen_url": null
 }
 ```
 
@@ -241,6 +252,30 @@
 - `RESOURCE_IN_USE` (409) al eliminar variedad/cultivo en uso → **ERR-04 transversal** (Épica 2). Mensajes:
   - Variedad: `"Esta variedad no se puede eliminar porque está en uso."`
   - Cultivo: `"Este cultivo no se puede eliminar porque está en uso."`
+
+### Subida de imágenes (transversal a ficha / variedad)
+
+`POST /api/v1/uploads/imagenes` — autenticado (cualquier JWT válido). `multipart/form-data`, campo `archivo`.
+
+Tipos permitidos: `image/jpeg`, `image/png`, `image/webp`. Tamaño máximo: 5 MB.
+
+`201 Created`:
+
+```json
+{
+  "message": "Imagen subida correctamente",
+  "url": "https://res.cloudinary.com/demo/image/upload/v1/croply/tomate.jpg",
+  "public_id": "croply/tomate"
+}
+```
+
+Errores propios:
+
+- `REQUIRED_FIELD` (`field: "archivo"`) si no viaja el archivo.
+- `INVALID_FILE_TYPE` (400) si el MIME no está permitido.
+- `FILE_TOO_LARGE` (400) si supera 5 MB.
+
+El frontend usa `url` como `imagen_url` al crear/editar cultivo o variedad. No hace falta persistir `public_id` en esta entrega.
 
 ---
 

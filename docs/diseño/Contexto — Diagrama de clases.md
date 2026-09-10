@@ -200,9 +200,9 @@ Acordadas al implementar Épicas 1 y 2:
 5. **`id_usuario` opcional** en solicitud de digitalización.
 6. **`id_finca` numérico**; **`RolFinca.id_finca` nullable** (plantilla vs custom).
 7. **Épica 2:** `Permiso`, `RolPermiso`, `LogOperaciones` + seed de catálogo (7 sistema / 3 finca).
-8. **Mailer stub** — envío de links (reset e invitaciones) se loguea en consola en desarrollo.
+8. **Mail según entorno** — `MailerService`: log en consola fuera de production; Resend en production.
 9. **AuthZ HTTP por rol** (Admin Croply / Admin Finca); permisos como dato de ABM, no middleware granular.
-10. **Épica 4:** `CultivoBase`, `Variedad`, `PlantillaBase`, `PlantillaCultivoVariedad`, `HitoPlantilla`, `TareaPlantilla`. Extensiones al UML: `forma_siembra` (enum) en cultivo base; `observaciones` (string nullable) en variedad.
+10. **Épica 4:** `CultivoBase`, `Variedad`, `PlantillaBase`, `PlantillaCultivoVariedad`, `HitoPlantilla`, `TareaPlantilla`. Extensiones al UML: `forma_siembra` (enum) en cultivo base; `observaciones` (string nullable) en variedad; `imagen_url` (varchar 500 nullable) en cultivo base y variedad.
 11. **`TipoTarea` mock** — catálogo constante `TIPO_TAREA_CATALOG` (`src/modules/cultivos/tipo-tarea.catalog.ts`). El id `5` es “Aplicación de agroquímico” (valida `nombre_producto` y `dosis_aa`). Se reemplaza por entidad + ABM en Épica 5.
 12. **`en_uso`** de cultivo/variedad se calcula por filas activas de `PlantillaCultivoVariedad`. Cuando exista `Parcela` (Épica 3) hay que sumar asociaciones activas de parcela.
 13. **HU-BC-06 diferida** — no hay `PlanAccion` / `Tarea` real / ERR-08 (`TASK_NOT_EDITABLE`) hasta Épicas 3 y 5.
@@ -234,6 +234,7 @@ Ver nota actualizada en el contrato de Épica 1.
 | LogOperaciones | `src/modules/log-operaciones` |
 | Seed admins / permisos / biblioteca demo | `src/database/seed` + `RolesService` / `CultivosBaseService` |
 | CultivoBase, Variedad | `src/modules/cultivos` (`CultivosBaseService`) |
+| Subida de imágenes | `src/modules/uploads` + `src/common/cloudinary` |
 | PlantillaBase, PCV, HitoPlantilla, TareaPlantilla | `src/modules/cultivos` (`PlantillasBaseService`) |
 
 ---
@@ -250,13 +251,14 @@ Biblioteca agronómica global (no scoped a finca). Mutaciones: Admin Croply. Lec
 | `nombre_cultivo_base` | Único entre activos (trim) |
 | `descripcion_cb`, `epoca_cultivo`, `mes_siembra`, `ciclo_productivo_cb` | Ficha técnica |
 | `forma_siembra` | **Extensión al UML** — enum `FormaSiembra` |
+| `imagen_url` | **Extensión al UML** — URL de Cloudinary, nullable |
 | `fecha_alta_cb` / `fecha_baja_cb` | Alta automática; baja lógica |
 
 `ciclo_productivo_cb` es manual al crear. Al agregar/editar/eliminar variedades se recalcula como rango de `dias_a_cosecha` (`"75 días"` o `"68-75 días"`). Si ya hay variedades, el PUT de ficha ignora el ciclo del body.
 
 ### 8.2 `Variedad`
 
-Composición desde `CultivoBase`. Nombre único **dentro del mismo cultivo** activo. `observaciones` es **extensión al UML** (string nullable). `fecha_alta` en JSON: `YYYY-MM-DD`.
+Composición desde `CultivoBase`. Nombre único **dentro del mismo cultivo** activo. `observaciones` e `imagen_url` son **extensiones al UML** (string nullable). `fecha_alta` en JSON: `YYYY-MM-DD`.
 
 ### 8.3 `PlantillaBase` y `PlantillaCultivoVariedad`
 
@@ -308,7 +310,7 @@ No confundir “está en el diagrama” con “está implementado”:
 - RBAC middleware por permiso individual
 - Notificaciones
 - Refresh token persistido (vars en `.env` existen; contrato no lo exige)
-- SMTP real, e2e Nest armado, CI/Railway
+- e2e Nest armado, CI/Railway (el envío de mail real ya está: Resend en production)
 
 Detalle operativo: [`CONTEXT.md`](../../CONTEXT.md) y contratos en [`docs/epicas/`](../epicas/).
 
