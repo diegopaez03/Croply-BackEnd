@@ -12,7 +12,7 @@ import {
   EstadoInvitacion,
   EstadoUsuario,
 } from '../../common/enums';
-import { MailerStubService } from '../../common/mailer';
+import { MailerService } from '../../common/mailer';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { FincasService } from '../fincas/fincas.service';
 import { RolesService } from '../roles/roles.service';
@@ -63,7 +63,7 @@ export class AuthService {
     private readonly roles_service: RolesService,
     private readonly jwt_service: JwtService,
     private readonly config: ConfigService,
-    private readonly mailer: MailerStubService,
+    private readonly mailer: MailerService,
     @InjectRepository(ResetsContrasena)
     private readonly resets_repo: Repository<ResetsContrasena>,
   ) {}

@@ -134,7 +134,8 @@ src/
 │   ├── decorators/         # @ApiAuth, @ApiErrorResponses, @ApiPaginatedResponse
 │   ├── exceptions/         # DomainException + helpers ERR-01/02/03
 │   ├── filters/            # AllExceptionsFilter
-│   ├── mailer/             # MailerStubService (log de links)
+│   ├── mailer/             # MailerService (console en dev, Resend en prod)
+│   ├── cloudinary/         # CloudinaryService (subida de imágenes)
 │   ├── enums/              # EstadoUsuario, roles, etc.
 │   └── swagger/
 └── modules/
@@ -145,6 +146,7 @@ src/
     ├── roles/              # ABM sistema, permisos
     ├── log-operaciones/    # auditoría interna
     ├── solicitudes-digitalizacion/
+    ├── uploads/                # POST /uploads/imagenes (Cloudinary)
     ├── cultivos/               # biblioteca + plantillas base (Épica 4)
     ├── parcelas/               # placeholder
     └── reportes/               # placeholder

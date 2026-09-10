@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { MailerModule } from '../../common/mailer';
 import { AuthModule } from '../auth/auth.module';
 import { LogOperacionesModule } from '../log-operaciones';
 import { RolesModule } from '../roles';
@@ -18,6 +19,7 @@ import { InvitacionesController } from './invitaciones.controller';
     forwardRef(() => RolesModule),
     forwardRef(() => UsuariosModule),
     forwardRef(() => AuthModule),
+    MailerModule,
   ],
   controllers: [FincasController, InvitacionesController],
   providers: [FincasService],

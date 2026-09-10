@@ -25,6 +25,12 @@ export class CultivoBaseListItemDto {
 
   @ApiProperty({ example: 2 })
   cantidad_variedades: number;
+
+  @ApiPropertyOptional({
+    example: 'https://res.cloudinary.com/demo/image/upload/v1/croply/tomate.jpg',
+    nullable: true,
+  })
+  imagen_url: string | null;
 }
 
 export class ListarCultivosBaseResponseDto {
@@ -64,6 +70,12 @@ export class VariedadDetalleDto {
 
   @ApiPropertyOptional({ example: 8, nullable: true })
   id_plantilla_especifica: number | null;
+
+  @ApiPropertyOptional({
+    example: 'https://res.cloudinary.com/demo/image/upload/v1/croply/perita.jpg',
+    nullable: true,
+  })
+  imagen_url: string | null;
 }
 
 export class CultivoBaseDetalleDto {
@@ -93,6 +105,12 @@ export class CultivoBaseDetalleDto {
 
   @ApiProperty({ type: [VariedadDetalleDto] })
   variedades: VariedadDetalleDto[];
+
+  @ApiPropertyOptional({
+    example: 'https://res.cloudinary.com/demo/image/upload/v1/croply/tomate.jpg',
+    nullable: true,
+  })
+  imagen_url: string | null;
 }
 
 export class VariedadMutacionResponseDto {
@@ -125,6 +143,12 @@ export class VariedadMutacionResponseDto {
 
   @ApiProperty({ example: '68-75 días' })
   ciclo_productivo_cb: string;
+
+  @ApiPropertyOptional({
+    example: 'https://res.cloudinary.com/demo/image/upload/v1/croply/perita.jpg',
+    nullable: true,
+  })
+  imagen_url: string | null;
 }
 
 export class MensajeCultivoResponseDto {

@@ -12,7 +12,7 @@ import {
   resourceNotFound,
 } from '../../common/exceptions';
 import { generate_token, hash_token } from '../auth/auth.crypto';
-import { MailerStubService } from '../../common/mailer';
+import { MailerService } from '../../common/mailer';
 import { LogOperacionesService } from '../log-operaciones';
 import { RolesService } from '../roles/roles.service';
 import { Usuario } from '../usuarios/entities/usuario.entity';
@@ -34,7 +34,7 @@ export class FincasService {
     @InjectRepository(InvitacionFinca)
     private readonly invitacion_repo: Repository<InvitacionFinca>,
     private readonly roles_service: RolesService,
-    private readonly mailer: MailerStubService,
+    private readonly mailer: MailerService,
     private readonly log_service: LogOperacionesService,
   ) {}
 
