@@ -15,6 +15,7 @@ import { ControladorSensor } from './entities/controlador-sensor.entity';
 import { CodigoQR } from './entities/codigo-qr.entity';
 import { Parcela } from './entities/parcela.entity';
 import { Sensor } from './entities/sensor.entity';
+import { SimuladorSincronizacionEstructuralService } from '../simulador-iot/simulador-sincronizacion-estructural.service';
 import {
   ActualizarParcelaDto,
   CrearParcelaDto,
@@ -34,6 +35,7 @@ export class ParcelasService {
     @InjectRepository(CodigoQR)
     private readonly codigo_qr_repo: Repository<CodigoQR>,
     private readonly tipos_sensor_service: TiposSensorService,
+    private readonly simulador_sincronizacion_service: SimuladorSincronizacionEstructuralService,
   ) {}
 
   async crear(
@@ -55,6 +57,7 @@ export class ParcelasService {
 
     await this.replace_controladores(parcela, dto.controladores ?? []);
     const detalle = await this.require_parcela(id_finca, parcela.id_parcela);
+    await this.simulador_sincronizacion_service.sincronizar_creacion(detalle);
 
     return {
       message: 'Parcela creada correctamente',
@@ -81,6 +84,8 @@ export class ParcelasService {
     if (dto.controladores !== undefined) {
       await this.replace_controladores(parcela, dto.controladores);
     }
+    const detalle = await this.require_parcela(id_finca, id_parcela);
+    await this.simulador_sincronizacion_service.sincronizar_actualizacion(detalle);
 
     return {
       message: 'Parcela actualizada correctamente',
@@ -108,6 +113,7 @@ export class ParcelasService {
         }
       }
     }
+    await this.simulador_sincronizacion_service.sincronizar_baja(parcela);
 
     return {
       message:

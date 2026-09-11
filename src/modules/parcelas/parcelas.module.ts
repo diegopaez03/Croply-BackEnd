@@ -10,12 +10,14 @@ import { CodigoQR } from './entities/codigo-qr.entity';
 import { ParcelasController } from './parcelas.controller';
 import { CodigoQrController } from './codigo-qr.controller';
 import { ParcelasService } from './parcelas.service';
+import { SimuladorIotModule } from '../simulador-iot/simulador-iot.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Parcela, ControladorSensor, Sensor, CodigoQR]),
     forwardRef(() => FincasModule),
     TiposSensorModule,
+    forwardRef(() => SimuladorIotModule),
   ],
   controllers: [ParcelasController, CodigoQrController],
   providers: [ParcelasService, AdminFincaPorParcelaGuard],

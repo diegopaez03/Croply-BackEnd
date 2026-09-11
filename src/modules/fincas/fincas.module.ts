@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { LogOperacionesModule } from '../log-operaciones';
@@ -13,9 +14,11 @@ import { Sensor } from '../parcelas/entities/sensor.entity';
 import { FincasController } from './fincas.controller';
 import { FincasService } from './fincas.service';
 import { InvitacionesController } from './invitaciones.controller';
+import { ClimaService } from './clima.service';
 
 @Module({
   imports: [
+    HttpModule,
     TypeOrmModule.forFeature([
       Finca,
       UsuarioFinca,
@@ -30,7 +33,7 @@ import { InvitacionesController } from './invitaciones.controller';
     forwardRef(() => AuthModule),
   ],
   controllers: [FincasController, InvitacionesController],
-  providers: [FincasService],
+  providers: [FincasService, ClimaService],
   exports: [FincasService, TypeOrmModule],
 })
 export class FincasModule {}

@@ -40,12 +40,14 @@ import {
   ListarUsuariosFincaQueryDto,
 } from './dto/fincas.dto';
 import { FincasService } from './fincas.service';
+import { ClimaService } from './clima.service';
 
 @ApiTags(SWAGGER_TAGS.FINCAS)
 @Controller('fincas')
 export class FincasController {
   constructor(
     private readonly fincas_service: FincasService,
+    private readonly clima_service: ClimaService,
     private readonly roles_service: RolesService,
     private readonly usuarios_service: UsuariosService,
   ) {}
@@ -141,6 +143,16 @@ export class FincasController {
   @ApiErrorResponses({ notFound: true })
   detalle(@Param('id_finca', ParseIntPipe) id_finca: number) {
     return this.fincas_service.obtener_detalle(id_finca);
+  }
+
+  @Get(':id_finca/clima')
+  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Consultar clima actual y pronóstico de finca' })
+  @ApiOkResponse({ description: 'Clima actual y pronóstico de cuatro días' })
+  @ApiErrorResponses({ forbidden: true, notFound: true })
+  clima(@Param('id_finca', ParseIntPipe) id_finca: number) {
+    return this.clima_service.obtener_clima(id_finca);
   }
 
   @Put(':id_finca')

@@ -20,6 +20,11 @@ describe('ParcelasService', () => {
   let finca_repo: ReturnType<typeof repository>;
   let codigo_qr_repo: ReturnType<typeof repository>;
   let tipos_sensor_service: { find_activo_by_id: jest.Mock };
+  let simulador_sincronizacion_service: {
+    sincronizar_creacion: jest.Mock;
+    sincronizar_actualizacion: jest.Mock;
+    sincronizar_baja: jest.Mock;
+  };
 
   beforeEach(() => {
     parcela_repo = repository();
@@ -28,6 +33,11 @@ describe('ParcelasService', () => {
     finca_repo = repository();
     codigo_qr_repo = repository();
     tipos_sensor_service = { find_activo_by_id: jest.fn() };
+    simulador_sincronizacion_service = {
+      sincronizar_creacion: jest.fn().mockResolvedValue(undefined),
+      sincronizar_actualizacion: jest.fn().mockResolvedValue(undefined),
+      sincronizar_baja: jest.fn().mockResolvedValue(undefined),
+    };
     controlador_repo.find.mockResolvedValue([]);
     service = new ParcelasService(
       parcela_repo as never,
@@ -36,6 +46,7 @@ describe('ParcelasService', () => {
       finca_repo as never,
       codigo_qr_repo as never,
       tipos_sensor_service as never,
+      simulador_sincronizacion_service as never,
     );
   });
 

@@ -145,13 +145,15 @@ src/
     ├── health/
     ├── auth/               # JWT, guards, endpoints /auth/*
     ├── usuarios/           # perfil, listados, estado, rol sistema
-    ├── fincas/             # roles finca, usuarios, invitaciones
+    ├── fincas/             # ABM finca, propietario, roles finca, usuarios, invitaciones
     ├── roles/              # ABM sistema, permisos
     ├── log-operaciones/    # auditoría interna
     ├── solicitudes-digitalizacion/
-    ├── cultivos/               # biblioteca + plantillas base (Épica 4)
-    ├── parcelas/               # placeholder
-    └── reportes/               # placeholder
+    ├── cultivos/           # biblioteca + plantillas base (Épica 4)
+    ├── tipos-sensor/       # ABM de TipoSensor (Épica 7, HU-IoT-01)
+    ├── parcelas/           # Parcela, ControladorSensor, Sensor, CodigoQR (Épica 3)
+    ├── planes-accion/      # PlanAccion, Hito, Tarea (Épica 3/4)
+    └── reportes/           # placeholder
 ```
 
 Path aliases (`tsconfig.json`): `@modules/*`, `@config/*`, `@common/*`, `@database/*`.
@@ -183,7 +185,7 @@ Para PRs a `main`, la revisión prioritaria es del Arquitecto.
 - Carpetas de módulos en **español** (`fincas`, `cultivos`, `parcelas`).
 - Tags Swagger / lenguaje de dominio en **español**.
 - Archivos Nest: `*.module.ts`, `*.controller.ts`, `*.service.ts`, `*.entity.ts`, `*.dto.ts`, `*.spec.ts`.
-- DTOs: `CreateXDto`, `UpdateXDto`, `XResponseDto`, `XQueryDto`.
+- DTOs: `CrearXDto`, `ActualizarXDto`, `XResponseDto`, `XQueryDto` 
 - Clases en PascalCase; atributos, métodos y variables de código en snake_case; constantes en `SCREAMING_SNAKE`.
 - Columnas DB en snake_case; JSON de API con `id_*` en minúsculas (`id_usuario`, `id_rol`, …) y `camelCase` solo donde el contrato lo pide (`accessToken`).
 
@@ -274,7 +276,7 @@ Railway (deploy futuro), Open-Meteo (clima), Croply IoT Simulator. No bloquean e
 
 Respecto del diagrama completo y épicas futuras:
 
-- CRUD de fincas, parcelas y reportes
+- CRUD de reportes
 - HU-BC-06 (plan de acción real sobre parcela) — espera Épicas 3 y 5
 - ABM de `TipoTarea` / entidad `Tarea` (hoy hay un catálogo mock en `cultivos/tipo-tarea.catalog.ts`)
 - RBAC middleware por permiso individual (los permisos se administran; la auth HTTP sigue por rol)

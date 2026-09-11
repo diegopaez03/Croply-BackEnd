@@ -14,6 +14,7 @@ import { TiposSensorModule } from './modules/tipos-sensor';
 import { CultivosModule } from './modules/cultivos';
 import { ParcelasModule } from './modules/parcelas';
 import { PlanesAccionModule } from './modules/planes-accion';
+import { SimuladorIotModule } from './modules/simulador-iot';
 
 /**
  * Root application module.
@@ -50,6 +51,7 @@ import { PlanesAccionModule } from './modules/planes-accion';
     CultivosModule,
     ParcelasModule,
     PlanesAccionModule,
+    SimuladorIotModule,
 
     // ── Seed (desarrollo: admins del equipo) ─────────────────────
     SeedModule,
