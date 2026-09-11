@@ -65,6 +65,31 @@ export class FincasService {
     return this.finca_repo.save(this.finca_repo.create(data));
   }
 
+  private async validar_usuario_propietario(
+  id_usuario_propietario: number,
+): Promise<void> {
+  const usuario = await this.usuario_repo.findOne({
+    where: { id_usuario: id_usuario_propietario },
+    relations: ['rol_sistema'],
+  });
+
+  if (
+    !usuario ||
+    usuario.rol_sistema != null ||
+    usuario.fecha_baja != null ||
+    usuario.estado === EstadoUsuario.INACTIVO
+  ) {
+    throw resourceNotFound();
+  }
+
+  const rol_admin_finca = await this.roles_service.find_rol_finca_by_codigo(
+    CODIGO_ADMIN_FINCA,
+  );
+  if (!rol_admin_finca) {
+    throw resourceNotFound();
+  }
+}
+
   async listar_fincas(query: ListarFincasQueryDto) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
@@ -124,42 +149,52 @@ export class FincasService {
   }
 
   async crear_finca_desde_dto(dto: CrearFincaDto, actor: Usuario) {
-    const nombre_finca = dto.nombre_finca.trim();
-    const existente = await this.finca_repo.findOne({
-      where: { nombre_finca, fecha_baja_finca: IsNull() },
-    });
-    if (existente) {
-      throw new DomainException(
-        'DUPLICATE_VALUE',
-        'El valor ingresado ya existe',
-        HttpStatus.CONFLICT,
-        'nombre_finca',
-      );
-    }
-
-    const finca = await this.crear_finca({
-      nombre_finca,
-      provincia: dto.provincia.trim(),
-      departamento: dto.departamento.trim(),
-      longitud: dto.longitud,
-      latitud: dto.latitud,
-      superficie_finca: dto.superficie_finca,
-      descripcion_finca: dto.descripcion_finca?.trim() ?? null,
-      fecha_baja_finca: null,
-    });
-
-    await this.log_service.registrar({
-      usuario: actor,
-      tipo_operacion: TipoOperacion.EXITO,
-      descripcion: `Alta de finca ${finca.nombre_finca}`,
-      recurso: `Finca:${finca.id_finca}`,
-    });
-
-    return {
-      message: 'Finca creada correctamente',
-      ...(await this.obtener_detalle(finca.id_finca)),
-    };
+  const nombre_finca = dto.nombre_finca.trim();
+  const existente = await this.finca_repo.findOne({
+    where: { nombre_finca, fecha_baja_finca: IsNull() },
+  });
+  if (existente) {
+    throw new DomainException(
+      'DUPLICATE_VALUE',
+      'El valor ingresado ya existe',
+      HttpStatus.CONFLICT,
+      'nombre_finca',
+    );
   }
+
+  // 👇 NUEVO: validar el propietario ANTES de tocar la tabla Finca
+  if (dto.id_usuario_propietario != null) {
+    await this.validar_usuario_propietario(dto.id_usuario_propietario);
+  }
+
+  const finca = await this.crear_finca({
+    nombre_finca,
+    provincia: dto.provincia.trim(),
+    departamento: dto.departamento.trim(),
+    longitud: dto.longitud,
+    latitud: dto.latitud,
+    superficie_finca: dto.superficie_finca,
+    descripcion_finca: dto.descripcion_finca?.trim() ?? null,
+    fecha_baja_finca: null,
+  });
+
+  // 👇 NUEVO: recién acá, con la finca ya creada y el propietario ya validado, se vincula
+  if (dto.id_usuario_propietario != null) {
+    await this.asignar_propietario(finca.id_finca, dto.id_usuario_propietario, actor);
+  }
+
+  await this.log_service.registrar({
+    usuario: actor,
+    tipo_operacion: TipoOperacion.EXITO,
+    descripcion: `Alta de finca ${finca.nombre_finca}`,
+    recurso: `Finca:${finca.id_finca}`,
+  });
+
+  return {
+    message: 'Finca creada correctamente',
+    ...(await this.obtener_detalle(finca.id_finca)),
+  };
+}
 
   async actualizar_finca(
     id_finca: number,
