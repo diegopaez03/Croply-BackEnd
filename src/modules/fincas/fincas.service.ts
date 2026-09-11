@@ -422,6 +422,7 @@ export class FincasService {
     return {
       id_parcela: Number(parcela.id_parcela),
       nombre_parcela: parcela.nombre_parcela,
+      superficie_parcela: Number(parcela.superficie_parcela),   //  NUEVO
       estado_parcela: parcela.estado_parcela,
       controladores: (parcela.controladores ?? [])
         .filter((controlador) => controlador.fecha_baja == null)

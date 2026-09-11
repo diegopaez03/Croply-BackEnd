@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { EstadoParcela, EstadoTransmision } from '../../common/enums';
@@ -23,6 +23,7 @@ import {
 
 @Injectable()
 export class ParcelasService {
+  private readonly logger = new Logger(ParcelasService.name); 
   constructor(
     @InjectRepository(Parcela)
     private readonly parcela_repo: Repository<Parcela>,
@@ -55,9 +56,22 @@ export class ParcelasService {
       }),
     );
 
+    // DESPUÉS
     await this.replace_controladores(parcela, dto.controladores ?? []);
     const detalle = await this.require_parcela(id_finca, parcela.id_parcela);
-    await this.simulador_sincronizacion_service.sincronizar_creacion(detalle);
+
+    try {
+      await this.simulador_sincronizacion_service.sincronizar_creacion(detalle);
+    } catch (error) {
+      // La parcela ya quedó guardada en Croply (arriba). Un fallo del simulador
+      // (caído, red, timeout, etc.) no debe tirar abajo esta respuesta.
+      // TODO: cuando exista el módulo de Notificaciones, disparar acá el aviso
+      // al Admin Croply en vez de solo loguear.
+      this.logger.error(
+        `Fallo al sincronizar creación de parcela ${detalle.id_parcela} con el simulador`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
 
     return {
       message: 'Parcela creada correctamente',
@@ -65,32 +79,43 @@ export class ParcelasService {
     };
   }
 
+
   async actualizar(
-    id_finca: number,
-    id_parcela: number,
-    dto: ActualizarParcelaDto,
-  ) {
-    const parcela = await this.require_parcela(id_finca, id_parcela);
+  id_finca: number,
+  id_parcela: number,
+  dto: ActualizarParcelaDto,
+) {
+  const parcela = await this.require_parcela(id_finca, id_parcela);
 
-    if (dto.nombre_parcela !== undefined) {
-      await this.assert_nombre_unico(id_finca, dto.nombre_parcela, id_parcela);
-      parcela.nombre_parcela = dto.nombre_parcela.trim();
-    }
-    if (dto.superficie_parcela !== undefined) {
-      parcela.superficie_parcela = dto.superficie_parcela;
-    }
-    await this.parcela_repo.save(parcela);
-
-    if (dto.controladores !== undefined) {
-      await this.replace_controladores(parcela, dto.controladores);
-    }
-    const detalle = await this.require_parcela(id_finca, id_parcela);
-    await this.simulador_sincronizacion_service.sincronizar_actualizacion(detalle);
-
-    return {
-      message: 'Parcela actualizada correctamente',
-    };
+  if (dto.nombre_parcela !== undefined) {
+    await this.assert_nombre_unico(id_finca, dto.nombre_parcela, id_parcela);
+    parcela.nombre_parcela = dto.nombre_parcela.trim();
   }
+  if (dto.superficie_parcela !== undefined) {
+    parcela.superficie_parcela = dto.superficie_parcela;
+  }
+  await this.parcela_repo.save(parcela);
+
+  if (dto.controladores !== undefined) {
+    await this.replace_controladores(parcela, dto.controladores);
+  }
+  const detalle = await this.require_parcela(id_finca, id_parcela);
+
+  // TODO ESTE BLOQUE es nuevo, reemplaza la línea que tenías:
+  // await this.simulador_sincronizacion_service.sincronizar_actualizacion(detalle);
+  try {
+    await this.simulador_sincronizacion_service.sincronizar_actualizacion(detalle);
+  } catch (error) {
+    this.logger.error(
+      `Fallo al sincronizar actualización de parcela ${detalle.id_parcela} con el simulador`,
+      error instanceof Error ? error.stack : String(error),
+    );
+  }
+
+  return {
+    message: 'Parcela actualizada correctamente',
+  };
+}
 
   async dar_baja(id_finca: number, id_parcela: number) {
     const parcela = await this.require_parcela(id_finca, id_parcela);
