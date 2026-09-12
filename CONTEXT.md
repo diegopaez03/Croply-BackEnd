@@ -50,7 +50,7 @@ Contratos: [`docs/epicas/`](docs/epicas/).
 ### Requisitos
 
 - Node.js ≥ 20
-- pnpm ≥ 9 (el repo fija `pnpm@11.5.1`)
+- pnpm ≥ 9 (el repo fija `pnpm@12.4.1`)
 - PostgreSQL 16 en local
 
 ### Setup (desarrollo local)
