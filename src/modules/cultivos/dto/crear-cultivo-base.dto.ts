@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { EpocaCultivo, FormaSiembra } from '../../../common/enums';
 
 export class CrearCultivoBaseDto {
@@ -37,4 +37,22 @@ export class CrearCultivoBaseDto {
   @ApiProperty({ enum: FormaSiembra, example: FormaSiembra.ALMACIGO })
   @IsEnum(FormaSiembra)
   forma_siembra: FormaSiembra;
+
+  @ApiPropertyOptional({
+    example: 'https://res.cloudinary.com/demo/image/upload/v1/croply/tomate.jpg',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  imagen_url?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'https://res.cloudinary.com/demo/image/upload/v1/croply/tomate-banner.jpg',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  banner_url?: string | null;
 }

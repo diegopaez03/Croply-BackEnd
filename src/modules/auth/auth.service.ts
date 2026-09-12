@@ -12,7 +12,8 @@ import {
   EstadoInvitacion,
   EstadoUsuario,
 } from '../../common/enums';
-import { MailerStubService } from '../../common/mailer';
+import { nombres_permiso_usuario } from './permisos.util';
+import { MailerService } from '../../common/mailer';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { FincasService } from '../fincas/fincas.service';
 import { RolesService } from '../roles/roles.service';
@@ -53,6 +54,7 @@ export interface AuthJwtPayload {
   estado: EstadoUsuario;
   fecha_alta: string;
   fincas: FincaRol[];
+  permisos: string[];
 }
 
 @Injectable()
@@ -63,7 +65,7 @@ export class AuthService {
     private readonly roles_service: RolesService,
     private readonly jwt_service: JwtService,
     private readonly config: ConfigService,
-    private readonly mailer: MailerStubService,
+    private readonly mailer: MailerService,
     @InjectRepository(ResetsContrasena)
     private readonly resets_repo: Repository<ResetsContrasena>,
   ) {}
@@ -426,6 +428,7 @@ export class AuthService {
       estado: usuario.estado,
       fecha_alta: usuario.fecha_alta.toISOString(),
       fincas: this.map_fincas_vigentes(usuario),
+      permisos: nombres_permiso_usuario(usuario),
     };
   }
 
@@ -453,6 +456,7 @@ export class AuthService {
       fecha_alta: usuario.fecha_alta.toISOString(),
       rol_sistema: usuario.rol_sistema?.codigo ?? null,
       fincas: this.map_fincas_vigentes(usuario),
+      permisos: nombres_permiso_usuario(usuario),
     };
   }
 

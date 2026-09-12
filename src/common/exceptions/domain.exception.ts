@@ -19,9 +19,14 @@ export type DomainErrorCode =
   | 'STATE_NOT_ALLOWED'
   | 'PENDING_INVITATION_EXISTS'
   | 'USER_ALREADY_LINKED'
-  | 'INVALID_SENSOR_TYPE_CODE';
+  | 'INVALID_SENSOR_TYPE_CODE'
   | 'EMPTY_SCHEDULE'
-  | 'VARIETY_ALREADY_ASSIGNED';
+  | 'VARIETY_ALREADY_ASSIGNED'
+  | 'INVALID_FILE_TYPE'
+  | 'FILE_TOO_LARGE'
+  | 'WEATHER_SERVICE_UNAVAILABLE'
+  | 'INSUFFICIENT_AREA'
+  | 'FINCA_NOT_AVAILABLE';
 
 export interface DomainExceptionBody {
   statusCode: number;
@@ -107,5 +112,23 @@ export function varietyAlreadyAssigned(id_variedad?: number): DomainException {
     HttpStatus.CONFLICT,
     undefined,
     id_variedad !== undefined ? { id_variedad } : undefined,
+  );
+}
+
+export function invalidFileType(permitidos: string[]): DomainException {
+  return new DomainException(
+    'INVALID_FILE_TYPE',
+    `El archivo debe ser de tipo ${permitidos.join(', ')}.`,
+    HttpStatus.BAD_REQUEST,
+    'archivo',
+  );
+}
+
+export function fileTooLarge(maxSizeMb: number): DomainException {
+  return new DomainException(
+    'FILE_TOO_LARGE',
+    `El archivo no puede superar los ${maxSizeMb} MB.`,
+    HttpStatus.BAD_REQUEST,
+    'archivo',
   );
 }

@@ -40,9 +40,13 @@ export class UsuariosService {
       where: { email: email.toLowerCase() },
       relations: [
         'rol_sistema',
+        'rol_sistema.rol_permisos',
+        'rol_sistema.rol_permisos.permiso',
         'usuario_fincas',
         'usuario_fincas.finca',
         'usuario_fincas.rol_finca',
+        'usuario_fincas.rol_finca.rol_permisos',
+        'usuario_fincas.rol_finca.rol_permisos.permiso',
       ],
     });
   }
@@ -52,9 +56,13 @@ export class UsuariosService {
       where: { id_usuario },
       relations: [
         'rol_sistema',
+        'rol_sistema.rol_permisos',
+        'rol_sistema.rol_permisos.permiso',
         'usuario_fincas',
         'usuario_fincas.finca',
         'usuario_fincas.rol_finca',
+        'usuario_fincas.rol_finca.rol_permisos',
+        'usuario_fincas.rol_finca.rol_permisos.permiso',
       ],
     });
   }
@@ -176,12 +184,11 @@ export class UsuariosService {
     const estado_anterior = usuario.estado;
     usuario.estado = dto.estado;
 
-    if (
-      estado_anterior === EstadoUsuario.ACTIVO &&
-      dto.estado === EstadoUsuario.INACTIVO
-    ) {
-      usuario.token_version = (usuario.token_version ?? 0) + 1;
-      usuario.fecha_baja = new Date();
+    if (dto.estado === EstadoUsuario.INACTIVO) {
+      if (estado_anterior !== EstadoUsuario.INACTIVO) {
+        usuario.fecha_baja = new Date();
+        usuario.token_version = (usuario.token_version ?? 0) + 1;
+      }
     }
 
     if (dto.estado === EstadoUsuario.ACTIVO) {
@@ -197,8 +204,6 @@ export class UsuariosService {
         await this.fincas_service.cancelar_invitaciones_pendientes_por_email(
           usuario.email,
         );
-      usuario.token_version = (usuario.token_version ?? 0) + 1;
-      usuario.fecha_baja = new Date();
     }
 
     await this.save(usuario);
@@ -245,17 +250,78 @@ export class UsuariosService {
 
     this.apply_usuario_filters(listQb, query, 'rol');
 
-    const totalItems = await listQb.getCount();
-    const usuarios = await listQb
+    // DESPUÉS
+const totalItems = await listQb.getCount();
+const usuarios = await listQb
+  .orderBy('u.apellido', 'ASC')
+  .addOrderBy('u.nombre', 'ASC')
+  .skip((page - 1) * pageSize)
+  .take(pageSize)
+  .getMany();
+
+// NUEVO: de los usuarios de esta página sin rol de sistema, buscamos
+// cuáles tienen un rol de Administrador de Finca vigente
+const ids_sin_rol_sistema = usuarios
+  .filter((u) => u.rol_sistema == null)
+  .map((u) => u.id_usuario);
+
+    const roles_finca_admin = ids_sin_rol_sistema.length
+      ? await this.usuario_finca_repo
+          .createQueryBuilder('uf')
+          .innerJoin('uf.usuario', 'usuario')
+          .innerJoin('uf.rol_finca', 'rol_finca')
+          .where('usuario.id_usuario IN (:...ids)', { ids: ids_sin_rol_sistema })
+          .andWhere('rol_finca.codigo_rol_finca = :codigo_admin_finca', {
+            codigo_admin_finca: CODIGO_ADMIN_FINCA,
+          })
+          .andWhere('(uf.fecha_fin_rol IS NULL OR uf.fecha_fin_rol > NOW())')
+          .select([
+            'usuario.id_usuario AS id_usuario',
+            'rol_finca.id_rol AS id_rol',
+            'rol_finca.nombre_rol AS nombre_rol',
+          ])
+          .getRawMany<{ id_usuario: string; id_rol: string; nombre_rol: string }>()
+      : [];
+
+    const mapa_rol_finca_admin = new Map(
+      roles_finca_admin.map((r) => [
+        Number(r.id_usuario),
+        { id_rol: Number(r.id_rol), nombre_rol: r.nombre_rol },
+      ]),
+    );
+
+    return {
+      usuarios: usuarios.map((u) =>
+        this.map_usuario_croply_item(
+          u,
+          mapa_rol_finca_admin.get(Number(u.id_usuario)) ?? null,
+        ),
+      ),
+      pagination: build_page_size_pagination(page, pageSize, totalItems),
+    };
+  }
+
+
+  async listar_administradores_finca_disponibles() {
+    const usuarios = await this.usuario_repo
+      .createQueryBuilder('u')
+      .leftJoin('u.rol_sistema', 'rol')
+      .where('rol.id_rol IS NULL')
+      .andWhere('u.fecha_baja IS NULL')
+      .andWhere('u.estado != :estado_inactivo', {
+        estado_inactivo: EstadoUsuario.INACTIVO,
+      })
       .orderBy('u.apellido', 'ASC')
       .addOrderBy('u.nombre', 'ASC')
-      .skip((page - 1) * pageSize)
-      .take(pageSize)
       .getMany();
 
     return {
-      usuarios: usuarios.map((u) => this.map_usuario_croply_item(u)),
-      pagination: build_page_size_pagination(page, pageSize, totalItems),
+      usuarios: usuarios.map((usuario) => ({
+        id_usuario: Number(usuario.id_usuario),
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        email: usuario.email,
+      })),
     };
   }
 
@@ -334,7 +400,11 @@ export class UsuariosService {
     }
   }
 
-  private map_usuario_croply_item(usuario: Usuario) {
+  // DESPUÉS
+  private map_usuario_croply_item(
+    usuario: Usuario,
+    rol_finca_admin: { id_rol: number; nombre_rol: string } | null,
+  ) {
     return {
       id_usuario: Number(usuario.id_usuario),
       nombre: usuario.nombre,
@@ -346,7 +416,7 @@ export class UsuariosService {
             id_rol: Number(usuario.rol_sistema.id_rol),
             nombre_rol: usuario.rol_sistema.nombre_rol,
           }
-        : null,
+        : rol_finca_admin,   //null si no es admin de finca, o el rol si sí lo es
       estado: usuario.estado,
     };
   }

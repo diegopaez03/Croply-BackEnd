@@ -72,6 +72,55 @@ export class RolesService implements OnModuleInit {
         );
       }
     }
+
+    const vigentes = new Set(
+      PERMISOS_SEED.map((p) => `${p.ambito}::${p.nombre_permiso}`),
+    );
+    const actuales = await this.permiso_repo.find();
+    const obsoletos = actuales.filter(
+      (p) => !vigentes.has(`${p.ambito}::${p.nombre_permiso}`),
+    );
+    if (obsoletos.length > 0) {
+      await this.permiso_repo.remove(obsoletos);
+      this.logger.log(
+        `Permisos obsoletos eliminados: ${obsoletos
+          .map((p) => p.nombre_permiso)
+          .join(', ')}`,
+      );
+    }
+
+    await this.asegurar_permisos_roles_admin();
+  }
+
+  private async asegurar_permisos_roles_admin(): Promise<void> {
+    const admin_croply =
+      await this.find_rol_sistema_by_codigo(CODIGO_ADMIN_CROPLY);
+    if (admin_croply) {
+      const permisos = await this.permiso_repo.find({
+        where: { ambito: AmbitoPermiso.SISTEMA },
+      });
+      if (permisos.length > 0) {
+        await this.replace_permisos(
+          admin_croply,
+          permisos.map((p) => Number(p.id_permiso)),
+          AmbitoPermiso.SISTEMA,
+        );
+      }
+    }
+
+    const admin_finca = await this.find_rol_finca_by_codigo(CODIGO_ADMIN_FINCA);
+    if (admin_finca) {
+      const permisos = await this.permiso_repo.find({
+        where: { ambito: AmbitoPermiso.FINCA },
+      });
+      if (permisos.length > 0) {
+        await this.replace_permisos(
+          admin_finca,
+          permisos.map((p) => Number(p.id_permiso)),
+          AmbitoPermiso.FINCA,
+        );
+      }
+    }
   }
 
   async find_rol_sistema_by_codigo(codigo: string): Promise<RolSistema | null> {

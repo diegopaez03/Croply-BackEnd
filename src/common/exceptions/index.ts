@@ -9,4 +9,6 @@ export {
   resourceInUse,
   emptySchedule,
   varietyAlreadyAssigned,
+  invalidFileType,
+  fileTooLarge,
 } from './domain.exception';

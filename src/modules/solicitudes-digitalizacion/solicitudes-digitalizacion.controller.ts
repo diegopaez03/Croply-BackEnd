@@ -26,6 +26,9 @@ import { Usuario } from '../usuarios/entities/usuario.entity';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { AdminCroplyGuard } from '../auth/guards/admin-croply.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermisoGuard } from '../auth/guards/permiso.guard';
+import { RequirePermiso } from '../auth/decorators/require-permiso.decorator';
+import { PERMISO_SISTEMA } from '../../common/enums';
 
 @ApiTags(SWAGGER_TAGS.SOLICITUDES_DIGITALIZACION)
 @Controller('solicitudes-digitalizacion')
@@ -51,7 +54,8 @@ export class SolicitudesDigitalizacionController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.SOLICITUDES_DIGITALIZACION)
   @ApiAuth()
   @ApiOperation({
     summary: 'Listar solicitudes de digitalización',
@@ -65,7 +69,8 @@ export class SolicitudesDigitalizacionController {
   }
 
   @Get(':id_solicitud_df')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.SOLICITUDES_DIGITALIZACION)
   @ApiAuth()
   @ApiOperation({ summary: 'Detalle de solicitud de digitalización' })
   @ApiOkResponse({ description: 'Detalle de la solicitud' })
@@ -75,7 +80,8 @@ export class SolicitudesDigitalizacionController {
   }
 
   @Put(':id_solicitud_df/estado')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.SOLICITUDES_DIGITALIZACION)
   @ApiAuth()
   @ApiOperation({ summary: 'Actualizar estado de una solicitud' })
   @ApiOkResponse({ description: 'Estado actualizado' })

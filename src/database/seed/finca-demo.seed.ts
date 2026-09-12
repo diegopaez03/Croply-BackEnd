@@ -16,13 +16,19 @@ export interface FincaDemoUsuarioSeed {
 export const FINCAS_DEMO_SEED = [
   {
     nombre_finca: 'Finca Demo Croply',
-    ubicacion_finca: 'Córdoba, Argentina',
+    longitud: '-64.1888',
+    latitud: '-31.4201',
+    departamento: 'Capital',
+    provincia: 'Córdoba',
     superficie_finca: 150.5,
     descripcion_finca: 'Finca de ejemplo para pruebas de integración',
   },
   {
     nombre_finca: 'Finca Demo Sur',
-    ubicacion_finca: 'Mendoza, Argentina',
+    longitud: '-68.8272',
+    latitud: '-32.8908',
+    departamento: 'Capital',
+    provincia: 'Mendoza',
     superficie_finca: 80,
     descripcion_finca: 'Segunda finca del mismo administrador (multi-finca)',
   },

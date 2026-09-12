@@ -114,6 +114,12 @@ describe('AuthService', () => {
             rol_finca: 'ADMIN_FINCA',
           },
         ],
+        permisos: [
+          'Registro de agroquímicos',
+          'Reportes',
+          'Gestión de trabajadores',
+          'Tareas de campo',
+        ],
       });
     });
 

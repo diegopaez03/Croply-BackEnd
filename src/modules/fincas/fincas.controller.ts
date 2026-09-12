@@ -18,8 +18,12 @@ import {
 } from '@nestjs/swagger';
 import { ApiAuth, ApiErrorResponses } from '../../common/decorators';
 import { SWAGGER_TAGS } from '../../common/swagger';
+import { AdminCroplyGuard } from '../auth/guards/admin-croply.guard';
 import { AdminFincaGuard } from '../auth/guards/admin-finca.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermisoGuard } from '../auth/guards/permiso.guard';
+import { RequirePermiso } from '../auth/decorators/require-permiso.decorator';
+import { PERMISO_FINCA } from '../../common/enums';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { UsuariosService } from '../usuarios/usuarios.service';
@@ -31,19 +35,55 @@ import {
 import { ListarUsuariosQueryDto } from '../usuarios/dto/usuarios.dto';
 import {
   AsignarRolUsuarioFincaDto,
+  ActualizarFincaDto,
+  AsignarPropietarioDto,
+  CrearFincaDto,
   CrearInvitacionDto,
+  ListarFincasQueryDto,
   ListarUsuariosFincaQueryDto,
 } from './dto/fincas.dto';
 import { FincasService } from './fincas.service';
+import { ClimaService } from './clima.service';
 
 @ApiTags(SWAGGER_TAGS.FINCAS)
 @Controller('fincas')
 export class FincasController {
   constructor(
     private readonly fincas_service: FincasService,
+    private readonly clima_service: ClimaService,
     private readonly roles_service: RolesService,
     private readonly usuarios_service: UsuariosService,
   ) {}
+
+  @Get('stats')
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Obtener métricas agregadas de fincas' })
+  @ApiOkResponse({ description: 'Métricas de fincas' })
+  @ApiErrorResponses()
+  stats() {
+    return this.fincas_service.obtener_stats();
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Listar fincas' })
+  @ApiOkResponse({ description: 'Listado paginado de fincas' })
+  @ApiErrorResponses({ badRequest: true })
+  listar(@Query() query: ListarFincasQueryDto) {
+    return this.fincas_service.listar_fincas(query);
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Crear finca' })
+  @ApiCreatedResponse({ description: 'Finca creada' })
+  @ApiErrorResponses({ badRequest: true, conflict: true })
+  crear(@Body() dto: CrearFincaDto, @CurrentUser() actor: Usuario) {
+    return this.fincas_service.crear_finca_desde_dto(dto, actor);
+  }
 
   @Get('mis-fincas')
   @UseGuards(JwtAuthGuard)
@@ -60,7 +100,8 @@ export class FincasController {
   }
 
   @Get('usuarios')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({
     summary: 'Listar usuarios de todas las fincas administradas',
@@ -80,8 +121,84 @@ export class FincasController {
     return this.usuarios_service.listar_ambito_finca(ids_finca, query);
   }
 
-  @Get(':id_finca/roles')
+  @Put(':id_finca/propietario')
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Asignar o reemplazar propietario de finca' })
+  @ApiOkResponse({ description: 'Propietario actualizado' })
+  @ApiErrorResponses({ notFound: true })
+  asignar_propietario(
+    @Param('id_finca', ParseIntPipe) id_finca: number,
+    @Body() dto: AsignarPropietarioDto,
+    @CurrentUser() actor: Usuario,
+  ) {
+    return this.fincas_service.asignar_propietario(
+      id_finca,
+      dto.id_usuario_propietario,
+      actor,
+    );
+  }
+
+  @Get(':id_finca')
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Ver detalle de finca' })
+  @ApiOkResponse({ description: 'Detalle de finca' })
+  @ApiErrorResponses({ notFound: true })
+  detalle(@Param('id_finca', ParseIntPipe) id_finca: number) {
+    return this.fincas_service.obtener_detalle(id_finca);
+  }
+
+  @Get(':id_finca/clima')
   @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Consultar clima actual y pronóstico de finca' })
+  @ApiOkResponse({ description: 'Clima actual y pronóstico de cuatro días' })
+  @ApiErrorResponses({ forbidden: true, notFound: true })
+  clima(@Param('id_finca', ParseIntPipe) id_finca: number) {
+    return this.clima_service.obtener_clima(id_finca);
+  }
+
+  @Get(':id_finca/resumen')
+  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Consultar resumen de finca' })
+  @ApiOkResponse({ description: 'Resumen de finca' })
+  @ApiErrorResponses({ forbidden: true, notFound: true })
+  resumen(@Param('id_finca', ParseIntPipe) id_finca: number) {
+    return this.fincas_service.resumen(id_finca);
+  }
+
+  @Put(':id_finca')
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Editar finca' })
+  @ApiOkResponse({ description: 'Finca actualizada' })
+  @ApiErrorResponses({ badRequest: true, conflict: true, notFound: true })
+  actualizar(
+    @Param('id_finca', ParseIntPipe) id_finca: number,
+    @Body() dto: ActualizarFincaDto,
+    @CurrentUser() actor: Usuario,
+  ) {
+    return this.fincas_service.actualizar_finca(id_finca, dto, actor);
+  }
+
+  @Delete(':id_finca')
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Dar de baja finca' })
+  @ApiOkResponse({ description: 'Finca dada de baja' })
+  @ApiErrorResponses({ notFound: true })
+  dar_baja(
+    @Param('id_finca', ParseIntPipe) id_finca: number,
+    @CurrentUser() actor: Usuario,
+  ) {
+    return this.fincas_service.dar_baja_finca(id_finca, actor);
+  }
+
+  @Get(':id_finca/roles')
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Listar roles de la finca' })
   @ApiOkResponse({ description: 'Roles de finca' })
@@ -91,7 +208,8 @@ export class FincasController {
   }
 
   @Post(':id_finca/roles')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Crear rol de finca' })
   @ApiCreatedResponse({ description: 'Rol creado' })
@@ -106,7 +224,8 @@ export class FincasController {
   }
 
   @Put(':id_finca/roles/:id_rol')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Editar rol de finca' })
   @ApiOkResponse({ description: 'Rol actualizado' })
@@ -126,7 +245,8 @@ export class FincasController {
   }
 
   @Delete(':id_finca/roles/:id_rol')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Dar de baja rol de finca' })
   @ApiOkResponse({ description: 'Rol dado de baja' })
@@ -140,7 +260,8 @@ export class FincasController {
   }
 
   @Put(':id_finca/roles/:id_rol/permisos')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Guardar permisos de un rol de finca' })
   @ApiOkResponse({ description: 'Permisos actualizados' })
@@ -160,7 +281,8 @@ export class FincasController {
   }
 
   @Put(':id_finca/usuarios/:id_usuario_finca/rol')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Asignar rol a usuario dentro de la finca' })
   @ApiOkResponse({ description: 'Rol asignado' })
@@ -180,7 +302,8 @@ export class FincasController {
   }
 
   @Get(':id_finca/usuarios')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Listar usuarios vinculados a la finca' })
   @ApiOkResponse({ description: 'Listado paginado' })
@@ -193,7 +316,8 @@ export class FincasController {
   }
 
   @Post(':id_finca/invitaciones')
-  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
   @ApiOperation({ summary: 'Generar y enviar invitación por email' })
   @ApiCreatedResponse({ description: 'Invitación enviada' })

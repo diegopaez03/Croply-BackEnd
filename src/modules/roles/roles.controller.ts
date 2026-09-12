@@ -20,6 +20,9 @@ import { ApiAuth, ApiErrorResponses } from '../../common/decorators';
 import { SWAGGER_TAGS } from '../../common/swagger';
 import { AdminCroplyGuard } from '../auth/guards/admin-croply.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermisoGuard } from '../auth/guards/permiso.guard';
+import { RequirePermiso } from '../auth/decorators/require-permiso.decorator';
+import { PERMISO_FINCA, PERMISO_SISTEMA } from '../../common/enums';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import {
@@ -35,7 +38,11 @@ export class RolesController {
   constructor(private readonly roles_service: RolesService) {}
 
   @Get('sistema')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(
+    PERMISO_SISTEMA.GESTION_USUARIOS,
+    PERMISO_SISTEMA.CATALOGOS_BASE,
+  )
   @ApiAuth()
   @ApiOperation({ summary: 'Listar roles de sistema' })
   @ApiOkResponse({ description: 'Listado de roles de sistema' })
@@ -45,7 +52,8 @@ export class RolesController {
   }
 
   @Post('sistema')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Crear rol de sistema' })
   @ApiCreatedResponse({ description: 'Rol creado' })
@@ -58,7 +66,8 @@ export class RolesController {
   }
 
   @Put('sistema/:id_rol')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Editar rol de sistema' })
   @ApiOkResponse({ description: 'Rol actualizado' })
@@ -72,7 +81,8 @@ export class RolesController {
   }
 
   @Delete('sistema/:id_rol')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Dar de baja rol de sistema' })
   @ApiOkResponse({ description: 'Rol dado de baja' })
@@ -85,7 +95,11 @@ export class RolesController {
   }
 
   @Get('permisos')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermisoGuard)
+  @RequirePermiso(
+    PERMISO_SISTEMA.CATALOGOS_BASE,
+    PERMISO_FINCA.GESTION_TRABAJADORES,
+  )
   @ApiAuth()
   @ApiOperation({ summary: 'Catálogo de permisos por ámbito' })
   @ApiOkResponse({ description: 'Listado de permisos' })
@@ -95,7 +109,8 @@ export class RolesController {
   }
 
   @Put('sistema/:id_rol/permisos')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Guardar permisos de un rol de sistema' })
   @ApiOkResponse({ description: 'Permisos actualizados' })

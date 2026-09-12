@@ -7,6 +7,7 @@ function build_qb(rows: unknown[]) {
   const qb: Record<string, jest.Mock> = {};
   const chain = () => qb;
   for (const method of [
+    'leftJoin',
     'leftJoinAndSelect',
     'innerJoinAndSelect',
     'where',
@@ -83,7 +84,29 @@ describe('UsuariosService', () => {
 
     expect(result.estado).toBe(EstadoUsuario.INACTIVO);
     expect(usuario.token_version).toBe(1);
+    expect(usuario.fecha_baja).toBeInstanceOf(Date);
     expect(result.message).toBe('Estado de cuenta actualizado correctamente.');
+  });
+
+  it('limpia fecha_baja al reactivar un usuario inactivo', async () => {
+    const usuario = {
+      id_usuario: 46,
+      email: 'c@agro.com',
+      estado: EstadoUsuario.INACTIVO,
+      token_version: 1,
+      fecha_baja: new Date('2026-09-10T12:00:00Z'),
+      usuario_fincas: [],
+    };
+    usuario_repo.findOne.mockResolvedValue(usuario);
+
+    const result = await service.actualizar_estado(
+      46,
+      { estado: EstadoUsuario.ACTIVO },
+      { rol_sistema: { codigo: 'ADMIN_CROPLY' }, usuario_fincas: [] } as never,
+    );
+
+    expect(result.estado).toBe(EstadoUsuario.ACTIVO);
+    expect(usuario.fecha_baja).toBeNull();
   });
 
   it('cancela invitación al pasar de Pendiente a Inactivo', async () => {
@@ -104,6 +127,7 @@ describe('UsuariosService', () => {
     );
 
     expect(result.message).toContain('invitación pendiente fue cancelada');
+    expect(usuario.fecha_baja).toBeInstanceOf(Date);
     expect(
       fincas_service.cancelar_invitaciones_pendientes_por_email,
     ).toHaveBeenCalledWith('c@agro.com');
@@ -156,6 +180,35 @@ describe('UsuariosService', () => {
     expect(result.usuarios).toHaveLength(1);
     expect(result.usuarios[0].rol).toBeNull();
     expect(result.pagination.totalItems).toBe(1);
+  });
+
+  it('lista candidatos disponibles sin excluir propietarios de otras fincas', async () => {
+    const qb = build_qb([
+      {
+        id_usuario: 55,
+        nombre: 'Roberto',
+        apellido: 'Sánchez',
+        email: 'roberto@mail.com',
+      },
+    ]);
+    usuario_repo.createQueryBuilder.mockReturnValue(qb);
+
+    const result = await service.listar_administradores_finca_disponibles();
+
+    expect(result.usuarios).toEqual([
+      {
+        id_usuario: 55,
+        nombre: 'Roberto',
+        apellido: 'Sánchez',
+        email: 'roberto@mail.com',
+      },
+    ]);
+    expect(qb.where).toHaveBeenCalledWith('rol.id_rol IS NULL');
+    expect(qb.andWhere).toHaveBeenCalledWith('u.fecha_baja IS NULL');
+    expect(qb.andWhere).toHaveBeenCalledWith(
+      'u.estado != :estado_inactivo',
+      { estado_inactivo: EstadoUsuario.INACTIVO },
+    );
   });
 
   it('devuelve una fila por finca con id_usuario_finca en el listado multi-finca', async () => {

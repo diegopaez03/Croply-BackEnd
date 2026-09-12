@@ -21,6 +21,9 @@ import { SWAGGER_TAGS } from '../../common/swagger';
 import { AdminCroplyGuard } from '../auth/guards/admin-croply.guard';
 import { AdminCroplyOAdminFincaGuard } from '../auth/guards/admin-croply-o-admin-finca.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermisoGuard } from '../auth/guards/permiso.guard';
+import { RequirePermiso } from '../auth/decorators/require-permiso.decorator';
+import { PERMISO_FINCA, PERMISO_SISTEMA } from '../../common/enums';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { CultivosBaseService } from './cultivos-base.service';
@@ -41,7 +44,8 @@ export class CultivosBaseController {
   constructor(private readonly cultivos_service: CultivosBaseService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard, AdminCroplyOAdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyOAdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE, PERMISO_FINCA.TAREAS_CAMPO)
   @ApiAuth()
   @ApiOperation({
     summary: 'Listar cultivos de la biblioteca',
@@ -58,7 +62,8 @@ export class CultivosBaseController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Crear cultivo base' })
   @ApiCreatedResponse({
@@ -71,7 +76,8 @@ export class CultivosBaseController {
   }
 
   @Get(':id_cultivo_base')
-  @UseGuards(JwtAuthGuard, AdminCroplyOAdminFincaGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyOAdminFincaGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE, PERMISO_FINCA.TAREAS_CAMPO)
   @ApiAuth()
   @ApiOperation({
     summary: 'Ver detalle de cultivo',
@@ -90,7 +96,8 @@ export class CultivosBaseController {
   }
 
   @Put(':id_cultivo_base')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Editar ficha técnica del cultivo' })
   @ApiOkResponse({
@@ -112,7 +119,8 @@ export class CultivosBaseController {
   }
 
   @Delete(':id_cultivo_base')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Dar de baja lógica un cultivo' })
   @ApiOkResponse({
@@ -128,7 +136,8 @@ export class CultivosBaseController {
   }
 
   @Post(':id_cultivo_base/variedades')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Agregar variedad a un cultivo' })
   @ApiCreatedResponse({
@@ -154,7 +163,8 @@ export class CultivosBaseController {
   }
 
   @Put(':id_cultivo_base/variedades/:id_variedad')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Editar variedad' })
   @ApiOkResponse({
@@ -182,7 +192,8 @@ export class CultivosBaseController {
   }
 
   @Delete(':id_cultivo_base/variedades/:id_variedad')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.CATALOGOS_BASE)
   @ApiAuth()
   @ApiOperation({ summary: 'Dar de baja lógica una variedad' })
   @ApiOkResponse({

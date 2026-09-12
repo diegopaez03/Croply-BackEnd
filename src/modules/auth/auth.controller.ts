@@ -27,6 +27,9 @@ import { CambioContrasenaDto } from './dto/cambio-contrasena.dto';
 import { ContrasenaPrimerAccesoDto } from './dto/contrasena-primer-acceso.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AdminCroplyGuard } from './guards/admin-croply.guard';
+import { PermisoGuard } from './guards/permiso.guard';
+import { RequirePermiso } from './decorators/require-permiso.decorator';
+import { PERMISO_SISTEMA } from '../../common/enums';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 
@@ -52,7 +55,8 @@ export class AuthController {
   }
 
   @Post('registrar-admin-finca')
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.GESTION_USUARIOS)
   @ApiAuth()
   @ApiOperation({
     summary: 'Registrar administrador de finca',

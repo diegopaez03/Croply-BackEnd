@@ -64,6 +64,8 @@ export class CultivosBaseService {
         mes_siembra: dto.mes_siembra.trim(),
         ciclo_productivo_cb: dto.ciclo_productivo_cb.trim(),
         forma_siembra: dto.forma_siembra,
+        imagen_url: dto.imagen_url ?? null,
+        banner_url: dto.banner_url ?? null,
         fecha_baja_cb: null,
       }),
     );
@@ -107,6 +109,7 @@ export class CultivosBaseService {
           id_plantilla_especifica: pcv_especifica
             ? Number(pcv_especifica.plantilla_base.id_plantilla_base)
             : null,
+          imagen_url: variedad.imagen_url ?? null,
         };
       });
 
@@ -121,6 +124,8 @@ export class CultivosBaseService {
       id_plantilla_general: plantilla_general
         ? Number(plantilla_general.plantilla_base.id_plantilla_base)
         : null,
+      imagen_url: cultivo.imagen_url ?? null,
+      banner_url: cultivo.banner_url ?? null,
       variedades,
     };
   }
@@ -145,6 +150,8 @@ export class CultivosBaseService {
     cultivo.epoca_cultivo = dto.epoca_cultivo;
     cultivo.mes_siembra = dto.mes_siembra.trim();
     cultivo.forma_siembra = dto.forma_siembra;
+    cultivo.imagen_url = dto.imagen_url ?? null;
+    cultivo.banner_url = dto.banner_url ?? null;
     if (!tiene_variedades) {
       cultivo.ciclo_productivo_cb = dto.ciclo_productivo_cb.trim();
     }
@@ -201,6 +208,7 @@ export class CultivosBaseService {
         distancia_plantacion: dto.distancia_plantacion.trim(),
         observaciones: dto.observaciones?.trim() || null,
         dias_a_cosecha: dto.dias_a_cosecha,
+        imagen_url: dto.imagen_url ?? null,
         fecha_baja: null,
         cultivo_base: { id_cultivo_base: Number(id_cultivo_base) },
       }),
@@ -243,6 +251,7 @@ export class CultivosBaseService {
     variedad.distancia_plantacion = dto.distancia_plantacion.trim();
     variedad.observaciones = dto.observaciones?.trim() || null;
     variedad.dias_a_cosecha = dto.dias_a_cosecha;
+    variedad.imagen_url = dto.imagen_url ?? null;
     await this.variedad_repo.save(variedad);
 
     const ciclo = await this.recalcular_ciclo(cultivo);
@@ -335,6 +344,8 @@ export class CultivosBaseService {
       ciclo_productivo_cb: cultivo.ciclo_productivo_cb,
       forma_siembra: cultivo.forma_siembra,
       cantidad_variedades,
+      imagen_url: cultivo.imagen_url ?? null,
+      banner_url: cultivo.banner_url ?? null,
     };
   }
 
@@ -352,6 +363,7 @@ export class CultivosBaseService {
       fecha_alta: this.format_fecha_dia(variedad.fecha_alta),
       en_uso,
       ciclo_productivo_cb,
+      imagen_url: variedad.imagen_url ?? null,
     };
   }
 

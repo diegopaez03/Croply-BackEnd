@@ -6,6 +6,7 @@ import { CodigoTipoSensor } from './enums/codigo-tipo-sensor.enum';
 describe('TiposSensorService', () => {
   let service: TiposSensorService;
   let tipo_sensor_repo: Record<string, jest.Mock>;
+  let sensor_repo: { count: jest.Mock };
   let log_service: { registrar: jest.Mock };
 
   beforeEach(() => {
@@ -20,10 +21,12 @@ describe('TiposSensorService', () => {
       })),
       create: jest.fn((tipo_sensor) => tipo_sensor),
     };
+    sensor_repo = { count: jest.fn().mockResolvedValue(0) };
     log_service = { registrar: jest.fn().mockResolvedValue(undefined) };
 
     service = new TiposSensorService(
       tipo_sensor_repo as never,
+      sensor_repo as never,
       log_service as never,
     );
   });
@@ -152,7 +155,7 @@ describe('TiposSensorService', () => {
     );
   });
 
-  it('da de baja un tipo de sensor y registra OPERACION_DESTRUCTIVA', async () => {
+  it('da de baja un tipo de sensor sin sensores activos', async () => {
     const tipo_sensor = {
       id_tipo_sensor: 15,
       codigo_tipo_sensor: CodigoTipoSensor.PH,
@@ -177,6 +180,45 @@ describe('TiposSensorService', () => {
     );
   });
 
+  it('bloquea la baja si hay sensores activos asociados (RESOURCE_IN_USE)', async () => {
+    const tipo_sensor = {
+      id_tipo_sensor: 15,
+      codigo_tipo_sensor: CodigoTipoSensor.PH,
+      nombre_tipo_sensor: 'Sensor de pH',
+      unidad_medida_ts: 'pH',
+      fecha_baja: null,
+    };
+    tipo_sensor_repo.findOne.mockResolvedValue(tipo_sensor);
+    sensor_repo.count.mockResolvedValue(1);
+
+    await expect(
+      service.dar_baja(15, { id_usuario: 1 } as never),
+    ).rejects.toMatchObject({
+      errorCode: 'RESOURCE_IN_USE',
+      status: HttpStatus.CONFLICT,
+    });
+    expect(tipo_sensor_repo.save).not.toHaveBeenCalled();
+  });
+
+  it('permite la baja si todos los sensores asociados están dados de baja', async () => {
+    const tipo_sensor = {
+      id_tipo_sensor: 15,
+      codigo_tipo_sensor: CodigoTipoSensor.PH,
+      nombre_tipo_sensor: 'Sensor de pH',
+      unidad_medida_ts: 'pH',
+      fecha_baja: null,
+    };
+    tipo_sensor_repo.findOne.mockResolvedValue(tipo_sensor);
+    sensor_repo.count.mockResolvedValue(0);
+
+    await expect(
+      service.dar_baja(15, { id_usuario: 1 } as never),
+    ).resolves.toMatchObject({
+      message: 'Tipo de sensor dado de baja correctamente.',
+      id_tipo_sensor: 15,
+    });
+  });
+
   it('rechaza dar de baja un tipo de sensor inexistente', async () => {
     tipo_sensor_repo.findOne.mockResolvedValue(null);
 
@@ -187,13 +229,6 @@ describe('TiposSensorService', () => {
       status: HttpStatus.NOT_FOUND,
     });
   });
-
-  it.skip(
-    'bloquea la baja si hay sensores activos asociados (RESOURCE_IN_USE) — pendiente hasta que exista Sensor',
-    () => {
-      // No se puede probar todavía: la entidad Sensor aún no existe y el servicio usa un stub que devuelve 0.
-    },
-  );
 
   it('devuelve los cinco códigos disponibles en el orden del enum', () => {
     expect(service.codigos_disponibles()).toEqual([

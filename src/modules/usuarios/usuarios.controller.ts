@@ -17,6 +17,9 @@ import { ApiAuth, ApiErrorResponses } from '../../common/decorators';
 import { SWAGGER_TAGS } from '../../common/swagger';
 import { AdminCroplyGuard } from '../auth/guards/admin-croply.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermisoGuard } from '../auth/guards/permiso.guard';
+import { RequirePermiso } from '../auth/decorators/require-permiso.decorator';
+import { PERMISO_FINCA, PERMISO_SISTEMA } from '../../common/enums';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Usuario } from './entities/usuario.entity';
 import {
@@ -56,7 +59,8 @@ export class UsuariosController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.GESTION_USUARIOS)
   @ApiAuth()
   @ApiOperation({ summary: 'Listar usuarios (ámbito Croply)' })
   @ApiOkResponse({ description: 'Listado paginado de administradores' })
@@ -65,8 +69,19 @@ export class UsuariosController {
     return this.usuarios_service.listar_ambito_croply(query);
   }
 
-  @Put(':id_usuario/rol-sistema')
+  @Get('administradores-finca-disponibles')
   @UseGuards(JwtAuthGuard, AdminCroplyGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Listar administradores de finca disponibles' })
+  @ApiOkResponse({ description: 'Usuarios disponibles como propietarios' })
+  @ApiErrorResponses()
+  listar_administradores_finca_disponibles() {
+    return this.usuarios_service.listar_administradores_finca_disponibles();
+  }
+
+  @Put(':id_usuario/rol-sistema')
+  @UseGuards(JwtAuthGuard, AdminCroplyGuard, PermisoGuard)
+  @RequirePermiso(PERMISO_SISTEMA.GESTION_USUARIOS)
   @ApiAuth()
   @ApiOperation({ summary: 'Asignar rol de sistema a usuario' })
   @ApiOkResponse({ description: 'Rol asignado' })
@@ -84,7 +99,11 @@ export class UsuariosController {
   }
 
   @Put(':id_usuario/estado')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermisoGuard)
+  @RequirePermiso(
+    PERMISO_SISTEMA.GESTION_USUARIOS,
+    PERMISO_FINCA.GESTION_TRABAJADORES,
+  )
   @ApiAuth()
   @ApiOperation({ summary: 'Administrar estado de cuenta de usuario' })
   @ApiOkResponse({ description: 'Estado actualizado' })

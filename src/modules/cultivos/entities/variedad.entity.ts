@@ -26,6 +26,9 @@ export class Variedad {
   @Column({ name: 'dias_a_cosecha', type: 'int' })
   dias_a_cosecha: number;
 
+  @Column({ name: 'imagen_url', type: 'varchar', length: 500, nullable: true })
+  imagen_url: string | null;
+
   @Column({
     name: 'fecha_alta',
     type: 'timestamptz',

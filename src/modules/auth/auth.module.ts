@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { MailerStubService } from '../../common/mailer';
+import { MailerModule } from '../../common/mailer';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 import { FincasModule } from '../fincas/fincas.module';
 import { RolesModule } from '../roles/roles.module';
@@ -15,6 +15,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AdminCroplyGuard } from './guards/admin-croply.guard';
 import { AdminFincaGuard } from './guards/admin-finca.guard';
 import { AdminCroplyOAdminFincaGuard } from './guards/admin-croply-o-admin-finca.guard';
+import { PermisoGuard } from './guards/permiso.guard';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { AdminCroplyOAdminFincaGuard } from './guards/admin-croply-o-admin-finca
       }),
     }),
     TypeOrmModule.forFeature([ResetsContrasena]),
+    MailerModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -44,7 +46,7 @@ import { AdminCroplyOAdminFincaGuard } from './guards/admin-croply-o-admin-finca
     AdminCroplyGuard,
     AdminFincaGuard,
     AdminCroplyOAdminFincaGuard,
-    MailerStubService,
+    PermisoGuard,
   ],
   exports: [
     AuthService,
@@ -52,9 +54,9 @@ import { AdminCroplyOAdminFincaGuard } from './guards/admin-croply-o-admin-finca
     AdminCroplyGuard,
     AdminFincaGuard,
     AdminCroplyOAdminFincaGuard,
+    PermisoGuard,
     JwtModule,
     JwtStrategy,
-    MailerStubService,
   ],
 })
 export class AuthModule {}

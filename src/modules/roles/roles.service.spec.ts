@@ -30,6 +30,7 @@ describe('RolesService', () => {
       findOne: jest.fn(),
       save: jest.fn(),
       create: jest.fn((x) => x),
+      remove: jest.fn(),
       createQueryBuilder: jest.fn(),
     };
     rol_permiso_repo = {
