@@ -8,6 +8,7 @@ import {
   resourceNotFound,
 } from '../../common/exceptions';
 import { LogOperacionesService } from '../log-operaciones';
+import { Sensor } from '../parcelas/entities/sensor.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { ActualizarTipoSensorDto } from './dto/actualizar-tipo-sensor.dto';
 import { CrearTipoSensorDto } from './dto/crear-tipo-sensor.dto';
@@ -19,6 +20,8 @@ export class TiposSensorService {
   constructor(
     @InjectRepository(TipoSensor)
     private readonly tipo_sensor_repo: Repository<TipoSensor>,
+    @InjectRepository(Sensor)
+    private readonly sensor_repo: Repository<Sensor>,
     private readonly log_service: LogOperacionesService,
   ) {}
 
@@ -126,6 +129,12 @@ export class TiposSensorService {
     return Object.values(CodigoTipoSensor);
   }
 
+  async find_activo_by_id(id_tipo_sensor: number): Promise<TipoSensor | null> {
+    return this.tipo_sensor_repo.findOne({
+      where: { id_tipo_sensor, fecha_baja: IsNull() },
+    });
+  }
+
   private validar_codigo_tipo_sensor(
     codigo_tipo_sensor: CodigoTipoSensor,
   ): void {
@@ -157,18 +166,14 @@ export class TiposSensorService {
     return tipo_sensor;
   }
 
-  /**
-   * PENDIENTE — HU-IoT-01 / futura HU de Sensor:
-   * La entidad Sensor todavía no existe en el backend. Esta validación
-   * es requisito contractual de HU-IoT-01, pero no puede evaluarse
-   * realmente todavía. Devuelve 0 de forma intencional para no bloquear
-   * bajas de TipoSensor mientras tanto. Cuando exista Sensor, reemplazar
-   * por un count() real (ver patrón: roles.service.ts →
-   * count_usuarios_rol_finca). No implementar Sensor en esta HU.
-   */
   private async contar_sensores_activos_asociados(
     id_tipo_sensor: number,
   ): Promise<number> {
-    return 0;
+    return this.sensor_repo.count({
+      where: {
+        tipo_sensor: { id_tipo_sensor },
+        fecha_baja: IsNull(),
+      },
+    });
   }
 }

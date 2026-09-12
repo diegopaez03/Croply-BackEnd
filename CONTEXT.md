@@ -19,22 +19,25 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 
 ### Estado actual
 
-**Épica 1 — Gestionar el Acceso**, **Épica 2 — Administrar Usuarios y Roles** y **Épica 4 — Planificar Cultivos** (HU-BC-01 a HU-BC-05) implementadas:
+**Épica 1 — Gestionar el Acceso**, **Épica 2 — Administrar Usuarios y Roles**, **Épica 4 — Planificar Cultivos** (HU-BC-01 a HU-BC-05) y **Épica 3 — Etapa 1** (HU-FP-01, 02, 03, 04, 06, 07) implementadas. **Épica 7 — HU-IoT-01** (ABM de tipos de sensor) también implementada, con un pendiente puntual (ver sección 8, "Épicas en curso").
 
 | Módulo | Contenido |
 | --- | --- |
 | `health` | `GET /health` |
 | `auth` | Login, registro admin finca / invitado, reset y cambio de contraseña, primer acceso |
 | `usuarios` | Perfil `/me`, listado Croply, asignar rol sistema, cambiar estado |
-| `fincas` | Roles de finca, usuarios de finca (scoped y multi-finca), invitaciones, asignación de rol |
+| `fincas` | ABM de Finca, propietario, roles de finca, usuarios de finca (scoped y multi-finca), invitaciones, asignación de rol |
 | `roles` | ABM roles sistema, catálogo de permisos, `Permiso` / `RolPermiso` |
 | `solicitudes-digitalizacion` | Alta pública + listado/detalle/estado (Admin Croply) |
 | `log-operaciones` | Auditoría interna (HU-GU-12), sin endpoint FE |
 | `cultivos` | Biblioteca de cultivos base y variedades (incluye `imagen_url` opcional); plantillas de plan base (hitos/tareas); búsqueda y filtros |
 | `uploads` | `POST /uploads/imagenes` — subida mediada a Cloudinary (JWT) |
+| `tipos-sensor` | ABM de `TipoSensor` (Épica 7, HU-IoT-01) |
+| `parcelas` | ABM de `Parcela`, `ControladorSensor`, `Sensor`, `CodigoQR` (Épica 3) |
+| `planes-accion` | `PlanAccion`, `Hito`, `Tarea` materializados desde plantillas (Épica 3/4) |
 | `database/seed` | Admins Croply + fincas demo + biblioteca demo (Tomate, Ajo, plantilla general de Tomate) + roles + catálogo de permisos |
 
-Placeholders (sin lógica de negocio aún): `parcelas`, `reportes`.
+Placeholder (sin lógica de negocio aún): `reportes`.
 
 **HU-BC-06** (generar/editar plan de acción en parcela) **no está implementada**: depende de Épica 3 (`Parcela`, `PlanAccion`) y Épica 5 (ABM `TipoTarea` / entidad `Tarea`). Ver [`docs/diseño/Contexto — Diagrama de clases.md`](docs/diseño/Contexto%20—%20Diagrama%20de%20clases.md) § HU-BC-06.
 
@@ -143,14 +146,16 @@ src/
     ├── health/
     ├── auth/               # JWT, guards, endpoints /auth/*
     ├── usuarios/           # perfil, listados, estado, rol sistema
-    ├── fincas/             # roles finca, usuarios, invitaciones
+    ├── fincas/             # ABM finca, propietario, roles finca, usuarios, invitaciones
     ├── roles/              # ABM sistema, permisos
     ├── log-operaciones/    # auditoría interna
     ├── solicitudes-digitalizacion/
-    ├── uploads/                # POST /uploads/imagenes (Cloudinary)
-    ├── cultivos/               # biblioteca + plantillas base (Épica 4)
-    ├── parcelas/               # placeholder
-    └── reportes/               # placeholder
+    ├── uploads/            # POST /uploads/imagenes (Cloudinary)
+    ├── cultivos/           # biblioteca + plantillas base (Épica 4)
+    ├── tipos-sensor/       # ABM de TipoSensor (Épica 7, HU-IoT-01)
+    ├── parcelas/           # Parcela, ControladorSensor, Sensor, CodigoQR (Épica 3)
+    ├── planes-accion/      # PlanAccion, Hito, Tarea (Épica 3/4)
+    └── reportes/           # placeholder
 ```
 
 Path aliases (`tsconfig.json`): `@modules/*`, `@config/*`, `@common/*`, `@database/*`.
@@ -182,7 +187,7 @@ Para PRs a `main`, la revisión prioritaria es del Arquitecto.
 - Carpetas de módulos en **español** (`fincas`, `cultivos`, `parcelas`).
 - Tags Swagger / lenguaje de dominio en **español**.
 - Archivos Nest: `*.module.ts`, `*.controller.ts`, `*.service.ts`, `*.entity.ts`, `*.dto.ts`, `*.spec.ts`.
-- DTOs: `CreateXDto`, `UpdateXDto`, `XResponseDto`, `XQueryDto`.
+- DTOs: `CrearXDto`, `ActualizarXDto`, `XResponseDto`, `XQueryDto` 
 - Clases en PascalCase; atributos, métodos y variables de código en snake_case; constantes en `SCREAMING_SNAKE`.
 - Columnas DB en snake_case; JSON de API con `id_*` en minúsculas (`id_usuario`, `id_rol`, …) y `camelCase` solo donde el contrato lo pide (`accessToken`).
 
@@ -195,7 +200,9 @@ Para PRs a `main`, la revisión prioritaria es del Arquitecto.
 | Fincas | `modules/fincas` |
 | Cultivos | `modules/cultivos` |
 | Uploads | `modules/uploads` |
+| TiposSensor | `modules/tipos-sensor` |
 | Parcelas | `modules/parcelas` |
+| PlanesAccion | `modules/planes-accion` |
 | Reportes | `modules/reportes` |
 | SolicitudesDigitalizacion | `modules/solicitudes-digitalizacion` |
 
@@ -275,7 +282,7 @@ Railway (deploy futuro), Open-Meteo (clima), Croply IoT Simulator. No bloquean e
 
 Respecto del diagrama completo y épicas futuras:
 
-- CRUD de fincas, parcelas y reportes
+- CRUD de reportes
 - HU-BC-06 (plan de acción real sobre parcela) — espera Épicas 3 y 5
 - ABM de `TipoTarea` / entidad `Tarea` (hoy hay un catálogo mock en `cultivos/tipo-tarea.catalog.ts`)
 - RBAC middleware por permiso individual (los permisos se administran; la auth HTTP sigue por rol)
@@ -285,6 +292,8 @@ Respecto del diagrama completo y épicas futuras:
 - CI (GitHub Actions) y deploy Railway en este repo
 - Cerrar todos los findings de ESLint (la config está lista; el backlog vive en `docs/calidad/`)
 
+
+## 8. Épicas en curso — notas de implementación
 
 ### HU-IoT-01 — ABM de tipos de sensor (Épica 7)
 
@@ -318,9 +327,171 @@ resto del flujo de baja.
 **Explícitamente fuera de esta HU:** no existe módulo `sensores/` ni entidad
 `Sensor`, ni siquiera parcial. No corresponde crearlos como parte de HU-IoT-01.
 
+### EP-03 — Etapa 1 (Fincas, Parcelas, Infraestructura IoT y Planes de Acción)
+
+**Alcance implementado:** ABM completo de Finca (propietario único vía UsuarioFinca, sin edición de ubicación tras creación), Parcela + ControladorSensor + Sensor (sin integración real con el simulador), PlanAccion/Hito/Tarea materializados desde plantillas de Épica 4 (sin ABM propio de Tarea), historial de cultivos por parcela, y código QR de parcela.
+
+**Ubicación de Finca no editable:** longitud/latitud/departamento/provincia se cargan solo al crear la finca. PUT /fincas/:id_finca no los incluye — está definido así en el contrato de Épica 3, no es una omisión.
+
+**EstadoPlanAccion — estados terminales, sin reactivación:** Activo es el único estado no terminal. Finalizado, FinalizadoPorContingencia e Inactivado son terminales: un PlanAccion que llega a cualquiera de esos tres nunca vuelve a Activo. Si se necesita un plan nuevo para la misma parcela, se crea un PlanAccion nuevo desde cero. No existe un campo motivo_finalizacion separado — la causa de finalización se representa únicamente con el valor del estado.
+
+**Integración con simulador IoT postergada a Épica 7:** en esta etapa, Sensor se crea con estado_senal: Sin_senal, ultimo_valor: null, fecha_ultima_lectura: null, e ip_sensor persistido pero sin uso funcional. No hay ninguna llamada HTTP al simulador, ni reintentos, ni notificaciones. La sincronización real, y la integración con la API de clima, se implementan al retomar Épica 7.
+
+**RESOURCE_IN_USE de TipoSensor (Épica 7) — ahora desbloqueable:** con Sensor ya implementado en esta etapa, TiposSensorService.contar_sensores_activos_asociados() puede reemplazarse por un count() real cuando se retome Épica 7. Habilitar también el test actualmente it.skip en tipos-sensor.service.spec.ts en ese momento.
+
+**Catálogo temporal de TipoTarea:** Tarea/TareaPlantilla usan id_tipo_tarea como número plano (sin FK), resuelto contra src/modules/cultivos/tipo-tarea.catalog.ts. Es intencional y temporal — Épica 5 reemplaza este catálogo por una entidad TipoTarea real. No implementar ABM real de TipoTarea/Tarea como parte de EP-03/EP-04.
+
+**Naming de ControladorSensor:** el nombre contractual definitivo del identificador es `id_controlador_sensor` (singular). Debe utilizarse de forma consistente en entidad, DTOs, requests y responses. No utilizar `id_controlador_sensores`.
+
+**Código QR en Etapa 1:** HU-FP-07 no depende de `GET /api/v1/parcelas/:id_parcela` de HU-FP-05, ya que HU-FP-05 queda fuera de la Etapa 1. El frontend determina si debe mostrar "Generar QR" o "Ver QR" utilizando `GET /api/v1/parcelas/:id_parcela/codigo-qr`: HTTP 200 indica que el QR existe; HTTP 404 con `RESOURCE_NOT_FOUND` indica que todavía no existe.
+
+**Integración con simulador y clima:** queda explícitamente postergada para Épica 7. Esta Etapa 1 solamente implementa las entidades y relaciones necesarias para Finca, Parcela, ControladorSensor y Sensor, sin realizar llamadas reales a APIs externas.
+
+**Pendientes para Épica 7 (en este orden):**
+
+1. **`RESOURCE_IN_USE` real de `TipoSensor`** — primera tarea, sin excepción,
+   antes de cualquier otra cosa de esta épica.
+2. Integración real con el simulador IoT (HU-IoT-02).
+3. Integración con la API de clima (HU-IoT-03).
+4. HU IoT correspondiente / completar funcionalidades dependientes de IoT.
+
+**Pendientes para Épica 5:**
+
+* TipoTarea real (entidad + ABM).
+* Tarea real con ABM propio.
+* Reemplazo del catálogo mock `tipo-tarea.catalog.ts`.
+* Migración de `id_tipo_tarea` desde número plano a FK real cuando corresponda.
+
+### HU-IoT-02 — Visualizar datos de sensores en tiempo real (Épica 7)
+
+**Orden de trabajo obligatorio al retomar Épica 7:** primero completar
+`RESOURCE_IN_USE` de HU-IoT-01, recién después HU-IoT-02. No invertir el orden.
+
+**Endpoint nuevo:** `GET /api/v1/parcelas/:id_parcela/monitoreo-sensores`
+(contrato de Épica 7). Es independiente de `GET /fincas/:id_finca` (Épica 3) —
+no la reemplaza, aunque ambas expongan campos de la misma entidad `Sensor`.
+
+**`LecturaSensor` (entidad nueva):** histórico propio de Croply, independiente
+del historial del simulador. Se inserta ANTES de sobrescribir
+`Sensor.ultimo_valor`, para no perder el valor anterior. Relación
+`Sensor 1 → 0..* LecturaSensor`.
+
+**Cálculo de `estado_senal`:** 100% lógica de Croply. El simulador no envía
+ningún campo de estado en su respuesta de lectura — Croply lo calcula según
+si la última sincronización fue exitosa y reciente (ver criterio de ventana
+de tolerancia en el documento de contexto de backend de Épica 7).
+
+**Fuente de lectura:** `GET /parcelas/{id}/estado` del simulador. Nunca
+`GET /parcelas/{id}/lecturas`.
+
+**Intervalo de sincronización:** configurable por variable de entorno del
+lado de Croply, default `25` (alineado con el simulador). Nunca hardcodear
+un valor fijo en código.
+
+**Múltiples controladores por parcela:** ya soportado en ambos sistemas desde
+la corrección aplicada al simulador (`Croply_Simulador`, commit `4fc08cd` en
+adelante). Sin trabajo pendiente relacionado.
+
+**Mapeo de `EstadoTransmision` hacia el simulador:** los valores de Croply
+(`Transmitiendo`/`Sin_senal`) no coinciden textualmente con los del simulador
+(`TRANSMITIENDO`/`SIN_SEÑAL`). Mapeo necesario solo al sincronizar estructura
+hacia el simulador, nunca al leer.
+
+**Origen de `latitud`/`longitud` para el simulador:** `Parcela` no tiene
+columnas propias — se usa `parcela.finca.latitud`/`longitud` (convertidas a
+`float`). Decisión de negocio: se asume ubicación climática compartida dentro
+de una misma finca.
+
+**Pendiente de decisión de negocio (no bloquea esta HU):**
+`ControladorSensor.estado_controlador` sigue naciendo en `Transmitiendo` por
+defecto (definido en Épica 3, HU-FP-03). Evaluar en el futuro si debería
+nacer en `Sin_señal` hasta la primera sincronización real, igual que `Sensor`.
+
+**El frontend nunca se comunica directamente con el simulador IoT.**
+
+**Reintentos en sincronización estructural:** hasta 3 intentos para
+`POST`/`PUT`/`DELETE`/`PATCH` hacia el simulador. Si Croply falla al persistir,
+no se sincroniza nada.
+
+### HU-IoT-03 — Pronóstico meteorológico por finca (Épica 7)
+
+
+**Endpoint nuevo:** `GET /api/v1/fincas/:id_finca/clima` (contrato de Épica 7).
+Guard: `AdminFincaGuard` original — esta ruta tiene `:id_finca` directo, no
+`:id_parcela`, así que **no** usa la variante "por parcela" creada para
+HU-IoT-02/FP-04/06/07.
+
+**Sin entidad ni persistencia:** cada request dispara una llamada real a
+Open-Meteo, sin caché ni tabla propia. Es la HU más simple de Épica 7 en
+términos de modelo de datos — no agrega nada a TypeORM.
+
+**Cliente HTTP nuevo:** requiere `@nestjs/axios`, que todavía no está
+instalado en el proyecto (mismo tipo de dependencia nueva que la integración
+con el simulador de HU-IoT-02).
+
+**Mapeo `weather_code` → `condicion`:** tabla estática en el módulo backend
+basada en los WMO Weather codes que usa Open-Meteo — no vive en base de datos,
+no se expone el código crudo al frontend. Detalle completo de la tabla en el
+contrato de Épica 7.
+
+**Overrides por temperatura, aplicados después del mapeo base:**
+- `Helada`: temperatura relevante `<= 0°C`.
+- `Temperatura elevada`: temperatura relevante `>= 35°C` (umbral confirmado).
+
+**Qué temperatura es "la relevante" en cada caso:** `clima_actual` usa la
+temperatura actual devuelta por Open-Meteo; cada entrada de `pronostico`
+evalúa `Helada` contra la `temperatura_min` de ese día y `Temperatura elevada`
+contra la `temperatura_max` de ese día — nunca la misma temperatura para
+ambos chequeos.
+
+**Origen de `latitud`/`longitud`:** de `Finca` directamente (a diferencia de
+HU-IoT-02, acá no hace falta heredar de ningún lado — la finca ya tiene sus
+propias coordenadas). Mismo parseo `string` → `float` que en HU-IoT-02.
+
+**Sin dependencia técnica de HU-FP-05:** aunque la card de clima también se
+muestra en el detalle de parcela según la HU funcional (además de en "Mi
+finca"), el endpoint solo necesita `id_finca` — no tiene relación con
+`Parcela`. Puede implementarse sin esperar a esa HU, igual que ya pasó con
+HU-IoT-02 y con el QR de HU-FP-07.
+
+**Polling y caché son responsabilidad exclusiva del frontend:** 30 minutos de
+`refetchInterval`, sin ningún mecanismo de caché ni reintento del lado
+backend. Si Open-Meteo no responde, el backend devuelve `503
+WEATHER_SERVICE_UNAVAILABLE` una sola vez, sin reintentar — es el frontend
+quien decide cuándo volver a intentar (en el próximo ciclo de polling).
+
+
+### HU-FP-05 y HU-FP-08 — Detalle de parcela y vista general de finca (Épica 3)
+
+**HU-FP-05 — implementada.** `GET /parcelas/:id_parcela`, sin infraestructura
+nueva, combina datos de HU-FP-03/FP-04/HU-IoT-02.
+
+**Regla especial en `GET /parcelas/:id_parcela` — única excepción del proyecto:**
+`RESOURCE_NOT_FOUND` se dispara solo si el `id_parcela` no existe. Una parcela
+dada de baja devuelve `200` con sus datos completos — intencional, no corregir.
+
+**HU-FP-08 — en desarrollo.** Tres endpoints nuevos, ninguno reutiliza
+`GET /fincas/:id_finca` (HU-FP-01, exclusivo de Administrador Croply, expone
+datos de gestión interna — propietario, IPs de infraestructura — que no le
+corresponden a un Administrador de Finca):
+
+- `GET /mi-finca/fincas` — independiente de `GET /fincas/mis-fincas` (Épica 2).
+  Esta consulta el estado real de la finca al momento de la llamada; la de
+  Épica 2 filtra por vigencia de rol. No reemplaza ni deprecia a la anterior.
+- `GET /fincas/:id_finca/resumen` — vista liviana (nombre + parcelas resumidas),
+  guard `AdminFincaGuard`. `403 FINCA_NOT_AVAILABLE` si la finca está inactiva.
+- `GET /parcelas/:id_parcela/resumen` — card liviana para "Mi finca", distinta
+  del detalle completo de HU-FP-05 (no compartir lógica ni DTO entre ambos).
+
+**Botón "Solicitar digitalización de finca":** sin endpoint nuevo, reutiliza
+`POST /api/v1/solicitudes-digitalizacion` de Épica 1 tal cual.
+
+**`recomendacion_ia_resumen`:** sigue en `null`, depende de HU-NA-03 (sin
+contrato todavía).
+
 ---
 
-## 8. Flujo de trabajo
+## 9. Flujo de trabajo
 
 | Rama | Propósito |
 | --- | --- |
@@ -338,7 +509,7 @@ No hay push directo a `main` ni `develop`.
 
 ---
 
-## 9. Testing y calidad
+## 10. Testing y calidad
 
 Estándar: **TDD** (red → green) en seams acordados. Skill: [`.agent/skills/Test-Driven Development/`](.agent/skills/Test-Driven%20Development/).
 
@@ -354,7 +525,7 @@ Antes de pasar a revisión:
 
 ---
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 | Síntoma | Qué revisar |
 | --- | --- |
@@ -373,7 +544,7 @@ Health: `GET /api/v1/health`. Login de humo: `POST /api/v1/auth/login` con un ad
 
 ---
 
-## 11. Contactos y referencias
+## 12. Contactos y referencias
 
 - **Rodrigo Sanz** — Coordinador
 - **Diego Páez** — Arquitecto (review prioritario a `main`)

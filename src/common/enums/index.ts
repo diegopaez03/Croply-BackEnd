@@ -9,6 +9,9 @@ export {
   CODIGO_ADMIN_FINCA,
   EpocaCultivo,
   FormaSiembra,
+  EstadoParcela,
+  EstadoTransmision,
+  EstadoPlanAccion,
 } from './estado.enum';
 export {
   PERMISO_SISTEMA,

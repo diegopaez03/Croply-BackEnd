@@ -6,6 +6,7 @@ import {
 } from 'typeorm';
 import { UsuarioFinca } from './usuario-finca.entity';
 import { InvitacionFinca } from './invitacion-finca.entity';
+import { Parcela } from '../../parcelas/entities/parcela.entity';
 
 @Entity('fincas')
 export class Finca {
@@ -15,8 +16,17 @@ export class Finca {
   @Column({ name: 'nombre_finca' })
   nombre_finca: string;
 
-  @Column({ name: 'ubicacion_finca', nullable: true })
-  ubicacion_finca: string | null;
+  @Column({ name: 'longitud' })
+  longitud: string;
+
+  @Column({ name: 'latitud' })
+  latitud: string;
+
+  @Column({ name: 'departamento' })
+  departamento: string;
+
+  @Column({ name: 'provincia' })
+  provincia: string;
 
   @Column({
     name: 'superficie_finca',
@@ -43,4 +53,7 @@ export class Finca {
 
   @OneToMany(() => InvitacionFinca, (i) => i.finca)
   invitaciones: InvitacionFinca[];
+
+  @OneToMany(() => Parcela, (parcela) => parcela.finca)
+  parcelas: Parcela[];
 }

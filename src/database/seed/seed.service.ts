@@ -142,7 +142,10 @@ export class SeedService implements OnModuleInit {
 
     const finca = await this.fincas_service.crear_finca({
       nombre_finca: datos.nombre_finca,
-      ubicacion_finca: datos.ubicacion_finca,
+      longitud: datos.longitud,
+      latitud: datos.latitud,
+      departamento: datos.departamento,
+      provincia: datos.provincia,
       superficie_finca: datos.superficie_finca,
       descripcion_finca: datos.descripcion_finca,
       fecha_baja_finca: null,

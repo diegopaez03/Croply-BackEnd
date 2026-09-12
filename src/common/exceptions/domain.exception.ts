@@ -23,7 +23,10 @@ export type DomainErrorCode =
   | 'EMPTY_SCHEDULE'
   | 'VARIETY_ALREADY_ASSIGNED'
   | 'INVALID_FILE_TYPE'
-  | 'FILE_TOO_LARGE';
+  | 'FILE_TOO_LARGE'
+  | 'WEATHER_SERVICE_UNAVAILABLE'
+  | 'INSUFFICIENT_AREA'
+  | 'FINCA_NOT_AVAILABLE';
 
 export interface DomainExceptionBody {
   statusCode: number;

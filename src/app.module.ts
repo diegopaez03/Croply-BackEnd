@@ -13,6 +13,9 @@ import { LogOperacionesModule } from './modules/log-operaciones';
 import { TiposSensorModule } from './modules/tipos-sensor';
 import { CultivosModule } from './modules/cultivos';
 import { UploadsModule } from './modules/uploads';
+import { ParcelasModule } from './modules/parcelas';
+import { PlanesAccionModule } from './modules/planes-accion';
+import { SimuladorIotModule } from './modules/simulador-iot';
 
 /**
  * Root application module.
@@ -48,6 +51,9 @@ import { UploadsModule } from './modules/uploads';
     TiposSensorModule,
     CultivosModule,
     UploadsModule,
+    ParcelasModule,
+    PlanesAccionModule,
+    SimuladorIotModule,
 
     // ── Seed (desarrollo: admins del equipo) ─────────────────────
     SeedModule,
