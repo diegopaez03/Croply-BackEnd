@@ -190,6 +190,7 @@ describe('ParcelasService', () => {
       id_parcela: 101,
       finca: { id_finca: 12 },
       nombre_parcela: 'Lote Norte',
+      superficie_parcela: 12,
       estado_parcela: EstadoParcela.ACTIVA,
       codigo_qr: { fecha_generacion_qr: new Date('2026-08-27T00:00:00Z') },
       controladores: [{
@@ -202,9 +203,10 @@ describe('ParcelasService', () => {
     });
     plan_accion_repo.find.mockResolvedValue([{
       id_plan_accion: 77,
-      cultivo_base: { nombre_cultivo_base: 'Tomate' },
-      variedad: { nombre_variedad: 'Perita' },
+      cultivo_base: { id_cultivo_base: 45, nombre_cultivo_base: 'Tomate' },
+      variedad: { id_variedad: 12, nombre_variedad: 'Perita' },
       superficie_ocupada_pa: 5,
+      fecha_inicio_pa: '2026-09-15',
       estado: EstadoPlanAccion.ACTIVO,
     }]);
 
@@ -212,13 +214,17 @@ describe('ParcelasService', () => {
       id_parcela: 101,
       id_finca: 12,
       nombre_parcela: 'Lote Norte',
+      superficie_parcela: 12,
       estado_parcela: EstadoParcela.ACTIVA,
       fecha_generacion_qr: new Date('2026-08-27T00:00:00Z'),
       cultivos: [{
         id_plan_accion: 77,
+        id_cultivo_base: 45,
         nombre_cultivo_base: 'Tomate',
+        id_variedad: 12,
         nombre_variedad: 'Perita',
         superficie_ocupada_pa: 5,
+        fecha_inicio_pa: '2026-09-15',
         estado: EstadoPlanAccion.ACTIVO,
       }],
       sensores: [{

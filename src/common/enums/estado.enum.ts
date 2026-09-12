@@ -61,6 +61,13 @@ export enum EstadoTransmision {
 export enum EstadoPlanAccion {
   ACTIVO = 'Activo',
   FINALIZADO = 'Finalizado',
+  CANCELADO = 'Cancelado',
   FINALIZADO_POR_CONTINGENCIA = 'FinalizadoPorContingencia',
   INACTIVADO = 'Inactivado',
+}
+
+export enum EstadoTarea {
+  PLANIFICADO = 'Planificado',
+  EN_PROGRESO = 'En Progreso',
+  COMPLETADO = 'Completado',
 }

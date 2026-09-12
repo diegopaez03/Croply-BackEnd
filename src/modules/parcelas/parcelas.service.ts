@@ -217,9 +217,12 @@ export class ParcelasService {
       fecha_generacion_qr: parcela.codigo_qr?.fecha_generacion_qr ?? null,
       cultivos: planes.map((plan) => ({
         id_plan_accion: Number(plan.id_plan_accion),
+        id_cultivo_base: Number(plan.cultivo_base.id_cultivo_base),
         nombre_cultivo_base: plan.cultivo_base.nombre_cultivo_base,
+        id_variedad: plan.variedad ? Number(plan.variedad.id_variedad) : null,
         nombre_variedad: plan.variedad?.nombre_variedad ?? null,
         superficie_ocupada_pa: plan.superficie_ocupada_pa,
+        fecha_inicio_pa: plan.fecha_inicio_pa,
         estado: plan.estado,
       })),
       sensores: (parcela.controladores ?? []).flatMap((controlador) =>

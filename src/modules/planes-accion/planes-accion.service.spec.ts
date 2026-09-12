@@ -1,5 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
-import { EstadoPlanAccion } from '../../common/enums';
+import { EstadoPlanAccion, EstadoTarea } from '../../common/enums';
 import { PlanesAccionService } from './planes-accion.service';
 
 function repo() {
@@ -8,6 +8,7 @@ function repo() {
     find: jest.fn().mockResolvedValue([]),
     create: jest.fn((value) => value),
     save: jest.fn(async (value) => value),
+    remove: jest.fn(async (value) => value),
   };
 }
 
@@ -20,6 +21,7 @@ describe('PlanesAccionService', () => {
   let cultivo_repo: ReturnType<typeof repo>;
   let variedad_repo: ReturnType<typeof repo>;
   let pcv_repo: ReturnType<typeof repo>;
+  let usuario_finca_repo: ReturnType<typeof repo>;
   let cultivos_service: { detalle: jest.Mock };
   let plantillas_service: { detalle: jest.Mock };
 
@@ -31,6 +33,7 @@ describe('PlanesAccionService', () => {
     cultivo_repo = repo();
     variedad_repo = repo();
     pcv_repo = repo();
+    usuario_finca_repo = repo();
     cultivos_service = { detalle: jest.fn() };
     plantillas_service = { detalle: jest.fn() };
     service = new PlanesAccionService(
@@ -41,6 +44,7 @@ describe('PlanesAccionService', () => {
       cultivo_repo as never,
       variedad_repo as never,
       pcv_repo as never,
+      usuario_finca_repo as never,
       cultivos_service as never,
       plantillas_service as never,
     );
@@ -132,8 +136,12 @@ describe('PlanesAccionService', () => {
     );
     expect(tarea_repo.create).toHaveBeenCalledWith(
       expect.objectContaining({
+        nombre_tarea: 'Siembra',
         descripcion_tarea: 'Sembrar',
         dia_relativo_tarea: 0,
+        fecha_planificada_tarea: '2026-09-15',
+        estado: EstadoTarea.PLANIFICADO,
+        nombre_producto_aa: null,
       }),
     );
   });
@@ -211,5 +219,173 @@ describe('PlanesAccionService', () => {
     expect(plan_repo.find).toHaveBeenCalledWith(
       expect.objectContaining({ order: { fecha_inicio_pa: 'DESC' } }),
     );
+  });
+
+  it('devuelve el cronograma del plan con hitos y tareas', async () => {
+    plan_repo.findOne.mockResolvedValue({
+      id_plan_accion: 77,
+      fecha_inicio_pa: '2026-09-15',
+      fecha_fin_pa: null,
+      superficie_ocupada_pa: 12.5,
+      estado: EstadoPlanAccion.ACTIVO,
+      hitos: [
+        {
+          id_hito: 201,
+          nombre_hito: 'Siembra',
+          orden_hito: 1,
+          tareas: [
+            {
+              id_tarea: 501,
+              nombre_tarea: 'Preparación de almácigo',
+              descripcion_tarea: 'Preparación de almácigo en sector norte',
+              fecha_planificada_tarea: '2026-09-15',
+              fecha_ejecucion_tarea: null,
+              fecha_creacion_tarea: new Date('2026-09-10T10:00:00Z'),
+              id_tipo_tarea: 2,
+              estado: EstadoTarea.PLANIFICADO,
+              nombre_producto_aa: null,
+              dosis_aa: null,
+              fecha_hora_aplicacion_aa: null,
+              responsable: null,
+            },
+          ],
+        },
+      ],
+    });
+
+    await expect(service.detalle(77)).resolves.toEqual({
+      id_plan_accion: 77,
+      fecha_inicio_pa: '2026-09-15',
+      fecha_fin_pa: null,
+      superficie_ocupada_pa: 12.5,
+      estado: EstadoPlanAccion.ACTIVO,
+      hitos: [
+        {
+          id_hito_real: 201,
+          nombre_hito: 'Siembra',
+          orden_hito: 1,
+          tareas: [
+            expect.objectContaining({
+              id_tarea: 501,
+              nombre_tarea: 'Preparación de almácigo',
+              id_tipo_tarea: 2,
+              nombre_tipo_tarea: 'Siembra',
+              estado: EstadoTarea.PLANIFICADO,
+              id_responsable: null,
+              nombre_producto_aa: null,
+            }),
+          ],
+        },
+      ],
+    });
+  });
+
+  it('exige los campos de agroquímico al crear una tarea de ese tipo', async () => {
+    plan_repo.findOne.mockResolvedValue({
+      id_plan_accion: 77,
+      estado: EstadoPlanAccion.ACTIVO,
+      parcela: { finca: { id_finca: 12 } },
+    });
+    hito_repo.findOne.mockResolvedValue({ id_hito: 201 });
+
+    await expect(
+      service.crear_tarea(77, 201, {
+        nombre_tarea: 'Fungicida',
+        descripcion_tarea: 'Aplicación foliar',
+        fecha_planificada_tarea: '2026-09-20',
+        id_tipo_tarea: 5,
+      }),
+    ).rejects.toMatchObject({
+      errorCode: 'REQUIRED_FIELD',
+      field: 'nombre_producto_aa',
+    });
+  });
+
+  it('rechaza editar o eliminar una tarea completada', async () => {
+    plan_repo.findOne.mockResolvedValue({
+      id_plan_accion: 77,
+      estado: EstadoPlanAccion.ACTIVO,
+      parcela: { finca: { id_finca: 12 } },
+    });
+    tarea_repo.findOne.mockResolvedValue({
+      id_tarea: 501,
+      estado: EstadoTarea.COMPLETADO,
+    });
+
+    await expect(
+      service.editar_tarea(77, 501, {
+        nombre_tarea: 'Otra',
+        descripcion_tarea: 'Otra',
+        fecha_planificada_tarea: '2026-09-21',
+        id_tipo_tarea: 2,
+      }),
+    ).rejects.toMatchObject({ errorCode: 'TASK_NOT_EDITABLE', status: 409 });
+
+    await expect(service.eliminar_tarea(77, 501)).rejects.toMatchObject({
+      errorCode: 'TASK_NOT_EDITABLE',
+    });
+  });
+
+  it('marca ejecución y avisa si el plan quedó completo', async () => {
+    plan_repo.findOne.mockResolvedValue({
+      id_plan_accion: 77,
+      estado: EstadoPlanAccion.ACTIVO,
+      parcela: { finca: { id_finca: 12 } },
+    });
+    const tarea = {
+      id_tarea: 501,
+      estado: EstadoTarea.PLANIFICADO,
+      fecha_ejecucion_tarea: null,
+    };
+    tarea_repo.findOne.mockResolvedValue(tarea);
+    tarea_repo.find.mockResolvedValue([
+      { estado: EstadoTarea.COMPLETADO },
+    ]);
+
+    const result = await service.cambiar_estado_tarea(
+      77,
+      501,
+      EstadoTarea.COMPLETADO,
+    );
+
+    expect(result.message).toBe('Estado de la tarea actualizado correctamente');
+    expect(result.estado).toBe(EstadoTarea.COMPLETADO);
+    expect(result.todas_tareas_completadas).toBe(true);
+    expect(result.fecha_ejecucion_tarea).toEqual(expect.any(String));
+  });
+
+  it('rechaza setear Inactivado o Finalizado con tareas pendientes', async () => {
+    plan_repo.findOne.mockResolvedValue({
+      id_plan_accion: 77,
+      estado: EstadoPlanAccion.ACTIVO,
+    });
+    tarea_repo.find.mockResolvedValue([
+      { estado: EstadoTarea.PLANIFICADO },
+    ]);
+
+    await expect(
+      service.cambiar_estado_plan(77, EstadoPlanAccion.INACTIVADO),
+    ).rejects.toMatchObject({ errorCode: 'INVALID_STATUS_TRANSITION' });
+
+    await expect(
+      service.cambiar_estado_plan(77, EstadoPlanAccion.FINALIZADO),
+    ).rejects.toMatchObject({ errorCode: 'TASKS_NOT_COMPLETED' });
+  });
+
+  it('permite cancelar el plan sin completar las tareas', async () => {
+    const plan = {
+      id_plan_accion: 77,
+      estado: EstadoPlanAccion.ACTIVO,
+      fecha_fin_pa: null,
+    };
+    plan_repo.findOne.mockResolvedValue(plan);
+
+    await expect(
+      service.cambiar_estado_plan(77, EstadoPlanAccion.CANCELADO),
+    ).resolves.toEqual({
+      message: 'Estado del plan de acción actualizado correctamente',
+    });
+    expect(plan.estado).toBe(EstadoPlanAccion.CANCELADO);
+    expect(plan.fecha_fin_pa).toEqual(expect.any(String));
   });
 });

@@ -39,7 +39,7 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 
 Placeholder (sin lógica de negocio aún): `reportes`.
 
-**HU-BC-06** (generar/editar plan de acción en parcela) **no está implementada**: depende de Épica 3 (`Parcela`, `PlanAccion`) y Épica 5 (ABM `TipoTarea` / entidad `Tarea`). Ver [`docs/diseño/Contexto — Diagrama de clases.md`](docs/diseño/Contexto%20—%20Diagrama%20de%20clases.md) § HU-BC-06.
+**HU-BC-06** (cronograma y ABM de tareas del plan de acción real) está implementada sobre `PlanAccion` / `Hito` / `Tarea`. Los hitos no se editan (vienen de la plantilla). `estado` de tarea es un enum cerrado hasta HU-TC-02. `AplicacionAgroquimico` rica queda para Épica 6.
 
 Contratos: [`docs/epicas/`](docs/epicas/).
 
@@ -283,8 +283,8 @@ Railway (deploy futuro), Open-Meteo (clima), Croply IoT Simulator. No bloquean e
 Respecto del diagrama completo y épicas futuras:
 
 - CRUD de reportes
-- HU-BC-06 (plan de acción real sobre parcela) — espera Épicas 3 y 5
-- ABM de `TipoTarea` / entidad `Tarea` (hoy hay un catálogo mock en `cultivos/tipo-tarea.catalog.ts`)
+- ABM de `TipoTarea` / entidad `EstadoTarea` (hoy hay catálogo mock + enum cerrado en `Tarea.estado`)
+- Entidad rica `AplicacionAgroquimico` (Épica 6; HU-BC-06 solo embebe 3 campos en la tarea)
 - RBAC middleware por permiso individual (los permisos se administran; la auth HTTP sigue por rol)
 - Notificaciones push
 - Refresh token como endpoint

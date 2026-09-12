@@ -21,7 +21,7 @@ Los estados `Finalizado`, `FinalizadoPorContingencia` e `Inactivado` son estados
 
 `Inactivado` se utilizará cuando el plan deje de estar vigente como consecuencia de una baja lógica, por ejemplo, por la baja de la finca/parcela a la que pertenece.
 
-**2. HU-BC-06 (Épica 4) sigue retirada de este contrato hasta que Épica 3 esté cerrada.**
+**2. HU-BC-06 (Épica 4)** — implementada. El detalle de parcela lista solo planes `Activo` en `cultivos`; el historial excluye `Activo`.
 
 **3. `recomendacion_ia_resumen` en HU-FP-08 depende del contrato de `HU-NA-03`, que todavía no existe.** El campo queda en la respuesta como `null` hasta que ese contrato se escriba y se pueda definir el shape real.
 

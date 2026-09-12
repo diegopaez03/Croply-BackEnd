@@ -26,7 +26,10 @@ export type DomainErrorCode =
   | 'FILE_TOO_LARGE'
   | 'WEATHER_SERVICE_UNAVAILABLE'
   | 'INSUFFICIENT_AREA'
-  | 'FINCA_NOT_AVAILABLE';
+  | 'FINCA_NOT_AVAILABLE'
+  | 'TASK_NOT_EDITABLE'
+  | 'INVALID_STATUS_TRANSITION'
+  | 'TASKS_NOT_COMPLETED';
 
 export interface DomainExceptionBody {
   statusCode: number;
@@ -130,5 +133,35 @@ export function fileTooLarge(maxSizeMb: number): DomainException {
     `El archivo no puede superar los ${maxSizeMb} MB.`,
     HttpStatus.BAD_REQUEST,
     'archivo',
+  );
+}
+
+export function taskNotEditable(
+  message = 'No se puede modificar una tarea que ya fue completada.',
+): DomainException {
+  return new DomainException(
+    'TASK_NOT_EDITABLE',
+    message,
+    HttpStatus.CONFLICT,
+  );
+}
+
+export function invalidStatusTransition(
+  message = 'La transición de estado no está permitida.',
+): DomainException {
+  return new DomainException(
+    'INVALID_STATUS_TRANSITION',
+    message,
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
+export function tasksNotCompleted(
+  message = 'No se puede finalizar el plan hasta completar todas las tareas.',
+): DomainException {
+  return new DomainException(
+    'TASKS_NOT_COMPLETED',
+    message,
+    HttpStatus.BAD_REQUEST,
   );
 }
