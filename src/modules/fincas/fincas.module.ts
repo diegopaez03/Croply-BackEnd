@@ -15,6 +15,7 @@ import { FincasController } from './fincas.controller';
 import { FincasService } from './fincas.service';
 import { InvitacionesController } from './invitaciones.controller';
 import { ClimaService } from './clima.service';
+import { MiFincaController } from './mi-finca.controller';
 
 @Module({
   imports: [
@@ -32,7 +33,7 @@ import { ClimaService } from './clima.service';
     forwardRef(() => UsuariosModule),
     forwardRef(() => AuthModule),
   ],
-  controllers: [FincasController, InvitacionesController],
+  controllers: [FincasController, InvitacionesController, MiFincaController],
   providers: [FincasService, ClimaService],
   exports: [FincasService, TypeOrmModule],
 })

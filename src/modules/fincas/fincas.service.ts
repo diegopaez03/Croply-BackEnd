@@ -493,6 +493,56 @@ export class FincasService {
     return { fincas };
   }
 
+  async listar_mi_finca_fincas(usuario: Usuario) {
+    const vinculaciones = await this.usuario_finca_repo.find({
+      where: { usuario: { id_usuario: usuario.id_usuario } },
+      relations: ['finca'],
+    });
+    const now = Date.now();
+    const fincas = vinculaciones
+      .filter(
+        (uf) =>
+          uf.finca?.fecha_baja_finca == null &&
+          (uf.fecha_fin_rol == null || uf.fecha_fin_rol.getTime() > now),
+      )
+      .map((uf) => ({
+        id_finca: Number(uf.finca.id_finca),
+        nombre_finca: uf.finca.nombre_finca,
+      }))
+      .sort((a, b) => a.id_finca - b.id_finca);
+
+    return { fincas };
+  }
+
+  async resumen(id_finca: number) {
+    const finca = await this.finca_repo.findOne({
+      where: { id_finca },
+      relations: ['parcelas'],
+    });
+    if (!finca) {
+      throw resourceNotFound();
+    }
+    if (finca.fecha_baja_finca != null) {
+      throw new DomainException(
+        'FINCA_NOT_AVAILABLE',
+        'La finca seleccionada no está disponible.',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    return {
+      id_finca: Number(finca.id_finca),
+      nombre_finca: finca.nombre_finca,
+      parcelas: (finca.parcelas ?? [])
+        .filter((parcela) => parcela.fecha_baja_parcela == null)
+        .map((parcela) => ({
+          id_parcela: Number(parcela.id_parcela),
+          nombre_parcela: parcela.nombre_parcela,
+          estado_parcela: parcela.estado_parcela,
+        })),
+    };
+  }
+
   /**
    * Fincas sobre las que el usuario tiene alcance como Admin de Finca.
    * `id_finca` acota el resultado a una sola y falla si no la administra.

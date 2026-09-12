@@ -1,7 +1,11 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
-import { EstadoParcela, EstadoTransmision } from '../../common/enums';
+import {
+  EstadoParcela,
+  EstadoPlanAccion,
+  EstadoTransmision,
+} from '../../common/enums';
 import {
   DomainException,
   duplicateValue,
@@ -16,6 +20,7 @@ import { CodigoQR } from './entities/codigo-qr.entity';
 import { Parcela } from './entities/parcela.entity';
 import { Sensor } from './entities/sensor.entity';
 import { SimuladorSincronizacionEstructuralService } from '../simulador-iot/simulador-sincronizacion-estructural.service';
+import { PlanAccion } from '../planes-accion/entities/plan-accion.entity';
 import {
   ActualizarParcelaDto,
   CrearParcelaDto,
@@ -35,6 +40,8 @@ export class ParcelasService {
     private readonly finca_repo: Repository<Finca>,
     @InjectRepository(CodigoQR)
     private readonly codigo_qr_repo: Repository<CodigoQR>,
+    @InjectRepository(PlanAccion)
+    private readonly plan_accion_repo: Repository<PlanAccion>,
     private readonly tipos_sensor_service: TiposSensorService,
     private readonly simulador_sincronizacion_service: SimuladorSincronizacionEstructuralService,
   ) {}
@@ -179,6 +186,78 @@ export class ParcelasService {
       throw resourceNotFound();
     }
     return this.map_codigo_qr(codigo);
+  }
+
+  async detalle(id_parcela: number) {
+    const parcela = await this.parcela_repo.findOne({
+      where: { id_parcela },
+      relations: [
+        'finca',
+        'controladores',
+        'controladores.sensores',
+        'controladores.sensores.tipo_sensor',
+        'codigo_qr',
+      ],
+    });
+    if (!parcela) {
+      throw resourceNotFound();
+    }
+
+    const planes = await this.plan_accion_repo.find({
+      where: { parcela: { id_parcela }, estado: EstadoPlanAccion.ACTIVO },
+      relations: ['cultivo_base', 'variedad'],
+    });
+
+    return {
+      id_parcela: Number(parcela.id_parcela),
+      id_finca: Number(parcela.finca.id_finca),
+      nombre_parcela: parcela.nombre_parcela,
+      estado_parcela: parcela.estado_parcela,
+      fecha_generacion_qr: parcela.codigo_qr?.fecha_generacion_qr ?? null,
+      cultivos: planes.map((plan) => ({
+        id_plan_accion: Number(plan.id_plan_accion),
+        nombre_cultivo_base: plan.cultivo_base.nombre_cultivo_base,
+        nombre_variedad: plan.variedad.nombre_variedad,
+        superficie_ocupada_pa: plan.superficie_ocupada_pa,
+        estado: plan.estado,
+      })),
+      sensores: (parcela.controladores ?? []).flatMap((controlador) =>
+        (controlador.sensores ?? []).map((sensor) => ({
+          id_sensor: Number(sensor.id_sensor),
+          codigo_tipo_sensor: sensor.tipo_sensor.codigo_tipo_sensor,
+          nombre_tipo_sensor: sensor.tipo_sensor.nombre_tipo_sensor,
+          estado_senal: sensor.estado_senal,
+        })),
+      ),
+    };
+  }
+
+  async resumen(id_parcela: number) {
+    const parcela = await this.parcela_repo.findOne({
+      where: { id_parcela, fecha_baja_parcela: IsNull() },
+    });
+    if (!parcela) {
+      throw resourceNotFound();
+    }
+
+    const plan = await this.plan_accion_repo.findOne({
+      where: { parcela: { id_parcela }, estado: EstadoPlanAccion.ACTIVO },
+      relations: ['cultivo_base', 'variedad'],
+    });
+
+    return {
+      id_parcela: Number(parcela.id_parcela),
+      nombre_parcela: parcela.nombre_parcela,
+      estado_parcela: parcela.estado_parcela,
+      cultivo: plan
+        ? {
+            nombre_cultivo_base: plan.cultivo_base.nombre_cultivo_base,
+            nombre_variedad: plan.variedad.nombre_variedad,
+            superficie_ocupada_pa: plan.superficie_ocupada_pa,
+          }
+        : null,
+      recomendacion_ia_resumen: null,
+    };
   }
 
   async require_parcela(id_finca: number, id_parcela: number): Promise<Parcela> {

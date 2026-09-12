@@ -11,15 +11,23 @@ import { ParcelasController } from './parcelas.controller';
 import { CodigoQrController } from './codigo-qr.controller';
 import { ParcelasService } from './parcelas.service';
 import { SimuladorIotModule } from '../simulador-iot/simulador-iot.module';
+import { PlanAccion } from '../planes-accion/entities/plan-accion.entity';
+import { ParcelaDetalleController } from './parcela-detalle.controller';
+import { ParcelaResumenController } from './parcela-resumen.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Parcela, ControladorSensor, Sensor, CodigoQR]),
+    TypeOrmModule.forFeature([Parcela, ControladorSensor, Sensor, CodigoQR, PlanAccion]),
     forwardRef(() => FincasModule),
     TiposSensorModule,
     forwardRef(() => SimuladorIotModule),
   ],
-  controllers: [ParcelasController, CodigoQrController],
+  controllers: [
+    ParcelasController,
+    CodigoQrController,
+    ParcelaDetalleController,
+    ParcelaResumenController,
+  ],
   providers: [ParcelasService, AdminFincaPorParcelaGuard],
   exports: [ParcelasService, AdminFincaPorParcelaGuard, TypeOrmModule],
 })

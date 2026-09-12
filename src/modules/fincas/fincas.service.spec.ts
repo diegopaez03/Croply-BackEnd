@@ -1,5 +1,9 @@
 import { HttpStatus } from '@nestjs/common';
-import { CODIGO_ADMIN_FINCA, EstadoInvitacion } from '../../common/enums';
+import {
+  CODIGO_ADMIN_FINCA,
+  EstadoInvitacion,
+  EstadoParcela,
+} from '../../common/enums';
 import { FincasService } from './fincas.service';
 
 describe('FincasService', () => {
@@ -27,6 +31,7 @@ describe('FincasService', () => {
       save: jest.fn(async (x) => x),
     };
     usuario_finca_repo = {
+      find: jest.fn().mockResolvedValue([]),
       createQueryBuilder: jest.fn(() => ({
         innerJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -260,6 +265,88 @@ describe('FincasService', () => {
       expect(() =>
         service.resolver_fincas_administradas({ usuario_fincas: [] } as never),
       ).toThrow(expect.objectContaining({ errorCode: 'FORBIDDEN' }));
+    });
+
+    it('lista solo fincas activas en la base y conserva el filtro por rol vigente', async () => {
+      const usuario = {
+        id_usuario: 55,
+        usuario_fincas: [
+          {
+            finca: { id_finca: 1, nombre_finca: 'Finca Inactiva' },
+            rol_finca: { codigo_rol_finca: CODIGO_ADMIN_FINCA },
+            fecha_fin_rol: null,
+          },
+        ],
+      };
+      usuario_finca_repo.find.mockResolvedValue([
+        {
+          finca: {
+            id_finca: 1,
+            nombre_finca: 'Finca Inactiva',
+            fecha_baja_finca: new Date('2026-01-01T00:00:00Z'),
+          },
+          fecha_fin_rol: null,
+        },
+        {
+          finca: {
+            id_finca: 2,
+            nombre_finca: 'Finca Activa',
+            fecha_baja_finca: null,
+          },
+          fecha_fin_rol: null,
+        },
+      ]);
+
+      expect(service.listar_mis_fincas(usuario as never).fincas).toHaveLength(1);
+      await expect(service.listar_mi_finca_fincas(usuario as never)).resolves.toEqual({
+        fincas: [{ id_finca: 2, nombre_finca: 'Finca Activa' }],
+      });
+    });
+
+    it('devuelve el resumen de una finca activa con sus parcelas activas', async () => {
+      finca_repo.findOne.mockResolvedValue({
+        id_finca: 12,
+        nombre_finca: 'Finca La Esperanza',
+        fecha_baja_finca: null,
+        parcelas: [
+          {
+            id_parcela: 101,
+            nombre_parcela: 'Lote Norte',
+            estado_parcela: EstadoParcela.ACTIVA,
+            fecha_baja_parcela: null,
+          },
+          {
+            id_parcela: 102,
+            nombre_parcela: 'Lote Sur',
+            estado_parcela: EstadoParcela.INACTIVA,
+            fecha_baja_parcela: new Date('2026-01-01T00:00:00Z'),
+          },
+        ],
+      });
+
+      await expect(service.resumen(12)).resolves.toEqual({
+        id_finca: 12,
+        nombre_finca: 'Finca La Esperanza',
+        parcelas: [{
+          id_parcela: 101,
+          nombre_parcela: 'Lote Norte',
+          estado_parcela: EstadoParcela.ACTIVA,
+        }],
+      });
+    });
+
+    it('rechaza el resumen de una finca inactiva', async () => {
+      finca_repo.findOne.mockResolvedValue({
+        id_finca: 12,
+        nombre_finca: 'Finca Inactiva',
+        fecha_baja_finca: new Date('2026-01-01T00:00:00Z'),
+        parcelas: [],
+      });
+
+      await expect(service.resumen(12)).rejects.toMatchObject({
+        errorCode: 'FINCA_NOT_AVAILABLE',
+        status: HttpStatus.FORBIDDEN,
+      });
     });
   });
 });

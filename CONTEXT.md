@@ -410,6 +410,7 @@ no se sincroniza nada.
 
 ### HU-IoT-03 — Pronóstico meteorológico por finca (Épica 7)
 
+
 **Endpoint nuevo:** `GET /api/v1/fincas/:id_finca/clima` (contrato de Épica 7).
 Guard: `AdminFincaGuard` original — esta ruta tiene `:id_finca` directo, no
 `:id_parcela`, así que **no** usa la variante "por parcela" creada para
@@ -453,6 +454,35 @@ HU-IoT-02 y con el QR de HU-FP-07.
 backend. Si Open-Meteo no responde, el backend devuelve `503
 WEATHER_SERVICE_UNAVAILABLE` una sola vez, sin reintentar — es el frontend
 quien decide cuándo volver a intentar (en el próximo ciclo de polling).
+
+
+### HU-FP-05 y HU-FP-08 — Detalle de parcela y vista general de finca (Épica 3)
+
+**HU-FP-05 — implementada.** `GET /parcelas/:id_parcela`, sin infraestructura
+nueva, combina datos de HU-FP-03/FP-04/HU-IoT-02.
+
+**Regla especial en `GET /parcelas/:id_parcela` — única excepción del proyecto:**
+`RESOURCE_NOT_FOUND` se dispara solo si el `id_parcela` no existe. Una parcela
+dada de baja devuelve `200` con sus datos completos — intencional, no corregir.
+
+**HU-FP-08 — en desarrollo.** Tres endpoints nuevos, ninguno reutiliza
+`GET /fincas/:id_finca` (HU-FP-01, exclusivo de Administrador Croply, expone
+datos de gestión interna — propietario, IPs de infraestructura — que no le
+corresponden a un Administrador de Finca):
+
+- `GET /mi-finca/fincas` — independiente de `GET /fincas/mis-fincas` (Épica 2).
+  Esta consulta el estado real de la finca al momento de la llamada; la de
+  Épica 2 filtra por vigencia de rol. No reemplaza ni deprecia a la anterior.
+- `GET /fincas/:id_finca/resumen` — vista liviana (nombre + parcelas resumidas),
+  guard `AdminFincaGuard`. `403 FINCA_NOT_AVAILABLE` si la finca está inactiva.
+- `GET /parcelas/:id_parcela/resumen` — card liviana para "Mi finca", distinta
+  del detalle completo de HU-FP-05 (no compartir lógica ni DTO entre ambos).
+
+**Botón "Solicitar digitalización de finca":** sin endpoint nuevo, reutiliza
+`POST /api/v1/solicitudes-digitalizacion` de Épica 1 tal cual.
+
+**`recomendacion_ia_resumen`:** sigue en `null`, depende de HU-NA-03 (sin
+contrato todavía).
 
 ---
 

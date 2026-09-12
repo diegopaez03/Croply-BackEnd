@@ -485,6 +485,7 @@ No existe un campo `motivo_finalizacion`. La causa del estado se representa medi
   "id_finca": 12,
   "nombre_parcela": "Lote Norte",
   "estado_parcela": "Activa",
+  "fecha_generacion_qr": null,
   "cultivos": [
     { "id_plan_accion": 77, "nombre_cultivo_base": "Tomate", "nombre_variedad": "Perita", "superficie_ocupada_pa": 5.0, "estado": "Activo" }
   ],
@@ -492,7 +493,16 @@ No existe un campo `motivo_finalizacion`. La causa del estado se representa medi
     { "id_sensor": 501, "codigo_tipo_sensor": "PH", "nombre_tipo_sensor": "Sensor de pH", "estado_senal": "Transmitiendo" }
   ]
 }
+
 ```
+> **Regla especial de este endpoint (única excepción del proyecto):** `RESOURCE_NOT_FOUND`
+> se dispara únicamente si el `id_parcela` no existe en absoluto. A diferencia de todos
+> los demás endpoints de la Etapa 1, **una parcela dada de baja SÍ debe devolver 200**
+> con sus datos completos — el AC de HU-FP-05 exige poder mostrar el detalle de una
+> parcela inactiva, con los cultivos y sensores que tenía al momento de la baja. El
+> frontend decide, a partir de `estado_parcela`, si deshabilita las acciones de edición
+> (asociar cultivo, generar QR) — el backend nunca oculta esta información por estar
+> de baja.
 
 > **El clima ya no viaja embebido acá.** El frontend, al mostrar el detalle de una parcela, hace una segunda llamada aparte a `GET /api/v1/fincas/:id_finca/clima` (Épica 7, HU-IoT-03) usando el `id_finca` que viene en esta misma respuesta. Ese endpoint ya resuelve el mensaje no bloqueante si el servicio meteorológico externo falla — no hay que reimplementar ese manejo acá.
 `cultivos: []` → frontend muestra la card punteada con "Asociar cultivo".
@@ -500,7 +510,8 @@ No existe un campo `motivo_finalizacion`. La causa del estado se representa medi
 
 ### Errores
 
-Ninguno específico.
+`RESOURCE_NOT_FOUND` (ERR-05 transversal) — únicamente si `id_parcela` no existe en
+absoluto. **No se dispara por estar dada de baja** (ver nota de comportamiento arriba).
 
 ---
 
@@ -602,6 +613,15 @@ Ninguno específico más allá de `RESOURCE_NOT_FOUND` (ERR-05) en el `GET`.
 
 > El clima se consulta con `GET /api/v1/fincas/:id_finca/clima` (Épica 7, HU-IoT-03) — no se repite acá. `recomendacion_ia_resumen` depende de `HU-NA-03` (ver Pendiente #3), queda `null` hasta que exista ese contrato.
 > 
+> **Por qué esta HU no reutiliza `GET /api/v1/fincas/:id_finca` (HU-FP-01):**
+> ese endpoint es exclusivo del Administrador Croply (`AdminCroplyGuard`) y expone
+> datos de gestión interna que no le corresponden a un Administrador de Finca —
+> email/estado del propietario, IPs de controladores y sensores. Los tres
+> endpoints nuevos de esta HU (`mi-finca/fincas`, `:id_finca/resumen`,
+> `:id_parcela/resumen`) usan `AdminFincaGuard`/`AdminFincaPorParcelaGuard` y
+> devuelven únicamente los campos que el AC de esta HU necesita — no ensanchar
+> el guard del endpoint de HU-FP-01 para intentar resolver esto, sería exponer
+> datos que no le corresponden ver a un Administrador de Finca.
 
 ### Listar fincas activas asignadas al usuario logueado (para el selector)
 
@@ -703,6 +723,22 @@ La infraestructura `Sensor`, `ControladorSensor`, `Parcela`, `CodigoQR`, `PlanAc
 La integración real con el simulador IoT y la resolución definitiva de `RESOURCE_IN_USE` de `TipoSensor` deberán retomarse al volver a Épica 7.
 
 El ABM real de `TipoTarea` y `Tarea` deberá resolverse posteriormente en Épica 5.
+
+## Alcance de esta etapa (HU-FP-05 y HU-FP-08)
+
+Con Épica 7 ya resuelta (HU-IoT-02 y HU-IoT-03 implementadas), esta etapa retoma
+las dos HU que quedaban pendientes de EP-03:
+
+- HU-FP-05 — Visualizar estado actual de parcelas (ya implementada).
+- HU-FP-08 — Visualizar estado actual de finca.
+
+Ninguna de las dos requiere infraestructura nueva — ambas combinan datos ya
+persistidos por HU-FP-03, HU-FP-04, HU-IoT-02 e HU-IoT-03. El botón "Solicitar
+digitalización de finca" del AC de HU-FP-08 reutiliza
+`POST /api/v1/solicitudes-digitalizacion` (Épica 1) sin cambios.
+
+`recomendacion_ia_resumen` sigue en `null` — depende de HU-NA-03, que todavía no
+tiene contrato (ver Pendiente #3).
 
 ## Convención de naming
 

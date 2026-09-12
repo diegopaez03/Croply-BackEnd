@@ -155,6 +155,16 @@ export class FincasController {
     return this.clima_service.obtener_clima(id_finca);
   }
 
+  @Get(':id_finca/resumen')
+  @UseGuards(JwtAuthGuard, AdminFincaGuard)
+  @ApiAuth()
+  @ApiOperation({ summary: 'Consultar resumen de finca' })
+  @ApiOkResponse({ description: 'Resumen de finca' })
+  @ApiErrorResponses({ forbidden: true, notFound: true })
+  resumen(@Param('id_finca', ParseIntPipe) id_finca: number) {
+    return this.fincas_service.resumen(id_finca);
+  }
+
   @Put(':id_finca')
   @UseGuards(JwtAuthGuard, AdminCroplyGuard)
   @ApiAuth()
