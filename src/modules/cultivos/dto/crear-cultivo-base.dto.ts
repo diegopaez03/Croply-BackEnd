@@ -46,4 +46,13 @@ export class CrearCultivoBaseDto {
   @IsString()
   @MaxLength(500)
   imagen_url?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'https://res.cloudinary.com/demo/image/upload/v1/croply/tomate-banner.jpg',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  banner_url?: string | null;
 }

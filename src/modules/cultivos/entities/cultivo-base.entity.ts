@@ -42,6 +42,9 @@ export class CultivoBase {
   @Column({ name: 'imagen_url', type: 'varchar', length: 500, nullable: true })
   imagen_url: string | null;
 
+  @Column({ name: 'banner_url', type: 'varchar', length: 500, nullable: true })
+  banner_url: string | null;
+
   @Column({
     name: 'fecha_alta_cb',
     type: 'timestamptz',

@@ -65,6 +65,7 @@ export class CultivosBaseService {
         ciclo_productivo_cb: dto.ciclo_productivo_cb.trim(),
         forma_siembra: dto.forma_siembra,
         imagen_url: dto.imagen_url ?? null,
+        banner_url: dto.banner_url ?? null,
         fecha_baja_cb: null,
       }),
     );
@@ -124,6 +125,7 @@ export class CultivosBaseService {
         ? Number(plantilla_general.plantilla_base.id_plantilla_base)
         : null,
       imagen_url: cultivo.imagen_url ?? null,
+      banner_url: cultivo.banner_url ?? null,
       variedades,
     };
   }
@@ -149,6 +151,7 @@ export class CultivosBaseService {
     cultivo.mes_siembra = dto.mes_siembra.trim();
     cultivo.forma_siembra = dto.forma_siembra;
     cultivo.imagen_url = dto.imagen_url ?? null;
+    cultivo.banner_url = dto.banner_url ?? null;
     if (!tiene_variedades) {
       cultivo.ciclo_productivo_cb = dto.ciclo_productivo_cb.trim();
     }
@@ -342,6 +345,7 @@ export class CultivosBaseService {
       forma_siembra: cultivo.forma_siembra,
       cantidad_variedades,
       imagen_url: cultivo.imagen_url ?? null,
+      banner_url: cultivo.banner_url ?? null,
     };
   }
 

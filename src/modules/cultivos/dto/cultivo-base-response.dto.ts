@@ -31,6 +31,12 @@ export class CultivoBaseListItemDto {
     nullable: true,
   })
   imagen_url: string | null;
+
+  @ApiPropertyOptional({
+    example: 'https://res.cloudinary.com/demo/image/upload/v1/croply/tomate-banner.jpg',
+    nullable: true,
+  })
+  banner_url: string | null;
 }
 
 export class ListarCultivosBaseResponseDto {
@@ -111,6 +117,12 @@ export class CultivoBaseDetalleDto {
     nullable: true,
   })
   imagen_url: string | null;
+
+  @ApiPropertyOptional({
+    example: 'https://res.cloudinary.com/demo/image/upload/v1/croply/tomate-banner.jpg',
+    nullable: true,
+  })
+  banner_url: string | null;
 }
 
 export class VariedadMutacionResponseDto {
