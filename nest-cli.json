@@ -1,13 +1,19 @@
-/**
- * Backend NestJS — Nest CLI configuration.
- * Controls project layout recognized by the @nestjs/cli tooling.
- */
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "plugins": ["@nestjs/swagger"]
+    "plugins": [
+      {
+        "name": "@nestjs/swagger",
+        "options": {
+          "classValidatorShim": true,
+          "introspectComments": true,
+          "dtoFileNameSuffix": [".dto.ts", ".entity.ts"],
+          "controllerFileNameSuffix": [".controller.ts"]
+        }
+      }
+    ]
   }
 }

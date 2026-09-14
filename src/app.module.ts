@@ -2,6 +2,20 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { DatabaseModule } from './database/database.module';
+import { SeedModule } from './database/seed';
+import { HealthModule } from './modules/health';
+import { AuthModule } from './modules/auth';
+import { UsuariosModule } from './modules/usuarios';
+import { FincasModule } from './modules/fincas';
+import { RolesModule } from './modules/roles';
+import { SolicitudesDigitalizacionModule } from './modules/solicitudes-digitalizacion';
+import { LogOperacionesModule } from './modules/log-operaciones';
+import { TiposSensorModule } from './modules/tipos-sensor';
+import { CultivosModule } from './modules/cultivos';
+import { UploadsModule } from './modules/uploads';
+import { ParcelasModule } from './modules/parcelas';
+import { PlanesAccionModule } from './modules/planes-accion';
+import { SimuladorIotModule } from './modules/simulador-iot';
 
 /**
  * Root application module.
@@ -26,13 +40,23 @@ import { DatabaseModule } from './database/database.module';
     // ── Database ─────────────────────────────────────────────────
     DatabaseModule,
 
-    // ── Feature Modules (add here as developed) ──────────────────
-    // AuthModule,
-    // UsersModule,
-    // FarmsModule,
-    // CropsModule,
-    // PlotsModule,
-    // ReportsModule,
+    // ── Feature Modules ──────────────────────────────────────────
+    HealthModule,
+    LogOperacionesModule,
+    RolesModule,
+    UsuariosModule,
+    FincasModule,
+    AuthModule,
+    SolicitudesDigitalizacionModule,
+    TiposSensorModule,
+    CultivosModule,
+    UploadsModule,
+    ParcelasModule,
+    PlanesAccionModule,
+    SimuladorIotModule,
+
+    // ── Seed (desarrollo: admins del equipo) ─────────────────────
+    SeedModule,
   ],
 })
 export class AppModule {}
