@@ -11,4 +11,7 @@ export {
   varietyAlreadyAssigned,
   invalidFileType,
   fileTooLarge,
+  taskNotEditable,
+  invalidStatusTransition,
+  tasksNotCompleted,
 } from './domain.exception';
