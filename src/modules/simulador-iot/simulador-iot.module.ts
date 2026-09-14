@@ -25,7 +25,7 @@ import { SimuladorSincronizacionEstructuralService } from './simulador-sincroniz
     }),
     ScheduleModule.forRoot(),
     TypeOrmModule.forFeature([Parcela, ControladorSensor, Sensor, LecturaSensor]),
-    AuthModule,
+    forwardRef(() => AuthModule),
     forwardRef(() => ParcelasModule),
   ],
   controllers: [SimuladorIotController],

@@ -96,9 +96,11 @@ export class PlanesAccionService {
         id_plantilla_base: Number(item.plantilla.id_plantilla_base),
         variedades: item.variedades,
         hitos: detalle.hitos.map((hito) => ({
+          id_hito_plantilla: Number(hito.id_hito_plantilla), 
           nombre_hpb: hito.nombre_hpb,
           orden_hpb: hito.orden_hpb,
           tareas: hito.tareas.map((tarea) => ({
+            id_tarea_plantilla: Number(tarea.id_tarea_plantilla),
             descripcion_tp: tarea.descripcion_tp,
             dia_relativo_tp: tarea.dia_relativo_tp,
           })),

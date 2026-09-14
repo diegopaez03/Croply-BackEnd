@@ -10,6 +10,7 @@ import {
   IsOptional,
   IsString,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { EstadoUsuario } from '../../../common/enums';
 import { PageSizePaginationQueryDto } from '../../../common/dto';
@@ -18,6 +19,7 @@ import {
   CrearRolFincaDto,
 } from '../../roles/dto/crear-rol.dto';
 import { ListarUsuariosQueryDto } from '../../usuarios/dto/usuarios.dto';
+import { CrearParcelaDto } from '../../parcelas/dto/parcelas.dto';
 
 export class CrearInvitacionDto {
   @ApiProperty({ example: 'empleado@correo.com' })
@@ -100,10 +102,13 @@ export class CrearFincaDto {
   @Min(1)
   id_usuario_propietario?: number | null;
 
-  @ApiPropertyOptional({ type: [Object], default: [] })
+  // DESPUÉS
+  @ApiPropertyOptional({ type: [CrearParcelaDto], default: [] })
   @IsOptional()
   @IsArray()
-  parcelas?: Record<string, unknown>[];
+  @ValidateNested({ each: true })
+  @Type(() => CrearParcelaDto)
+  parcelas?: CrearParcelaDto[];
 }
 
 export class ActualizarFincaDto {
