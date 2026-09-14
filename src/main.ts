@@ -15,10 +15,23 @@ async function bootstrap() {
   const swaggerEnabled = isSwaggerEnabled(nodeEnv);
 
   // ── Security ──────────────────────────────────────────────────
-  // Relax CSP outside production so Swagger UI assets can load.
+  // Keep CSP enabled in all environments; relax directives outside
+  // production so Swagger UI assets can load without disabling CSP.
   app.use(
     helmet({
-      contentSecurityPolicy: nodeEnv === 'production' ? undefined : false,
+      contentSecurityPolicy:
+        nodeEnv === 'production'
+          ? undefined
+          : {
+              directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'", "'unsafe-inline'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                imgSrc: ["'self'", 'data:'],
+                fontSrc: ["'self'", 'data:'],
+                connectSrc: ["'self'"],
+              },
+            },
     }),
   );
   app.use(compression());
