@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, MoreThan, Repository, SelectQueryBuilder } from 'typeorm';
 import {
@@ -30,6 +30,9 @@ import {
   CrearInvitacionDto,
   ListarFincasQueryDto,
 } from './dto/fincas.dto';
+//import { ParcelasService } from '@modules/parcelas/parcelas.service';
+import { ParcelasService } from '../parcelas/parcelas.service';
+
 
 const INVITATION_TTL_DAYS = 7;
 
@@ -51,6 +54,8 @@ export class FincasService {
     private readonly roles_service: RolesService,
     private readonly mailer: MailerService,
     private readonly log_service: LogOperacionesService,
+    @Inject(forwardRef(() => ParcelasService))
+    private readonly parcelas_service: ParcelasService,
   ) {}
 
   async find_finca_by_id(id_finca: number): Promise<Finca | null> {
@@ -178,9 +183,13 @@ export class FincasService {
     fecha_baja_finca: null,
   });
 
-  // 👇 NUEVO: recién acá, con la finca ya creada y el propietario ya validado, se vincula
+  // NUEVO: recién acá, con la finca ya creada y el propietario ya validado, se vincula
   if (dto.id_usuario_propietario != null) {
     await this.asignar_propietario(finca.id_finca, dto.id_usuario_propietario, actor);
+  }
+
+  for (const parcela_dto of dto.parcelas ?? []) {
+    await this.parcelas_service.crear(finca.id_finca, parcela_dto);
   }
 
   await this.log_service.registrar({

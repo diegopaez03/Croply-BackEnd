@@ -20,6 +20,7 @@ describe('FincasService', () => {
   };
   let mailer: { send_invitation: jest.Mock };
   let log_service: { registrar: jest.Mock };
+  let parcelas_service: { crear: jest.Mock };
 
   beforeEach(() => {
     finca_repo = {
@@ -73,6 +74,7 @@ describe('FincasService', () => {
     };
     mailer = { send_invitation: jest.fn().mockResolvedValue(undefined) };
     log_service = { registrar: jest.fn().mockResolvedValue(undefined) };
+    parcelas_service = { crear: jest.fn().mockResolvedValue(undefined) };
 
     service = new FincasService(
       finca_repo as never,
@@ -84,6 +86,7 @@ describe('FincasService', () => {
       roles_service as never,
       mailer as never,
       log_service as never,
+      parcelas_service as never, 
     );
   });
 

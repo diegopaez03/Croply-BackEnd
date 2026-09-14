@@ -52,6 +52,11 @@ export class ParcelasService {
   ) {
     const finca = await this.require_finca(id_finca);
     await this.assert_nombre_unico(id_finca, dto.nombre_parcela);
+    await this.assert_superficie_disponible(   // 👈 NUEVO
+      id_finca,
+      finca.superficie_finca,
+      dto.superficie_parcela,
+    );
 
     const parcela = await this.parcela_repo.save(
       this.parcela_repo.create({
@@ -99,6 +104,12 @@ export class ParcelasService {
     parcela.nombre_parcela = dto.nombre_parcela.trim();
   }
   if (dto.superficie_parcela !== undefined) {
+    await this.assert_superficie_disponible(     // NUEVO
+      id_finca,
+      parcela.finca.superficie_finca,   
+      dto.superficie_parcela,
+      id_parcela,
+    );
     parcela.superficie_parcela = dto.superficie_parcela;
   }
   await this.parcela_repo.save(parcela);
@@ -321,6 +332,41 @@ export class ParcelasService {
     });
     if (existente && Number(existente.id_parcela) !== Number(id_parcela)) {
       throw duplicateValue('nombre_parcela');
+    }
+  }
+
+  private async assert_superficie_disponible(
+    id_finca: number,
+    superficie_finca: number,
+    superficie_nueva: number,
+    id_parcela_excluir?: number,
+  ): Promise<void> {
+    const qb = this.parcela_repo
+      .createQueryBuilder('p')
+      .innerJoin('p.finca', 'f')
+      .select('COALESCE(SUM(p.superficie_parcela), 0)', 'superficie_ocupada')
+      .where('f.id_finca = :id_finca', { id_finca })
+      .andWhere('p.estado_parcela = :estado_activa', {
+        estado_activa: EstadoParcela.ACTIVA,
+      });
+
+    if (id_parcela_excluir != null) {
+      qb.andWhere('p.id_parcela != :id_parcela_excluir', { id_parcela_excluir });
+    }
+
+    const { superficie_ocupada } = await qb.getRawOne<{
+      superficie_ocupada: string;
+    }>();
+
+    const disponible = Number(superficie_finca) - Number(superficie_ocupada ?? 0);
+
+    if (superficie_nueva > disponible) {
+      throw new DomainException(
+        'INSUFFICIENT_AREA',
+        `La superficie ingresada (${superficie_nueva} ha) excede la superficie disponible en la finca (${disponible.toFixed(2)} ha).`,
+        HttpStatus.BAD_REQUEST,
+        'superficie_parcela',
+      );
     }
   }
 

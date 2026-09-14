@@ -17,6 +17,8 @@ import { FincasService } from './fincas.service';
 import { InvitacionesController } from './invitaciones.controller';
 import { ClimaService } from './clima.service';
 import { MiFincaController } from './mi-finca.controller';
+import { ParcelasModule } from '../parcelas/parcelas.module';
+
 
 @Module({
   imports: [
@@ -33,6 +35,7 @@ import { MiFincaController } from './mi-finca.controller';
     forwardRef(() => RolesModule),
     forwardRef(() => UsuariosModule),
     forwardRef(() => AuthModule),
+    forwardRef(() => ParcelasModule),
     MailerModule,
   ],
   controllers: [FincasController, InvitacionesController, MiFincaController],
