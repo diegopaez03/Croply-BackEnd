@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
-import { EstadoPlanAccion, EstadoTarea } from '../../common/enums';
+import { EstadoPlanAccion } from '../../common/enums';
 import {
   DomainException,
   invalidStatusTransition,
@@ -12,18 +12,18 @@ import {
 } from '../../common/exceptions';
 import { CultivosBaseService } from '../cultivos/cultivos-base.service';
 import { PlantillasBaseService } from '../cultivos/plantillas-base.service';
-import {
-  es_aplicacion_agroquimico,
-  find_tipo_tarea,
-} from '../cultivos/tipo-tarea.catalog';
 import { CultivoBase } from '../cultivos/entities/cultivo-base.entity';
 import { PlantillaBase } from '../cultivos/entities/plantilla-base.entity';
 import { PlantillaCultivoVariedad } from '../cultivos/entities/plantilla-cultivo-variedad.entity';
 import { Variedad } from '../cultivos/entities/variedad.entity';
+import { EstadosTareaService } from '../estados-tarea';
+import { EstadoTarea } from '../estados-tarea/entities/estado-tarea.entity';
 import { UsuarioFinca } from '../fincas/entities/usuario-finca.entity';
 import { Parcela } from '../parcelas/entities/parcela.entity';
+import { TiposTareaService } from '../tipos-tarea';
 import { CrearPlanAccionDto } from './dto/planes-accion.dto';
-import { CrearTareaPlanDto } from './dto/tareas-plan.dto';
+import { CrearTareaPlanDto, CronogramaQueryDto } from './dto/tareas-plan.dto';
+import { AplicacionAgroquimico } from './entities/aplicacion-agroquimico.entity';
 import { Hito } from './entities/hito.entity';
 import { PlanAccion } from './entities/plan-accion.entity';
 import { Tarea } from './entities/tarea.entity';
@@ -53,8 +53,12 @@ export class PlanesAccionService {
     private readonly pcv_repo: Repository<PlantillaCultivoVariedad>,
     @InjectRepository(UsuarioFinca)
     private readonly usuario_finca_repo: Repository<UsuarioFinca>,
+    @InjectRepository(AplicacionAgroquimico)
+    private readonly agro_repo: Repository<AplicacionAgroquimico>,
     private readonly cultivos_service: CultivosBaseService,
     private readonly plantillas_service: PlantillasBaseService,
+    private readonly tipos_tarea_service: TiposTareaService,
+    private readonly estados_tarea_service: EstadosTareaService,
   ) {}
 
   async plan_preview(id_cultivo_base: number, id_parcela: number) {
@@ -140,6 +144,7 @@ export class PlanesAccionService {
     }
 
     const ids_plan_accion: number[] = [];
+    const estado_inicial = await this.estados_tarea_service.estado_inicial();
     for (const asignacion of dto.asignaciones) {
       const variedad = await this.variedad_repo.findOne({
         where: {
@@ -181,19 +186,21 @@ export class PlanesAccionService {
           }),
         );
         for (const tarea_plantilla of hito_plantilla.tareas ?? []) {
-          const tipo = find_tipo_tarea(tarea_plantilla.id_tipo_tarea);
+          const tipo = tarea_plantilla.tipo_tarea;
+          if (!tipo) {
+            throw resourceNotFound('El tipo de tarea indicado no existe.');
+          }
           await this.tarea_repo.save(
             this.tarea_repo.create({
-              nombre_tarea:
-                tipo?.nombre_tipo_tarea ?? tarea_plantilla.descripcion_tp,
+              nombre_tarea: tipo.nombre_tipo_tarea,
               descripcion_tarea: tarea_plantilla.descripcion_tp,
               fecha_planificada_tarea: add_days_iso(
                 asignacion.fecha_inicio,
                 tarea_plantilla.dia_relativo_tp,
               ),
               fecha_ejecucion_tarea: null,
-              id_tipo_tarea: tarea_plantilla.id_tipo_tarea,
-              estado: EstadoTarea.PLANIFICADO,
+              tipo_tarea: tipo,
+              estado_tarea: estado_inicial,
               nombre_producto_aa: tarea_plantilla.nombre_producto,
               dosis_aa: tarea_plantilla.dosis_aa,
               fecha_hora_aplicacion_aa: null,
@@ -237,16 +244,19 @@ export class PlanesAccionService {
     };
   }
 
-  async detalle(id_plan_accion: number) {
+  async detalle(id_plan_accion: number, filtros: CronogramaQueryDto = {}) {
     const plan = await this.require_plan(id_plan_accion, [
       'hitos',
       'hitos.tareas',
+      'hitos.tareas.tipo_tarea',
+      'hitos.tareas.estado_tarea',
       'hitos.tareas.responsable',
       'hitos.tareas.responsable.usuario',
     ]);
     const hitos = [...(plan.hitos ?? [])].sort(
       (a, b) => a.orden_hito - b.orden_hito,
     );
+    const fecha = filtros.fecha ? to_date_only(filtros.fecha) : null;
 
     return {
       id_plan_accion: Number(plan.id_plan_accion),
@@ -262,7 +272,19 @@ export class PlanesAccionService {
           .sort((a, b) =>
             a.fecha_planificada_tarea.localeCompare(b.fecha_planificada_tarea),
           )
-          .map((tarea) => this.to_tarea_response(tarea)),
+          .map((tarea) => this.to_tarea_response(tarea))
+          .filter((tarea) => {
+            if (
+              filtros.estado != null &&
+              tarea.id_estado_tarea !== Number(filtros.estado)
+            ) {
+              return false;
+            }
+            if (fecha && tarea.fecha_planificada_tarea !== fecha) {
+              return false;
+            }
+            return true;
+          }),
       })),
     };
   }
@@ -284,10 +306,11 @@ export class PlanesAccionService {
     }
 
     const payload = await this.build_tarea_payload(plan, dto);
+    const estado_inicial = await this.estados_tarea_service.estado_inicial();
     const saved = await this.tarea_repo.save(
       this.tarea_repo.create({
         ...payload,
-        estado: EstadoTarea.PLANIFICADO,
+        estado_tarea: estado_inicial,
         fecha_ejecucion_tarea: null,
         hito,
       }),
@@ -320,26 +343,91 @@ export class PlanesAccionService {
   async cambiar_estado_tarea(
     id_plan_accion: number,
     id_tarea: number,
-    estado: EstadoTarea,
+    id_estado_tarea: number,
   ) {
     await this.require_plan_activo(id_plan_accion);
     const tarea = await this.require_tarea_editable(id_plan_accion, id_tarea);
+    const estado =
+      await this.estados_tarea_service.find_activo_by_id(id_estado_tarea);
+    if (!estado) {
+      throw resourceNotFound();
+    }
 
-    tarea.estado = estado;
-    tarea.fecha_ejecucion_tarea =
-      estado === EstadoTarea.COMPLETADO ? new Date() : null;
+    tarea.estado_tarea = estado;
+    tarea.fecha_ejecucion_tarea = estado.cuenta_para_cierre_exitoso
+      ? new Date()
+      : null;
     await this.tarea_repo.save(tarea);
 
-    const todas_tareas_completadas =
-      await this.todas_tareas_completadas(id_plan_accion);
+    const { message, registro_agroquimico_generado } =
+      await this.registrar_agroquimico_si_corresponde(tarea, estado);
 
     return {
-      message: 'Estado de la tarea actualizado correctamente',
+      message,
       id_tarea: Number(tarea.id_tarea),
-      estado: tarea.estado,
+      id_estado_tarea: Number(estado.id_estado_tarea),
+      nombre_estado_tarea: estado.nombre_estado_tarea,
       fecha_ejecucion_tarea: to_iso(tarea.fecha_ejecucion_tarea),
-      todas_tareas_completadas,
+      todas_tareas_completadas:
+        await this.todas_tareas_completadas(id_plan_accion),
+      registro_agroquimico_generado,
     };
+  }
+
+  async reprogramar_tarea(
+    id_plan_accion: number,
+    id_tarea: number,
+    fecha_planificada_tarea: string,
+  ) {
+    await this.require_plan_activo(id_plan_accion);
+    const tarea = await this.require_tarea_editable(id_plan_accion, id_tarea);
+    tarea.fecha_planificada_tarea = to_date_only(fecha_planificada_tarea);
+    await this.tarea_repo.save(tarea);
+
+    return {
+      message: 'Fecha reprogramada correctamente',
+      id_tarea: Number(tarea.id_tarea),
+      fecha_planificada_tarea: to_date_only(tarea.fecha_planificada_tarea),
+      atrasada: this.calcular_atrasada(tarea),
+    };
+  }
+
+  async cancelar_pendientes_y_inactivar_planes(filtro: {
+    id_parcela?: number;
+    id_finca?: number;
+  }): Promise<void> {
+    const where = filtro.id_parcela
+      ? {
+          parcela: { id_parcela: filtro.id_parcela },
+          estado: EstadoPlanAccion.ACTIVO,
+        }
+      : {
+          parcela: { finca: { id_finca: filtro.id_finca } },
+          estado: EstadoPlanAccion.ACTIVO,
+        };
+    const planes = await this.plan_repo.find({
+      where,
+      relations: ['hitos', 'hitos.tareas', 'hitos.tareas.estado_tarea'],
+    });
+    if (planes.length === 0) {
+      return;
+    }
+
+    const cancelada = await this.estados_tarea_service.estado_cancelada();
+    for (const plan of planes) {
+      for (const hito of plan.hitos ?? []) {
+        for (const tarea of hito.tareas ?? []) {
+          if (tarea.estado_tarea?.es_estado_finalizador) {
+            continue;
+          }
+          tarea.estado_tarea = cancelada;
+          await this.tarea_repo.save(tarea);
+        }
+      }
+      plan.estado = EstadoPlanAccion.INACTIVADO;
+      plan.fecha_fin_pa = today_iso();
+      await this.plan_repo.save(plan);
+    }
   }
 
   async eliminar_tarea(id_plan_accion: number, id_tarea: number) {
@@ -433,7 +521,14 @@ export class PlanesAccionService {
         id_tarea,
         hito: { plan_accion: { id_plan_accion } },
       },
-      relations: ['hito', 'hito.plan_accion', 'responsable', 'responsable.usuario'],
+      relations: [
+        'hito',
+        'hito.plan_accion',
+        'tipo_tarea',
+        'estado_tarea',
+        'responsable',
+        'responsable.usuario',
+      ],
     });
     if (!tarea) {
       throw resourceNotFound();
@@ -446,7 +541,7 @@ export class PlanesAccionService {
     id_tarea: number,
   ): Promise<Tarea> {
     const tarea = await this.require_tarea(id_plan_accion, id_tarea);
-    if (tarea.estado === EstadoTarea.COMPLETADO) {
+    if (tarea.estado_tarea?.es_estado_finalizador) {
       throw taskNotEditable();
     }
     return tarea;
@@ -456,12 +551,14 @@ export class PlanesAccionService {
     plan: PlanAccion,
     dto: CrearTareaPlanDto,
   ): Promise<Partial<Tarea>> {
-    if (!find_tipo_tarea(dto.id_tipo_tarea)) {
-      throw requiredField('id_tipo_tarea');
+    const tipo = await this.tipos_tarea_service.find_activo_by_id(
+      dto.id_tipo_tarea,
+    );
+    if (!tipo) {
+      throw resourceNotFound('El tipo de tarea indicado no existe.');
     }
-    this.validar_campos_agro(dto);
+    this.validar_campos_agro(dto, tipo.es_tipo_agroquimico);
 
-    const es_agro = es_aplicacion_agroquimico(dto.id_tipo_tarea);
     const responsable = await this.resolve_responsable(
       plan,
       dto.id_responsable,
@@ -471,18 +568,26 @@ export class PlanesAccionService {
       nombre_tarea: dto.nombre_tarea.trim(),
       descripcion_tarea: dto.descripcion_tarea.trim(),
       fecha_planificada_tarea: to_date_only(dto.fecha_planificada_tarea),
-      id_tipo_tarea: dto.id_tipo_tarea,
-      nombre_producto_aa: es_agro ? dto.nombre_producto_aa?.trim() ?? null : null,
-      dosis_aa: es_agro ? dto.dosis_aa?.trim() ?? null : null,
-      fecha_hora_aplicacion_aa: es_agro
-        ? new Date(dto.fecha_hora_aplicacion_aa as string)
+      tipo_tarea: tipo,
+      nombre_producto_aa: tipo.es_tipo_agroquimico
+        ? (dto.nombre_producto_aa?.trim() ?? null)
         : null,
+      dosis_aa: tipo.es_tipo_agroquimico
+        ? (dto.dosis_aa?.trim() ?? null)
+        : null,
+      fecha_hora_aplicacion_aa:
+        tipo.es_tipo_agroquimico && dto.fecha_hora_aplicacion_aa
+          ? new Date(dto.fecha_hora_aplicacion_aa)
+          : null,
       responsable,
     };
   }
 
-  private validar_campos_agro(dto: CrearTareaPlanDto) {
-    if (!es_aplicacion_agroquimico(dto.id_tipo_tarea)) {
+  private validar_campos_agro(
+    dto: CrearTareaPlanDto,
+    es_tipo_agroquimico: boolean,
+  ) {
+    if (!es_tipo_agroquimico) {
       return;
     }
     if (!dto.nombre_producto_aa?.trim()) {
@@ -494,6 +599,41 @@ export class PlanesAccionService {
     if (!dto.fecha_hora_aplicacion_aa?.trim()) {
       throw requiredField('fecha_hora_aplicacion_aa');
     }
+  }
+
+  private async registrar_agroquimico_si_corresponde(
+    tarea: Tarea,
+    estado: EstadoTarea,
+  ): Promise<{ message: string; registro_agroquimico_generado: boolean }> {
+    const message = 'Estado de la tarea actualizado correctamente';
+    if (
+      !tarea.tipo_tarea?.es_tipo_agroquimico ||
+      !estado.cuenta_para_cierre_exitoso
+    ) {
+      return { message, registro_agroquimico_generado: false };
+    }
+
+    const previo = await this.agro_repo.findOne({
+      where: { tarea: { id_tarea: tarea.id_tarea } },
+    });
+    if (previo) {
+      return {
+        message:
+          'Ya existe un registro de agroquímico asociado a esta tarea. No se generó un nuevo registro.',
+        registro_agroquimico_generado: false,
+      };
+    }
+
+    await this.agro_repo.save(
+      this.agro_repo.create({
+        tarea,
+        nombre_producto_aa: tarea.nombre_producto_aa,
+        dosis_aa: tarea.dosis_aa,
+        fecha_hora_aplicacion_aa: tarea.fecha_hora_aplicacion_aa,
+        responsable: tarea.responsable ?? null,
+      }),
+    );
+    return { message, registro_agroquimico_generado: true };
   }
 
   private async resolve_responsable(
@@ -525,16 +665,19 @@ export class PlanesAccionService {
   ): Promise<boolean> {
     const tareas = await this.tarea_repo.find({
       where: { hito: { plan_accion: { id_plan_accion } } },
+      relations: ['estado_tarea'],
     });
-    return (
+    const todas_finalizadas =
       tareas.length > 0 &&
-      tareas.every((tarea) => tarea.estado === EstadoTarea.COMPLETADO)
+      tareas.every((tarea) => tarea.estado_tarea?.es_estado_finalizador);
+    const alguna_exitosa = tareas.some(
+      (tarea) => tarea.estado_tarea?.cuenta_para_cierre_exitoso,
     );
+    return todas_finalizadas && alguna_exitosa;
   }
 
   private to_tarea_response(tarea: Tarea) {
-    const tipo = find_tipo_tarea(tarea.id_tipo_tarea);
-    const es_agro = es_aplicacion_agroquimico(tarea.id_tipo_tarea);
+    const es_agro = Boolean(tarea.tipo_tarea?.es_tipo_agroquimico);
     const usuario = tarea.responsable?.usuario;
     return {
       id_tarea: Number(tarea.id_tarea),
@@ -542,10 +685,13 @@ export class PlanesAccionService {
       descripcion_tarea: tarea.descripcion_tarea,
       fecha_planificada_tarea: to_date_only(tarea.fecha_planificada_tarea),
       fecha_ejecucion_tarea: to_iso(tarea.fecha_ejecucion_tarea),
-      fecha_creacion_tarea: to_iso(tarea.fecha_creacion_tarea) ?? new Date().toISOString(),
-      id_tipo_tarea: tarea.id_tipo_tarea,
-      nombre_tipo_tarea: tipo?.nombre_tipo_tarea ?? 'Tipo de tarea',
-      estado: tarea.estado,
+      fecha_creacion_tarea:
+        to_iso(tarea.fecha_creacion_tarea) ?? new Date().toISOString(),
+      id_tipo_tarea: Number(tarea.tipo_tarea?.id_tipo_tarea),
+      nombre_tipo_tarea: tarea.tipo_tarea?.nombre_tipo_tarea ?? 'Tipo de tarea',
+      id_estado_tarea: Number(tarea.estado_tarea?.id_estado_tarea),
+      nombre_estado_tarea: tarea.estado_tarea?.nombre_estado_tarea ?? '',
+      atrasada: this.calcular_atrasada(tarea),
       nombre_producto_aa: es_agro ? tarea.nombre_producto_aa : null,
       dosis_aa: es_agro ? tarea.dosis_aa : null,
       id_responsable: tarea.responsable
@@ -558,6 +704,13 @@ export class PlanesAccionService {
         ? to_iso(tarea.fecha_hora_aplicacion_aa)
         : null,
     };
+  }
+
+  private calcular_atrasada(tarea: Tarea): boolean {
+    if (tarea.estado_tarea?.es_estado_finalizador) {
+      return false;
+    }
+    return to_date_only(tarea.fecha_planificada_tarea) < today_iso();
   }
 
   private async superficie_disponible(parcela: Parcela): Promise<number> {
@@ -583,6 +736,7 @@ export class PlanesAccionService {
         'plantilla_base',
         'plantilla_base.hitos',
         'plantilla_base.hitos.tareas',
+        'plantilla_base.hitos.tareas.tipo_tarea',
         'variedad',
       ],
     });

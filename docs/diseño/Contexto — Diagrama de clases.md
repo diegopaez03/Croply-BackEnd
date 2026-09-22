@@ -29,7 +29,7 @@ Bloques principales visibles en el diagrama:
 | Acceso / identidad | `Usuario`, `Rol`, `RolSistema`, `RolFinca`, `UsuarioFinca`, `ResetsContrasena`, `InvitacionFinca`, `Permiso`, `RolPermiso` | Épicas 1 y 2 |
 | Onboarding | `SolicitudDigitalizacionFinca` | HU-AC-07 / HU-GU-13 |
 | Finca / terreno | `Finca`, parcelas, ubicaciones | Stub `Finca` + roles/invitaciones Épica 2 |
-| Producción | `CultivoBase`, `Variedad`, `PlantillaBase`, `PlantillaCultivoVariedad`, `HitoPlantilla`, `TareaPlantilla` | Épica 4 (HU-BC-01 a 05). `TipoTarea`/`Tarea` mock hasta Épica 5 |
+| Producción | `CultivoBase`, `Variedad`, `PlantillaBase`, `PlantillaCultivoVariedad`, `HitoPlantilla`, `TareaPlantilla`, `TipoTarea` | Épica 4 y Épica 5. `TareaPlantilla.id_tipo_tarea` es FK a `TipoTarea` |
 | Operación de campo | Tareas reales, notas, planes de acción | HU-BC-06 diferida (Épicas 3 y 5) |
 | Clima / IoT | Condiciones, transmisiones, sensores | Fuera de este backend o épicas posteriores |
 | Transversal | `LogOperaciones`, `Notificacion` | `LogOperaciones` en Épica 2; notificaciones pendientes |
@@ -203,9 +203,9 @@ Acordadas al implementar Épicas 1 y 2:
 8. **Mail según entorno** — `MailerService`: log en consola fuera de production; Resend en production.
 9. **AuthZ HTTP por rol** (Admin Croply / Admin Finca); permisos como dato de ABM, no middleware granular.
 10. **Épica 4:** `CultivoBase`, `Variedad`, `PlantillaBase`, `PlantillaCultivoVariedad`, `HitoPlantilla`, `TareaPlantilla`. Extensiones al UML: `forma_siembra` (enum) en cultivo base; `observaciones` (string nullable) en variedad; `imagen_url` (varchar 500 nullable) en cultivo base y variedad.
-11. **`TipoTarea` mock** — catálogo constante `TIPO_TAREA_CATALOG` (`src/modules/cultivos/tipo-tarea.catalog.ts`). El id `5` es “Aplicación de agroquímico” (valida `nombre_producto` y `dosis_aa`). Se reemplaza por entidad + ABM en Épica 5.
+11. **Épica 5:** `TipoTarea` y `EstadoTarea` son entidades. Flags `protegido`, `es_tipo_agroquimico`, `es_estado_finalizador` y `cuenta_para_cierre_exitoso` no se editan desde la UI. `NotaCampo` resuelve la finca vía `UsuarioFinca`. `AplicacionAgroquimico` mínimo (OneToOne con `Tarea`) al completar; el ABM público queda en Épica 6.
 12. **`en_uso`** de cultivo/variedad se calcula por filas activas de `PlantillaCultivoVariedad`. Cuando exista `Parcela` (Épica 3) hay que sumar asociaciones activas de parcela.
-13. **HU-BC-06 diferida** — no hay `PlanAccion` / `Tarea` real / ERR-08 (`TASK_NOT_EDITABLE`) hasta Épicas 3 y 5.
+13. **Plan de acción real** — `PlanAccion` / `Hito` / `Tarea` están implementados. Los cambios de plantilla no se retroactivan a planes ya copiados. `TASK_NOT_EDITABLE` aplica si el estado actual tiene `es_estado_finalizador`.
 
 ### Regla de login vs estados (aclaración al contrato)
 
@@ -270,34 +270,30 @@ Prioridad al consultar (HU-BC-03): específica de la variedad, si no la general 
 
 ### 8.4 Hitos y tareas de plantilla
 
-`HitoPlantilla` (`nombre_hpb`, `orden_hpb`) → `TareaPlantilla` (`dia_relativo_tp`, `id_tipo_tarea`, `descripcion_tp`, `nombre_producto`, `dosis_aa`). Guardar sin ningún hito con tareas → ERR-06 `EMPTY_SCHEDULE`.
+`HitoPlantilla` (`nombre_hpb`, `orden_hpb`) → `TareaPlantilla` (`dia_relativo_tp`, `tipo_tarea`, `descripcion_tp`, `nombre_producto`, `dosis_aa`). Guardar sin ningún hito con tareas → ERR-06 `EMPTY_SCHEDULE`.
 
-`nombre_producto` / `dosis_aa` se persisten en `TareaPlantilla` hasta que Épica 5 modele `AplicacionAgroquimico`.
+`nombre_producto` / `dosis_aa` siguen embebidos en la plantilla. Al completar una tarea real de tipo agroquímico se persiste un `AplicacionAgroquimico` mínimo (producto, dosis, fecha/hora, responsable, OneToOne con `Tarea`). El ABM público de ese registro es Épica 6.
 
-### 8.5 Catálogo mock `TipoTarea` (deuda Épica 5)
+### 8.5 `TipoTarea` y `EstadoTarea` (Épica 5)
 
-| `id_tipo_tarea` | `nombre_tipo_tarea` |
-| --- | --- |
-| 1 | Preparación del terreno |
-| 2 | Siembra |
-| 3 | Riego |
-| 4 | Fertilización |
-| 5 | Aplicación de agroquímico |
-| 6 | Control de malezas |
-| 7 | Cosecha |
+Catálogos globales. Flags no editables desde la UI:
 
-No hay endpoint de catálogo: el frontend puede hardcodear estos IDs hasta el ABM de Épica 5.
+| Entidad | Flags | Semilla |
+| --- | --- | --- |
+| `TipoTarea` | `protegido`, `es_tipo_agroquimico` | `Aplicación de agroquímico` (`protegido` y `es_tipo_agroquimico`) |
+| `EstadoTarea` | `protegido`, `es_estado_finalizador`, `cuenta_para_cierre_exitoso` | `Planificado`, `Completado`, `Cancelada` |
 
-### 8.6 HU-BC-06 diferida (Épicas 3 y 5)
+`protegido` bloquea la baja (`PROTECTED_CATALOG_ITEM`) antes que `RESOURCE_IN_USE`. La lógica de tareas consulta esos flags, nunca el nombre ni un id fijo. El estado inicial de una tarea nueva es la fila protegida no finalizadora que no cuenta para cierre exitoso.
 
-No implementar hasta existir `Parcela` / `PlanAccion` (Épica 3) y `TipoTarea` / `Tarea` reales (Épica 5):
+`Tarea` reemplazó el enum `estado` y el entero `id_tipo_tarea` por `ManyToOne` a estas tablas. `atrasada` = fecha planificada ya pasada y `es_estado_finalizador = false`.
 
-- Generar un plan de acción a partir de plantilla sobre una parcela
-- Editar/eliminar tareas de un plan real
-- ERR-08 `TASK_NOT_EDITABLE` (409) si la tarea no está `Pendiente`
-- `en_uso` por asociación activa de parcela
+### 8.6 `NotaCampo` (Épica 5)
 
-Los cambios de plantilla **no** deben retroactivarse a planes ya copiados (regla a respetar cuando se implemente).
+`contenido_nota_campo`, `fecha_captura_nc`, `estado` (`Sincronizada` | `Convertida_a_tarea`). Autor = `UsuarioFinca` (de ahí sale la finca). `Parcela` y `Tarea` son opcionales. `Pendiente_sincronizacion` no se persiste.
+
+### 8.7 Plan de acción real
+
+Materializado desde la plantilla (Épica 3) y administrado en el cronograma (Épica 4, reescrita por Épica 5). Los hitos no se editan. Al dar de baja una parcela o una finca, las tareas no finalizadas de los planes activos pasan a `Cancelada` y esos planes a `Inactivado`.
 
 ---
 
@@ -305,8 +301,8 @@ Los cambios de plantilla **no** deben retroactivarse a planes ya copiados (regla
 
 No confundir “está en el diagrama” con “está implementado”:
 
-- CRUD de fincas, parcelas, reportes
-- HU-BC-06 y entidad `Tarea` / ABM `TipoTarea`
+- CRUD de reportes
+- ABM público de `AplicacionAgroquimico` (Épica 6)
 - RBAC middleware por permiso individual
 - Notificaciones
 - Refresh token persistido (vars en `.env` existen; contrato no lo exige)
@@ -324,4 +320,4 @@ Detalle operativo: [`CONTEXT.md`](../../CONTEXT.md) y contratos en [`docs/epicas
 
 ---
 
-*Documento vivo. Última actualización alineada a la implementación de Épica 4 (Planificar Cultivos, HU-BC-01 a HU-BC-05).*
+*Documento vivo. Última actualización alineada a la Épica 5 (Gestionar Tareas de Campo).*

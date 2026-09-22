@@ -11,7 +11,6 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { es_aplicacion_agroquimico } from '../tipo-tarea.catalog';
 
 export class PlantillaCultivoInputDto {
   @ApiProperty({ example: 45 })
@@ -51,11 +50,8 @@ export class TareaPlantillaInputDto {
     nullable: true,
     description: 'Obligatorio si el tipo es Aplicación de agroquímico',
   })
-  @ValidateIf((o: TareaPlantillaInputDto) =>
-    es_aplicacion_agroquimico(o.id_tipo_tarea),
-  )
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   nombre_producto?: string | null;
 
   @ApiPropertyOptional({
@@ -63,11 +59,8 @@ export class TareaPlantillaInputDto {
     nullable: true,
     description: 'Obligatorio si el tipo es Aplicación de agroquímico',
   })
-  @ValidateIf((o: TareaPlantillaInputDto) =>
-    es_aplicacion_agroquimico(o.id_tipo_tarea),
-  )
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   dosis_aa?: string | null;
 }
 

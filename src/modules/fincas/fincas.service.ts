@@ -32,6 +32,7 @@ import {
 } from './dto/fincas.dto';
 //import { ParcelasService } from '@modules/parcelas/parcelas.service';
 import { ParcelasService } from '../parcelas/parcelas.service';
+import { PlanesAccionService } from '../planes-accion/planes-accion.service';
 
 
 const INVITATION_TTL_DAYS = 7;
@@ -56,6 +57,8 @@ export class FincasService {
     private readonly log_service: LogOperacionesService,
     @Inject(forwardRef(() => ParcelasService))
     private readonly parcelas_service: ParcelasService,
+    @Inject(forwardRef(() => PlanesAccionService))
+    private readonly planes_service: PlanesAccionService,
   ) {}
 
   async find_finca_by_id(id_finca: number): Promise<Finca | null> {
@@ -250,6 +253,9 @@ export class FincasService {
     // Confirmado: baja lógica en cascada — cambia estado a Inactivo, inactiva parcelas asociadas, cancela tareas pendientes de esas parcelas, conserva histórico de agroquímicos sin modificar, inactiva cultivos activos, revoca accesos de usuarios invitados sin tocar el estado de cuenta del Administrador de Finca.
     finca.fecha_baja_finca = new Date();
     await this.finca_repo.save(finca);
+    await this.planes_service.cancelar_pendientes_y_inactivar_planes({
+      id_finca,
+    });
 
     await this.log_service.registrar({
       usuario: actor,

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { LogOperacionesModule } from '../log-operaciones';
+import { TiposTareaModule } from '../tipos-tarea';
 import { CultivosBaseController } from './cultivos-base.controller';
 import { CultivosBaseService } from './cultivos-base.service';
 import { CultivoBase } from './entities/cultivo-base.entity';
@@ -25,6 +26,7 @@ import { PlantillasBaseService } from './plantillas-base.service';
     ]),
     LogOperacionesModule,
     AuthModule,
+    TiposTareaModule,
   ],
   controllers: [CultivosBaseController, PlantillasBaseController],
   providers: [CultivosBaseService, PlantillasBaseService],

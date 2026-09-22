@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Inject, Logger, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import {
@@ -20,6 +20,7 @@ import { CodigoQR } from './entities/codigo-qr.entity';
 import { Parcela } from './entities/parcela.entity';
 import { Sensor } from './entities/sensor.entity';
 import { SimuladorSincronizacionEstructuralService } from '../simulador-iot/simulador-sincronizacion-estructural.service';
+import { PlanesAccionService } from '../planes-accion/planes-accion.service';
 import { PlanAccion } from '../planes-accion/entities/plan-accion.entity';
 import {
   ActualizarParcelaDto,
@@ -44,6 +45,8 @@ export class ParcelasService {
     private readonly plan_accion_repo: Repository<PlanAccion>,
     private readonly tipos_sensor_service: TiposSensorService,
     private readonly simulador_sincronizacion_service: SimuladorSincronizacionEstructuralService,
+    @Inject(forwardRef(() => PlanesAccionService))
+    private readonly planes_service: PlanesAccionService,
   ) {}
 
   async crear(
@@ -157,6 +160,9 @@ export class ParcelasService {
       }
     }
     await this.simulador_sincronizacion_service.sincronizar_baja(parcela);
+    await this.planes_service.cancelar_pendientes_y_inactivar_planes({
+      id_parcela,
+    });
 
     return {
       message:

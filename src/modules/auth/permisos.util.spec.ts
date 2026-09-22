@@ -55,5 +55,8 @@ describe('permisos.util', () => {
     expect(usuario_tiene_permiso(usuario, PERMISO_FINCA.TAREAS_CAMPO)).toBe(
       true,
     );
+    expect(usuario_tiene_permiso(usuario, PERMISO_FINCA.NOTAS_CAMPO)).toBe(
+      true,
+    );
   });
 });

@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -27,6 +28,8 @@ import {
   CambiarEstadoPlanDto,
   CambiarEstadoTareaDto,
   CrearTareaPlanDto,
+  CronogramaQueryDto,
+  ReprogramarTareaDto,
 } from './dto/tareas-plan.dto';
 import { AlcanceFincaPorPlanGuard } from './guards/alcance-finca-por-plan.guard';
 import { PlanesAccionService } from './planes-accion.service';
@@ -43,8 +46,11 @@ export class PlanesAccionCronogramaController {
   @ApiOperation({ summary: 'Ver cronograma del plan de acción' })
   @ApiOkResponse({ description: 'Cronograma del plan de acción' })
   @ApiErrorResponses({ forbidden: true, notFound: true })
-  detalle(@Param('id_plan_accion', ParseIntPipe) id_plan_accion: number) {
-    return this.planes_service.detalle(id_plan_accion);
+  detalle(
+    @Param('id_plan_accion', ParseIntPipe) id_plan_accion: number,
+    @Query() query: CronogramaQueryDto,
+  ) {
+    return this.planes_service.detalle(id_plan_accion, query);
   }
 
   @Post(':id_plan_accion/hitos/:id_hito_real/tareas')
@@ -99,7 +105,28 @@ export class PlanesAccionCronogramaController {
     return this.planes_service.cambiar_estado_tarea(
       id_plan_accion,
       id_tarea,
-      dto.estado,
+      dto.id_estado_tarea,
+    );
+  }
+
+  @Put(':id_plan_accion/tareas/:id_tarea/fecha')
+  @ApiOperation({ summary: 'Reprogramar la fecha de una tarea' })
+  @ApiOkResponse({ description: 'Fecha reprogramada' })
+  @ApiErrorResponses({
+    badRequest: true,
+    forbidden: true,
+    notFound: true,
+    conflict: true,
+  })
+  reprogramar_tarea(
+    @Param('id_plan_accion', ParseIntPipe) id_plan_accion: number,
+    @Param('id_tarea', ParseIntPipe) id_tarea: number,
+    @Body() dto: ReprogramarTareaDto,
+  ) {
+    return this.planes_service.reprogramar_tarea(
+      id_plan_accion,
+      id_tarea,
+      dto.fecha_planificada_tarea,
     );
   }
 

@@ -38,6 +38,8 @@ describe('SeedService', () => {
     find_activa_por_nombre: jest.Mock;
     crear: jest.Mock;
   };
+  let tipos_tarea_service: { ensure_seed: jest.Mock };
+  let estados_tarea_service: { ensure_seed: jest.Mock };
   let config: { get: jest.Mock };
 
   beforeEach(() => {
@@ -87,6 +89,10 @@ describe('SeedService', () => {
       find_activa_por_nombre: jest.fn().mockResolvedValue(null),
       crear: jest.fn().mockResolvedValue({ id_plantilla_base: 3 }),
     };
+    tipos_tarea_service = { ensure_seed: jest.fn().mockResolvedValue(undefined) };
+    estados_tarea_service = {
+      ensure_seed: jest.fn().mockResolvedValue(undefined),
+    };
     config = { get: jest.fn().mockReturnValue(undefined) };
 
     service = new SeedService(
@@ -95,6 +101,8 @@ describe('SeedService', () => {
       fincas_service as never,
       cultivos_service as never,
       plantillas_service as never,
+      tipos_tarea_service as never,
+      estados_tarea_service as never,
       config as unknown as ConfigService,
     );
   });
@@ -143,10 +151,10 @@ describe('SeedService', () => {
     expect(emails).not.toContain('diego@croply.app');
   });
 
-    expect(cultivos_service.crear).toHaveBeenCalledTimes(2);
-    expect(cultivos_service.agregar_variedad).toHaveBeenCalledTimes(2);
-    expect(plantillas_service.crear).toHaveBeenCalledWith(
-      expect.objectContaining({ nombre_pb: 'Plan de Cultivo de Tomate' }),
-      expect.objectContaining({ email: 'diego@croply.app' }),
-    );
+  it('siembra estados y el tipo de tarea de agroquímico', async () => {
+    await service.seed_catalogos_tarea();
+
+    expect(estados_tarea_service.ensure_seed).toHaveBeenCalled();
+    expect(tipos_tarea_service.ensure_seed).toHaveBeenCalled();
   });
+});
