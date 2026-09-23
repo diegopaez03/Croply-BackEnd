@@ -27,7 +27,7 @@ import { PlanesAccionService } from './planes-accion.service';
       Parcela,
       UsuarioFinca,
     ]),
-    AuthModule,
+    forwardRef(() => AuthModule),
     CultivosModule,
     forwardRef(() => FincasModule),
     forwardRef(() => ParcelasModule),

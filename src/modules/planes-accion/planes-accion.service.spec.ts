@@ -63,6 +63,7 @@ describe('PlanesAccionService', () => {
     estado_cancelada: jest.Mock;
     find_activo_by_id: jest.Mock;
   };
+  let data_source: { transaction: jest.Mock };
 
   beforeEach(() => {
     plan_repo = repo();
@@ -93,6 +94,16 @@ describe('PlanesAccionService', () => {
         return null;
       }),
     };
+
+    data_source = {
+      // Simula this.data_source.transaction(cb): ejecuta el callback
+      // pasándole un "manager" falso con un update() que no hace nada real
+      transaction: jest.fn(async (cb: (manager: unknown) => unknown) =>
+        cb({ update: jest.fn().mockResolvedValue(undefined) }),
+      ),
+    };
+
+
     service = new PlanesAccionService(
       plan_repo as never,
       hito_repo as never,
@@ -107,6 +118,7 @@ describe('PlanesAccionService', () => {
       plantillas_service as never,
       tipos_tarea_service as never,
       estados_tarea_service as never,
+      data_source as never,
     );
   });
 

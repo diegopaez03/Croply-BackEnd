@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
+import { DataSource, In, IsNull, Not, Repository } from 'typeorm';
 import { EstadoPlanAccion } from '../../common/enums';
 import {
   DomainException,
@@ -59,6 +59,7 @@ export class PlanesAccionService {
     private readonly plantillas_service: PlantillasBaseService,
     private readonly tipos_tarea_service: TiposTareaService,
     private readonly estados_tarea_service: EstadosTareaService,
+    private readonly data_source: DataSource,
   ) {}
 
   async plan_preview(id_cultivo_base: number, id_parcela: number) {
@@ -392,43 +393,60 @@ export class PlanesAccionService {
     };
   }
 
-  async cancelar_pendientes_y_inactivar_planes(filtro: {
-    id_parcela?: number;
-    id_finca?: number;
-  }): Promise<void> {
-    const where = filtro.id_parcela
-      ? {
-          parcela: { id_parcela: filtro.id_parcela },
-          estado: EstadoPlanAccion.ACTIVO,
-        }
-      : {
-          parcela: { finca: { id_finca: filtro.id_finca } },
-          estado: EstadoPlanAccion.ACTIVO,
-        };
-    const planes = await this.plan_repo.find({
-      where,
-      relations: ['hitos', 'hitos.tareas', 'hitos.tareas.estado_tarea'],
-    });
-    if (planes.length === 0) {
-      return;
-    }
+async cancelar_pendientes_y_inactivar_planes(filtro: {
+  id_parcela?: number;
+  id_finca?: number;
+}): Promise<void> {
+  const where = filtro.id_parcela
+    ? {
+        parcela: { id_parcela: filtro.id_parcela },
+        estado: EstadoPlanAccion.ACTIVO,
+      }
+    : {
+        parcela: { finca: { id_finca: filtro.id_finca } },
+        estado: EstadoPlanAccion.ACTIVO,
+      };
+  const planes = await this.plan_repo.find({
+    where,
+    relations: ['hitos', 'hitos.tareas', 'hitos.tareas.estado_tarea'],
+  });
+  if (planes.length === 0) {
+    return;
+  }
 
-    const cancelada = await this.estados_tarea_service.estado_cancelada();
-    for (const plan of planes) {
-      for (const hito of plan.hitos ?? []) {
-        for (const tarea of hito.tareas ?? []) {
-          if (tarea.estado_tarea?.es_estado_finalizador) {
-            continue;
-          }
-          tarea.estado_tarea = cancelada;
-          await this.tarea_repo.save(tarea);
+  const cancelada = await this.estados_tarea_service.estado_cancelada();
+  const fecha_fin = today_iso();
+
+  // Recolectamos los ids en memoria (sin tocar la base todavía)
+  const ids_tareas_a_cancelar: number[] = [];
+  for (const plan of planes) {
+    for (const hito of plan.hitos ?? []) {
+      for (const tarea of hito.tareas ?? []) {
+        if (!tarea.estado_tarea?.es_estado_finalizador) {
+          ids_tareas_a_cancelar.push(tarea.id_tarea);
         }
       }
-      plan.estado = EstadoPlanAccion.INACTIVADO;
-      plan.fecha_fin_pa = today_iso();
-      await this.plan_repo.save(plan);
     }
   }
+  const ids_planes = planes.map((plan) => plan.id_plan_accion);
+
+  //NUEVO: todo dentro de una transacción, con updates masivos (no un save por fila)
+  await this.data_source.transaction(async (manager) => {
+    if (ids_tareas_a_cancelar.length > 0) {
+      await manager.update(
+        Tarea,
+        { id_tarea: In(ids_tareas_a_cancelar) },
+        { estado_tarea: cancelada },
+      );
+    }
+
+    await manager.update(
+      PlanAccion,
+      { id_plan_accion: In(ids_planes) },
+      { estado: EstadoPlanAccion.INACTIVADO, fecha_fin_pa: fecha_fin },
+    );
+  });
+}
 
   async eliminar_tarea(id_plan_accion: number, id_tarea: number) {
     await this.require_plan_activo(id_plan_accion);
