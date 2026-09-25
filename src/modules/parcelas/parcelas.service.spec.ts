@@ -8,6 +8,13 @@ function repository<T extends Record<string, jest.Mock>>(extra: T = {} as T) {
     find: jest.fn(),
     create: jest.fn((value) => value),
     save: jest.fn(async (value) => ({ ...value, id_parcela: value.id_parcela ?? 101 })),
+    createQueryBuilder: jest.fn(() => ({
+      innerJoin: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getRawOne: jest.fn().mockResolvedValue({ superficie_ocupada: '0' }),
+    })),
     ...extra,
   } as T;
 }
@@ -26,6 +33,7 @@ describe('ParcelasService', () => {
     sincronizar_actualizacion: jest.Mock;
     sincronizar_baja: jest.Mock;
   };
+  let planes_service: { cancelar_pendientes_y_inactivar_planes: jest.Mock };
 
   beforeEach(() => {
     parcela_repo = repository();
@@ -41,6 +49,11 @@ describe('ParcelasService', () => {
       sincronizar_baja: jest.fn().mockResolvedValue(undefined),
     };
     controlador_repo.find.mockResolvedValue([]);
+    planes_service = {
+      cancelar_pendientes_y_inactivar_planes: jest
+        .fn()
+        .mockResolvedValue(undefined),
+    };
     service = new ParcelasService(
       parcela_repo as never,
       controlador_repo as never,
@@ -50,11 +63,12 @@ describe('ParcelasService', () => {
       plan_accion_repo as never,
       tipos_sensor_service as never,
       simulador_sincronizacion_service as never,
+      planes_service as never,
     );
   });
 
   it('crea parcela y sensor con Sin_senal', async () => {
-    const finca = { id_finca: 12, fecha_baja_finca: null };
+    const finca = { id_finca: 12, fecha_baja_finca: null, superficie_finca: 40 };
     const tipo_sensor = {
       id_tipo_sensor: 15,
       codigo_tipo_sensor: 'PH',
@@ -138,6 +152,9 @@ describe('ParcelasService', () => {
     expect(controlador.fecha_baja).toEqual(expect.any(Date));
     expect(sensor.fecha_baja).toEqual(expect.any(Date));
     expect(result.message).toContain('Parcela dada de baja correctamente');
+    expect(
+      planes_service.cancelar_pendientes_y_inactivar_planes,
+    ).toHaveBeenCalledWith({ id_parcela: 101 });
   });
 
   it('genera el QR una sola vez y devuelve el existente en un segundo intento', async () => {

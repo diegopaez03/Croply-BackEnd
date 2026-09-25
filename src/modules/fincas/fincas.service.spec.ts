@@ -21,6 +21,7 @@ describe('FincasService', () => {
   let mailer: { send_invitation: jest.Mock };
   let log_service: { registrar: jest.Mock };
   let parcelas_service: { crear: jest.Mock };
+  let planes_service: { cancelar_pendientes_y_inactivar_planes: jest.Mock };
 
   beforeEach(() => {
     finca_repo = {
@@ -75,6 +76,11 @@ describe('FincasService', () => {
     mailer = { send_invitation: jest.fn().mockResolvedValue(undefined) };
     log_service = { registrar: jest.fn().mockResolvedValue(undefined) };
     parcelas_service = { crear: jest.fn().mockResolvedValue(undefined) };
+    planes_service = {
+      cancelar_pendientes_y_inactivar_planes: jest
+        .fn()
+        .mockResolvedValue(undefined),
+    };
 
     service = new FincasService(
       finca_repo as never,
@@ -86,7 +92,8 @@ describe('FincasService', () => {
       roles_service as never,
       mailer as never,
       log_service as never,
-      parcelas_service as never, 
+      parcelas_service as never,
+      planes_service as never,
     );
   });
 
@@ -151,6 +158,9 @@ describe('FincasService', () => {
     expect(result.message).toBe(
       'Finca dada de baja correctamente. Las parcelas y datos asociados fueron actualizados.',
     );
+    expect(
+      planes_service.cancelar_pendientes_y_inactivar_planes,
+    ).toHaveBeenCalledWith({ id_finca: 1 });
   });
 
   it('asigna un propietario creando una nueva membresía vigente', async () => {

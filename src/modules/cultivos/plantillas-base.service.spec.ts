@@ -75,6 +75,11 @@ function plantilla_detalle() {
             id_tarea_plantilla: 33,
             dia_relativo_tp: 0,
             id_tipo_tarea: 2,
+            tipo_tarea: {
+              id_tipo_tarea: 2,
+              nombre_tipo_tarea: 'Siembra',
+              es_tipo_agroquimico: false,
+            },
             descripcion_tp: 'Preparación de almácigo',
           },
         ],
@@ -93,6 +98,7 @@ describe('PlantillasBaseService', () => {
   let variedad_repo: Record<string, jest.Mock>;
   let data_source: { transaction: jest.Mock };
   let log_service: { registrar: jest.Mock };
+  let tipos_tarea_service: { find_activo_by_id: jest.Mock };
 
   beforeEach(() => {
     plantilla_repo = {
@@ -143,6 +149,13 @@ describe('PlantillasBaseService', () => {
       ),
     };
     log_service = { registrar: jest.fn().mockResolvedValue(undefined) };
+    tipos_tarea_service = {
+      find_activo_by_id: jest.fn(async (id_tipo_tarea: number) => ({
+        id_tipo_tarea,
+        nombre_tipo_tarea: 'Siembra',
+        es_tipo_agroquimico: false,
+      })),
+    };
 
     service = new PlantillasBaseService(
       plantilla_repo as never,
@@ -153,6 +166,7 @@ describe('PlantillasBaseService', () => {
       variedad_repo as never,
       data_source as never,
       log_service as never,
+      tipos_tarea_service as never,
     );
   });
 
@@ -284,5 +298,46 @@ describe('PlantillasBaseService', () => {
     expect(result.message).toBe('Plantilla actualizada correctamente');
     expect(pcv_repo.delete).toHaveBeenCalled();
     expect(hito_repo.delete).toHaveBeenCalled();
+  });
+
+  it('rechaza un tipo de tarea que no existe', async () => {
+    tipos_tarea_service.find_activo_by_id.mockResolvedValue(null);
+
+    await expect(service.crear(dto_crear, ACTOR)).rejects.toMatchObject({
+      errorCode: 'RESOURCE_NOT_FOUND',
+    });
+  });
+
+  it('exige producto y dosis si el tipo es agroquímico', async () => {
+    tipos_tarea_service.find_activo_by_id.mockResolvedValue({
+      id_tipo_tarea: 1,
+      nombre_tipo_tarea: 'Aplicación de agroquímico',
+      es_tipo_agroquimico: true,
+    });
+
+    await expect(
+      service.crear(
+        {
+          ...dto_crear,
+          hitos: [
+            {
+              nombre_hpb: 'Cuidado',
+              orden_hpb: 1,
+              tareas: [
+                {
+                  dia_relativo_tp: 1,
+                  id_tipo_tarea: 1,
+                  descripcion_tp: 'Aplicar',
+                },
+              ],
+            },
+          ],
+        },
+        ACTOR,
+      ),
+    ).rejects.toMatchObject({
+      errorCode: 'REQUIRED_FIELD',
+      field: 'nombre_producto',
+    });
   });
 });

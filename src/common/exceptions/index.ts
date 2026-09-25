@@ -14,4 +14,7 @@ export {
   taskNotEditable,
   invalidStatusTransition,
   tasksNotCompleted,
+  protectedCatalogItem,
+  parcelWithoutActionPlan,
+  noteAlreadyConverted,
 } from './domain.exception';

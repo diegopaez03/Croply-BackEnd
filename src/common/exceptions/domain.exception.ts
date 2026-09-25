@@ -29,7 +29,10 @@ export type DomainErrorCode =
   | 'FINCA_NOT_AVAILABLE'
   | 'TASK_NOT_EDITABLE'
   | 'INVALID_STATUS_TRANSITION'
-  | 'TASKS_NOT_COMPLETED';
+  | 'TASKS_NOT_COMPLETED'
+  | 'PROTECTED_CATALOG_ITEM'
+  | 'PARCEL_WITHOUT_ACTION_PLAN'
+  | 'NOTE_ALREADY_CONVERTED';
 
 export interface DomainExceptionBody {
   statusCode: number;
@@ -163,5 +166,35 @@ export function tasksNotCompleted(
     'TASKS_NOT_COMPLETED',
     message,
     HttpStatus.BAD_REQUEST,
+  );
+}
+
+export function protectedCatalogItem(
+  message = 'Este valor es necesario para el funcionamiento del sistema y no puede darse de baja.',
+): DomainException {
+  return new DomainException(
+    'PROTECTED_CATALOG_ITEM',
+    message,
+    HttpStatus.CONFLICT,
+  );
+}
+
+export function parcelWithoutActionPlan(
+  message = 'La parcela seleccionada no tiene un plan de acción generado. No es posible convertir la nota en tarea.',
+): DomainException {
+  return new DomainException(
+    'PARCEL_WITHOUT_ACTION_PLAN',
+    message,
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
+export function noteAlreadyConverted(
+  message = 'Esta nota ya fue convertida en una tarea.',
+): DomainException {
+  return new DomainException(
+    'NOTE_ALREADY_CONVERTED',
+    message,
+    HttpStatus.CONFLICT,
   );
 }

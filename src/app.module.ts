@@ -11,11 +11,14 @@ import { RolesModule } from './modules/roles';
 import { SolicitudesDigitalizacionModule } from './modules/solicitudes-digitalizacion';
 import { LogOperacionesModule } from './modules/log-operaciones';
 import { TiposSensorModule } from './modules/tipos-sensor';
+import { TiposTareaModule } from './modules/tipos-tarea';
+import { EstadosTareaModule } from './modules/estados-tarea';
 import { CultivosModule } from './modules/cultivos';
 import { UploadsModule } from './modules/uploads';
 import { ParcelasModule } from './modules/parcelas';
 import { PlanesAccionModule } from './modules/planes-accion';
 import { SimuladorIotModule } from './modules/simulador-iot';
+import { NotasCampoModule } from './modules/notas-campo';
 
 /**
  * Root application module.
@@ -49,11 +52,14 @@ import { SimuladorIotModule } from './modules/simulador-iot';
     AuthModule,
     SolicitudesDigitalizacionModule,
     TiposSensorModule,
+    TiposTareaModule,
+    EstadosTareaModule,
     CultivosModule,
     UploadsModule,
     ParcelasModule,
     PlanesAccionModule,
     SimuladorIotModule,
+    NotasCampoModule,
 
     // ── Seed (desarrollo: admins del equipo) ─────────────────────
     SeedModule,
