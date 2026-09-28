@@ -1,9 +1,10 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, IsNull, Not, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, IsNull, Not, Repository } from 'typeorm';
 import { EstadoPlanAccion } from '../../common/enums';
 import {
   DomainException,
+  agrochemicalTaskTypeUnavailable,
   invalidStatusTransition,
   requiredField,
   resourceNotFound,
@@ -323,6 +324,52 @@ export class PlanesAccionService {
     };
   }
 
+  /**
+   * Variante interna de alta de tarea: nace en el estado de cierre exitoso.
+   * No persiste AplicacionAgroquimico; ese registro lo crea el módulo de agroquímicos.
+   */
+  async crear_tarea_ya_finalizada(
+    params: {
+      id_hito: number;
+      nombre_producto_aa: string;
+      dosis_aa: string;
+      fecha_hora_aplicacion_aa: Date;
+      responsable: UsuarioFinca;
+    },
+    manager?: EntityManager,
+  ): Promise<Tarea> {
+    const { hito_repo, tarea_repo } = this.repos_de_tarea(manager);
+    const hito = await hito_repo.findOne({
+      where: { id_hito: params.id_hito },
+    });
+    if (!hito) {
+      throw resourceNotFound();
+    }
+
+    const tipo = await this.tipos_tarea_service.tipo_agroquimico_activo();
+    if (!tipo) {
+      throw agrochemicalTaskTypeUnavailable();
+    }
+    const estado = await this.estados_tarea_service.estado_completado();
+    const nombre = params.nombre_producto_aa.trim();
+
+    return tarea_repo.save(
+      tarea_repo.create({
+        nombre_tarea: nombre,
+        descripcion_tarea: nombre,
+        fecha_planificada_tarea: to_date_only(params.fecha_hora_aplicacion_aa),
+        fecha_ejecucion_tarea: params.fecha_hora_aplicacion_aa,
+        tipo_tarea: tipo,
+        estado_tarea: estado,
+        nombre_producto_aa: nombre,
+        dosis_aa: params.dosis_aa.trim(),
+        fecha_hora_aplicacion_aa: params.fecha_hora_aplicacion_aa,
+        responsable: params.responsable,
+        hito,
+      }),
+    );
+  }
+
   async editar_tarea(
     id_plan_accion: number,
     id_tarea: number,
@@ -542,6 +589,7 @@ async cancelar_pendientes_y_inactivar_planes(filtro: {
       relations: [
         'hito',
         'hito.plan_accion',
+        'hito.plan_accion.parcela',
         'tipo_tarea',
         'estado_tarea',
         'responsable',
@@ -648,10 +696,25 @@ async cancelar_pendientes_y_inactivar_planes(filtro: {
         nombre_producto_aa: tarea.nombre_producto_aa,
         dosis_aa: tarea.dosis_aa,
         fecha_hora_aplicacion_aa: tarea.fecha_hora_aplicacion_aa,
+        observaciones: null,
         responsable: tarea.responsable ?? null,
+        parcela: tarea.hito?.plan_accion?.parcela ?? null,
       }),
     );
     return { message, registro_agroquimico_generado: true };
+  }
+
+  private repos_de_tarea(manager?: EntityManager): {
+    hito_repo: Repository<Hito>;
+    tarea_repo: Repository<Tarea>;
+  } {
+    if (!manager) {
+      return { hito_repo: this.hito_repo, tarea_repo: this.tarea_repo };
+    }
+    return {
+      hito_repo: manager.getRepository(Hito),
+      tarea_repo: manager.getRepository(Tarea),
+    };
   }
 
   private async resolve_responsable(

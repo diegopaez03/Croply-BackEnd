@@ -127,6 +127,16 @@ export class TiposTareaService {
     });
   }
 
+  async tipo_agroquimico_activo(): Promise<TipoTarea | null> {
+    return this.tipo_tarea_repo.findOne({
+      where: {
+        es_tipo_agroquimico: true,
+        fecha_baja_tipo_tarea: IsNull(),
+      },
+      order: { id_tipo_tarea: 'ASC' },
+    });
+  }
+
   async ensure_seed(): Promise<void> {
     const existente = await this.tipo_tarea_repo.findOne({
       where: {

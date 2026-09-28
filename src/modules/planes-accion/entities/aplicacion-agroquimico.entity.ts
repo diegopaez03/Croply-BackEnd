@@ -1,12 +1,15 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { UsuarioFinca } from '../../fincas/entities/usuario-finca.entity';
+import { Parcela } from '../../parcelas/entities/parcela.entity';
 import { Tarea } from './tarea.entity';
 
 @Entity('aplicaciones_agroquimico')
@@ -30,11 +33,24 @@ export class AplicacionAgroquimico {
   })
   fecha_hora_aplicacion_aa: Date | null;
 
-  @OneToOne(() => Tarea, { onDelete: 'CASCADE' })
+  @Column({ name: 'observaciones', type: 'text', nullable: true })
+  observaciones: string | null;
+
+  @CreateDateColumn({ name: 'fecha_creacion', type: 'timestamptz' })
+  fecha_creacion: Date;
+
+  @UpdateDateColumn({ name: 'fecha_modificacion', type: 'timestamptz' })
+  fecha_modificacion: Date;
+
+  @OneToOne(() => Tarea, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_tarea' })
-  tarea: Tarea;
+  tarea: Tarea | null;
 
   @ManyToOne(() => UsuarioFinca, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'id_responsable' })
   responsable: UsuarioFinca | null;
+
+  @ManyToOne(() => Parcela, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'id_parcela' })
+  parcela: Parcela | null;
 }

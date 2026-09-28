@@ -19,7 +19,7 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 
 ### Estado actual
 
-**Épica 1 — Gestionar el Acceso**, **Épica 2 — Administrar Usuarios y Roles**, **Épica 4 — Planificar Cultivos** (HU-BC-01 a HU-BC-06), **Épica 3** (fincas, parcelas e IoT de etapa 1 más detalle/resumen), **Épica 5 — Gestionar Tareas de Campo** (HU-TC-01 a HU-TC-10) y **Épica 7** (tipos de sensor, lecturas y clima) implementadas.
+**Épica 1 — Gestionar el Acceso**, **Épica 2 — Administrar Usuarios y Roles**, **Épica 4 — Planificar Cultivos** (HU-BC-01 a HU-BC-06), **Épica 3** (fincas, parcelas e IoT de etapa 1 más detalle/resumen), **Épica 5 — Gestionar Tareas de Campo** (HU-TC-01 a HU-TC-10), **Épica 6 — Registrar Agroquímicos** (HU-AQ-01 a HU-AQ-07) y **Épica 7** (tipos de sensor, lecturas y clima) implementadas.
 
 | Módulo | Contenido |
 | --- | --- |
@@ -37,12 +37,13 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 | `uploads` | `POST /uploads/imagenes` — subida mediada a Cloudinary (JWT) |
 | `tipos-sensor` | ABM de `TipoSensor` (Épica 7, HU-IoT-01) |
 | `parcelas` | ABM de `Parcela`, `ControladorSensor`, `Sensor`, `CodigoQR` (Épica 3) |
-| `planes-accion` | `PlanAccion`, `Hito`, `Tarea` (FK a `TipoTarea` y `EstadoTarea`), `AplicacionAgroquimico` mínimo (Épica 5; shape completo en Épica 6) |
+| `planes-accion` | `PlanAccion`, `Hito`, `Tarea` (FK a `TipoTarea` y `EstadoTarea`). Alta interna de tarea ya finalizada para agroquímicos |
+| `agroquimicos` | ABM público de `AplicacionAgroquimico` bajo `/fincas/:id_finca/agroquimicos` (Épica 6), incluida la exportación PDF |
 | `database/seed` | Admins Croply + fincas demo + biblioteca demo (Tomate, Ajo, plantilla general de Tomate) + roles + catálogo de permisos |
 
 Placeholder (sin lógica de negocio aún): `reportes`.
 
-**HU-BC-06** (cronograma y ABM de tareas del plan de acción real) quedó reescrita por la Épica 5: `estado` e `id_tipo_tarea` son FKs a catálogos reales. La lógica de negocio usa flags (`es_estado_finalizador`, `cuenta_para_cierre_exitoso`, `es_tipo_agroquimico`), nunca el nombre ni un id fijo. `AplicacionAgroquimico` se persiste al completar una tarea agroquímica; el ABM público de ese registro sigue en Épica 6.
+**HU-BC-06** (cronograma y ABM de tareas del plan de acción real) quedó reescrita por la Épica 5: `estado` e `id_tipo_tarea` son FKs a catálogos reales. La lógica de negocio usa flags (`es_estado_finalizador`, `cuenta_para_cierre_exitoso`, `es_tipo_agroquimico`), nunca el nombre ni un id fijo. Completar una tarea agroquímica sigue persistiendo `AplicacionAgroquimico`. El ABM público (alta con tarea que nace completada, edición, listado y PDF) es la Épica 6.
 
 Contratos: [`docs/epicas/`](docs/epicas/).
 
@@ -161,6 +162,7 @@ src/
     ├── tipos-sensor/       # ABM de TipoSensor (Épica 7, HU-IoT-01)
     ├── parcelas/           # Parcela, ControladorSensor, Sensor, CodigoQR (Épica 3)
     ├── planes-accion/      # PlanAccion, Hito, Tarea (Épica 3/4)
+    ├── agroquimicos/       # AplicacionAgroquimico público (Épica 6)
     └── reportes/           # placeholder
 ```
 
@@ -212,6 +214,7 @@ Para PRs a `main`, la revisión prioritaria es del Arquitecto.
 | TiposSensor | `modules/tipos-sensor` |
 | Parcelas | `modules/parcelas` |
 | PlanesAccion | `modules/planes-accion` |
+| Agroquimicos | `modules/agroquimicos` |
 | Reportes | `modules/reportes` |
 | SolicitudesDigitalizacion | `modules/solicitudes-digitalizacion` |
 
@@ -292,7 +295,6 @@ Railway (deploy futuro), Open-Meteo (clima), Croply IoT Simulator. No bloquean e
 Respecto del diagrama completo y épicas futuras:
 
 - CRUD de reportes
-- ABM público de `AplicacionAgroquimico` (Épica 6; HU-TC-03 solo persiste el registro mínimo al completar)
 - RBAC middleware por permiso individual (los permisos se administran; la auth HTTP sigue por rol)
 - Notificaciones push
 - Refresh token como endpoint
@@ -367,7 +369,19 @@ resto del flujo de baja.
 3. Integración con la API de clima (HU-IoT-03).
 4. HU IoT correspondiente / completar funcionalidades dependientes de IoT.
 
-**Épica 5 — implementada** (HU-TC-01 a HU-TC-10): catálogos reales, cronograma con `atrasada` y filtros, notas de campo y cascada de baja. El shape completo de `AplicacionAgroquimico` sigue en Épica 6.
+**Épica 5 — implementada** (HU-TC-01 a HU-TC-10): catálogos reales, cronograma con `atrasada` y filtros, notas de campo y cascada de baja. Al completar una tarea agroquímica se persiste el registro mínimo; el ABM público es la Épica 6.
+
+### Épica 6 — Registrar agroquímicos
+
+**Alcance implementado:** `src/modules/agroquimicos/`. Alta, edición, listado filtrado y exportación PDF bajo `/fincas/:id_finca/agroquimicos`. Guard `JwtAuthGuard`, `AdminFincaGuard`, `PermisoGuard` + `REGISTRO_AGROQUIMICOS`.
+
+**Tarea automática:** `PlanesAccionService.crear_tarea_ya_finalizada` (no expuesto por HTTP) crea la tarea directo en el estado con `es_estado_finalizador` y `cuenta_para_cierre_exitoso`. No reutiliza `POST .../tareas`, que fuerza el estado inicial. El tipo se resuelve por `es_tipo_agroquimico` activo; si no hay, `AGROCHEMICAL_TASK_TYPE_UNAVAILABLE`.
+
+**Extensión de `AplicacionAgroquimico`:** `observaciones`, `fecha_creacion`, `fecha_modificacion` y FK a `Parcela`. La PK de base sigue siendo `id_aplicacion_agroquimico`; el JSON usa `id_aplicacion`. La relación con `Tarea` es nullable (`0..1`) y mantiene `ON DELETE CASCADE`. `LINKED_TASK_DELETED` cubre una tarea ausente; hoy una tarea finalizadora no se puede borrar.
+
+**Auditoría:** alta y edición escriben `LogOperaciones` con el usuario autenticado. El responsable del modal es `UsuarioFinca`, no quien registró.
+
+**PDF:** lo arma el backend con `pdfkit` (`GET .../agroquimicos/exportar`). Sin filas responde `EMPTY_EXPORT_RESULT` y no genera archivo.
 
 ### HU-IoT-02 — Visualizar datos de sensores en tiempo real (Épica 7)
 
@@ -520,7 +534,7 @@ No hay push directo a `main` ni `develop`.
 
 Estándar: **TDD** (red → green) en seams acordados. Skill: [`.agent/skills/Test-Driven Development/`](.agent/skills/Test-Driven%20Development/).
 
-Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`, `CultivosBaseService`, `PlantillasBaseService`, `PlanesAccionService`, `TiposTareaService`, `EstadosTareaService`, `NotasCampoService`, `ParcelasService`, `FincasService`, `MailerService`, `UploadsService`.
+Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`, `CultivosBaseService`, `PlantillasBaseService`, `PlanesAccionService`, `TiposTareaService`, `EstadosTareaService`, `NotasCampoService`, `ParcelasService`, `FincasService`, `MailerService`, `UploadsService`, `AgroquimicosService`.
 
 Antes de pasar a revisión:
 

@@ -121,7 +121,7 @@ describe('EstadosTareaService', () => {
     });
   });
 
-  it('resuelve Planificado y Cancelada por flags, no por nombre', async () => {
+  it('resuelve Planificado, Completado y Cancelada por flags, no por nombre', async () => {
     estado_tarea_repo.findOne.mockImplementation(async ({ where }) => {
       if (
         where.es_estado_finalizador === false &&
@@ -133,6 +133,18 @@ describe('EstadosTareaService', () => {
           protegido: true,
           es_estado_finalizador: false,
           cuenta_para_cierre_exitoso: false,
+        };
+      }
+      if (
+        where.es_estado_finalizador === true &&
+        where.cuenta_para_cierre_exitoso === true
+      ) {
+        return {
+          id_estado_tarea: 2,
+          nombre_estado_tarea: 'Hecha',
+          protegido: true,
+          es_estado_finalizador: true,
+          cuenta_para_cierre_exitoso: true,
         };
       }
       if (
@@ -152,6 +164,9 @@ describe('EstadosTareaService', () => {
 
     await expect(service.estado_inicial()).resolves.toMatchObject({
       id_estado_tarea: 1,
+    });
+    await expect(service.estado_completado()).resolves.toMatchObject({
+      id_estado_tarea: 2,
     });
     await expect(service.estado_cancelada()).resolves.toMatchObject({
       id_estado_tarea: 3,

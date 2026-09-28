@@ -17,4 +17,8 @@ export {
   protectedCatalogItem,
   parcelWithoutActionPlan,
   noteAlreadyConverted,
+  agrochemicalTaskTypeUnavailable,
+  linkedTaskDeleted,
+  invalidDateRange,
+  emptyExportResult,
 } from './domain.exception';
