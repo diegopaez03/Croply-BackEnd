@@ -19,7 +19,7 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 
 ### Estado actual
 
-**Épica 1 — Gestionar el Acceso**, **Épica 2 — Administrar Usuarios y Roles**, **Épica 4 — Planificar Cultivos** (HU-BC-01 a HU-BC-06), **Épica 3** (fincas, parcelas e IoT de etapa 1 más detalle/resumen), **Épica 5 — Gestionar Tareas de Campo** (HU-TC-01 a HU-TC-10) y **Épica 7** (tipos de sensor, lecturas y clima) implementadas.
+**Épica 1 — Gestionar el Acceso**, **Épica 2 — Administrar Usuarios y Roles**, **Épica 4 — Planificar Cultivos** (HU-BC-01 a HU-BC-06), **Épica 3** (fincas, parcelas e IoT de etapa 1 más detalle/resumen), **Épica 5 — Gestionar Tareas de Campo** (HU-TC-01 a HU-TC-10), **Épica 7** (tipos de sensor, lecturas y clima) y **Épica 8 — Controlar Costos de Producción** (HU-GC-01 a HU-GC-07) implementadas.
 
 | Módulo | Contenido |
 | --- | --- |
@@ -34,6 +34,7 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 | `tipos-tarea` | ABM de `TipoTarea` (Épica 5, HU-TC-01). Semilla: solo `Aplicación de agroquímico` |
 | `estados-tarea` | ABM de `EstadoTarea` (Épica 5, HU-TC-02). Semilla: `Planificado`, `Completado`, `Cancelada` |
 | `notas-campo` | Captura, listado y conversión de `NotaCampo` en tarea (HU-TC-05 a HU-TC-07) |
+| `gastos` | ABM de `GastoProduccion`, listado/filtros, evolución mensual y export PDF (Épica 8). Permiso `Costos` para ABM/listado; `Reportes` solo para exportar. |
 | `uploads` | `POST /uploads/imagenes` — subida mediada a Cloudinary (JWT) |
 | `tipos-sensor` | ABM de `TipoSensor` (Épica 7, HU-IoT-01) |
 | `parcelas` | ABM de `Parcela`, `ControladorSensor`, `Sensor`, `CodigoQR` (Épica 3) |
@@ -158,6 +159,7 @@ src/
     ├── tipos-tarea/        # ABM de TipoTarea (Épica 5)
     ├── estados-tarea/      # ABM de EstadoTarea (Épica 5)
     ├── notas-campo/        # NotaCampo (Épica 5)
+    ├── gastos/             # GastoProduccion (Épica 8)
     ├── tipos-sensor/       # ABM de TipoSensor (Épica 7, HU-IoT-01)
     ├── parcelas/           # Parcela, ControladorSensor, Sensor, CodigoQR (Épica 3)
     ├── planes-accion/      # PlanAccion, Hito, Tarea (Épica 3/4)
@@ -208,6 +210,7 @@ Para PRs a `main`, la revisión prioritaria es del Arquitecto.
 | TiposTarea | `modules/tipos-tarea` |
 | EstadosTarea | `modules/estados-tarea` |
 | NotasCampo | `modules/notas-campo` |
+| Gastos | `modules/gastos` |
 | Uploads | `modules/uploads` |
 | TiposSensor | `modules/tipos-sensor` |
 | Parcelas | `modules/parcelas` |
@@ -291,7 +294,7 @@ Railway (deploy futuro), Open-Meteo (clima), Croply IoT Simulator. No bloquean e
 
 Respecto del diagrama completo y épicas futuras:
 
-- CRUD de reportes
+- CRUD genérico del módulo `reportes` (el PDF de costos de Épica 8 vive en `gastos`, no ahí)
 - ABM público de `AplicacionAgroquimico` (Épica 6; HU-TC-03 solo persiste el registro mínimo al completar)
 - RBAC middleware por permiso individual (los permisos se administran; la auth HTTP sigue por rol)
 - Notificaciones push
@@ -302,6 +305,15 @@ Respecto del diagrama completo y épicas futuras:
 
 
 ## 8. Épicas en curso — notas de implementación
+
+### Épica 8 — Controlar Costos de Producción
+
+**Alcance implementado:** ABM de `GastoProduccion` en `src/modules/gastos/`
+(`POST`/`PUT`/`DELETE` + listado paginado + evolución mensual + export PDF).
+Permiso de finca `Costos` para HU-GC-01 a HU-GC-06; `Reportes` solo para
+`POST .../gastos/exportar`. Baja lógica. `nombre_responsable` persistido.
+La evolución mensual responde un **array plano** `[{ mes, monto }]` para
+integrar con el frontend actual (el contrato muestra `{ meses: [...] }`).
 
 ### HU-IoT-01 — ABM de tipos de sensor (Épica 7)
 
@@ -520,7 +532,7 @@ No hay push directo a `main` ni `develop`.
 
 Estándar: **TDD** (red → green) en seams acordados. Skill: [`.agent/skills/Test-Driven Development/`](.agent/skills/Test-Driven%20Development/).
 
-Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`, `CultivosBaseService`, `PlantillasBaseService`, `PlanesAccionService`, `TiposTareaService`, `EstadosTareaService`, `NotasCampoService`, `ParcelasService`, `FincasService`, `MailerService`, `UploadsService`.
+Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`, `CultivosBaseService`, `PlantillasBaseService`, `PlanesAccionService`, `TiposTareaService`, `EstadosTareaService`, `NotasCampoService`, `GastosService`, `ParcelasService`, `FincasService`, `MailerService`, `UploadsService`.
 
 Antes de pasar a revisión:
 

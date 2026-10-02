@@ -32,7 +32,9 @@ export type DomainErrorCode =
   | 'TASKS_NOT_COMPLETED'
   | 'PROTECTED_CATALOG_ITEM'
   | 'PARCEL_WITHOUT_ACTION_PLAN'
-  | 'NOTE_ALREADY_CONVERTED';
+  | 'NOTE_ALREADY_CONVERTED'
+  | 'INVALID_DATE_RANGE'
+  | 'EMPTY_EXPORT_RESULT';
 
 export interface DomainExceptionBody {
   statusCode: number;
@@ -196,5 +198,25 @@ export function noteAlreadyConverted(
     'NOTE_ALREADY_CONVERTED',
     message,
     HttpStatus.CONFLICT,
+  );
+}
+
+export function invalidDateRange(
+  message = 'La fecha de fin debe ser igual o posterior a la fecha de inicio.',
+): DomainException {
+  return new DomainException(
+    'INVALID_DATE_RANGE',
+    message,
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
+export function emptyExportResult(
+  message = 'No hay gastos para exportar con los filtros seleccionados. Ajustá la configuración del reporte.',
+): DomainException {
+  return new DomainException(
+    'EMPTY_EXPORT_RESULT',
+    message,
+    HttpStatus.BAD_REQUEST,
   );
 }

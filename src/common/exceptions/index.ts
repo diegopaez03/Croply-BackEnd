@@ -17,4 +17,6 @@ export {
   protectedCatalogItem,
   parcelWithoutActionPlan,
   noteAlreadyConverted,
+  invalidDateRange,
+  emptyExportResult,
 } from './domain.exception';

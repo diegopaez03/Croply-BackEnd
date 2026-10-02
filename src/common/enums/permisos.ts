@@ -11,6 +11,7 @@ export const PERMISO_FINCA = {
   GESTION_TRABAJADORES: 'Gestión de trabajadores',
   TAREAS_CAMPO: 'Tareas de campo',
   NOTAS_CAMPO: 'Notas de campo',
+  COSTOS: 'Costos',
 } as const;
 
 export type NombrePermisoSistema =

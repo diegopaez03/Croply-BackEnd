@@ -206,6 +206,7 @@ Acordadas al implementar Épicas 1 y 2:
 11. **Épica 5:** `TipoTarea` y `EstadoTarea` son entidades. Flags `protegido`, `es_tipo_agroquimico`, `es_estado_finalizador` y `cuenta_para_cierre_exitoso` no se editan desde la UI. `NotaCampo` resuelve la finca vía `UsuarioFinca`. `AplicacionAgroquimico` mínimo (OneToOne con `Tarea`) al completar; el ABM público queda en Épica 6.
 12. **`en_uso`** de cultivo/variedad se calcula por filas activas de `PlantillaCultivoVariedad`. Cuando exista `Parcela` (Épica 3) hay que sumar asociaciones activas de parcela.
 13. **Plan de acción real** — `PlanAccion` / `Hito` / `Tarea` están implementados. Los cambios de plantilla no se retroactivan a planes ya copiados. `TASK_NOT_EDITABLE` aplica si el estado actual tiene `es_estado_finalizador`.
+14. **Épica 8:** `GastoProduccion` vive en `src/modules/gastos`. Baja lógica (`fecha_baja_gp`). Extensión `fecha_modificacion_gp`. `nombre_responsable` se persiste (no se recalcula). Responsable = `UsuarioFinca`. El gráfico de evolución no marca barras: el frontend compara el rango. El PDF de export inserta `imagen_grafico` enviada por el cliente.
 
 ### Regla de login vs estados (aclaración al contrato)
 
@@ -236,6 +237,7 @@ Ver nota actualizada en el contrato de Épica 1.
 | CultivoBase, Variedad | `src/modules/cultivos` (`CultivosBaseService`) |
 | Subida de imágenes | `src/modules/uploads` + `src/common/cloudinary` |
 | PlantillaBase, PCV, HitoPlantilla, TareaPlantilla | `src/modules/cultivos` (`PlantillasBaseService`) |
+| GastoProduccion | `src/modules/gastos` |
 
 ---
 
