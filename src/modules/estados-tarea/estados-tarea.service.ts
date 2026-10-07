@@ -169,6 +169,13 @@ export class EstadosTareaService {
     });
   }
 
+  async estado_completado(): Promise<EstadoTarea> {
+    return this.require_por_flags({
+      es_estado_finalizador: true,
+      cuenta_para_cierre_exitoso: true,
+    });
+  }
+
   async ensure_seed(): Promise<void> {
     for (const fila of ESTADOS_SEMILLA) {
       const existente = await this.estado_tarea_repo.findOne({

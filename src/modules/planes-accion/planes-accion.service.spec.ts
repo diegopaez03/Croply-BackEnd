@@ -1,5 +1,8 @@
 import { HttpStatus } from '@nestjs/common';
+import { In } from 'typeorm';
 import { EstadoPlanAccion } from '../../common/enums';
+import { PlanAccion } from './entities/plan-accion.entity';
+import { Tarea } from './entities/tarea.entity';
 import { PlanesAccionService } from './planes-accion.service';
 
 const ESTADO_PLANIFICADO = {
@@ -57,10 +60,14 @@ describe('PlanesAccionService', () => {
   let agro_repo: ReturnType<typeof repo>;
   let cultivos_service: { detalle: jest.Mock };
   let plantillas_service: { detalle: jest.Mock };
-  let tipos_tarea_service: { find_activo_by_id: jest.Mock };
+  let tipos_tarea_service: {
+    find_activo_by_id: jest.Mock;
+    tipo_agroquimico_activo: jest.Mock;
+  };
   let estados_tarea_service: {
     estado_inicial: jest.Mock;
     estado_cancelada: jest.Mock;
+    estado_completado: jest.Mock;
     find_activo_by_id: jest.Mock;
   };
   let data_source: { transaction: jest.Mock };
@@ -83,10 +90,12 @@ describe('PlanesAccionService', () => {
         if (id_tipo_tarea === 2) return TIPO_SIEMBRA;
         return null;
       }),
+      tipo_agroquimico_activo: jest.fn().mockResolvedValue(TIPO_AGRO),
     };
     estados_tarea_service = {
       estado_inicial: jest.fn().mockResolvedValue(ESTADO_PLANIFICADO),
       estado_cancelada: jest.fn().mockResolvedValue(ESTADO_CANCELADA),
+      estado_completado: jest.fn().mockResolvedValue(ESTADO_COMPLETADO),
       find_activo_by_id: jest.fn(async (id_estado_tarea: number) => {
         if (id_estado_tarea === 1) return ESTADO_PLANIFICADO;
         if (id_estado_tarea === 2) return ESTADO_COMPLETADO;
@@ -485,6 +494,7 @@ describe('PlanesAccionService', () => {
       estado: EstadoPlanAccion.ACTIVO,
       parcela: { finca: { id_finca: 12 } },
     });
+    const parcela = { id_parcela: 101, nombre_parcela: 'Parcela Norte' };
     const tarea = {
       id_tarea: 501,
       estado_tarea: ESTADO_PLANIFICADO,
@@ -495,6 +505,7 @@ describe('PlanesAccionService', () => {
       dosis_aa: '2 L/ha',
       fecha_hora_aplicacion_aa: new Date('2026-09-20T09:00:00Z'),
       responsable: null,
+      hito: { plan_accion: { parcela } },
     };
     tarea_repo.findOne.mockResolvedValue(tarea);
     tarea_repo.find.mockResolvedValue([{ estado_tarea: ESTADO_COMPLETADO }]);
@@ -503,7 +514,53 @@ describe('PlanesAccionService', () => {
     const result = await service.cambiar_estado_tarea(77, 501, 2);
 
     expect(result.registro_agroquimico_generado).toBe(true);
+    expect(agro_repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nombre_producto_aa: 'Fungicida XYZ',
+        dosis_aa: '2 L/ha',
+        observaciones: null,
+        parcela,
+      }),
+    );
     expect(agro_repo.save).toHaveBeenCalled();
+  });
+
+  it('crea la tarea de agroquímico ya en estado de cierre exitoso y no genera la aplicación', async () => {
+    hito_repo.findOne.mockResolvedValue({ id_hito: 201, nombre_hito: 'Siembra' });
+    tarea_repo.save.mockImplementation((value) =>
+      Promise.resolve({
+        ...value,
+        id_tarea: 601,
+      }),
+    );
+    const responsable = { id_usuario_finca: 34 };
+    const fecha = new Date('2026-09-22T09:00:00.000Z');
+
+    const tarea = await service.crear_tarea_ya_finalizada({
+      id_hito: 201,
+      nombre_producto_aa: 'Fungicida XYZ',
+      dosis_aa: '2 L/ha',
+      fecha_hora_aplicacion_aa: fecha,
+      responsable: responsable as never,
+    });
+
+    expect(tarea.id_tarea).toBe(601);
+    expect(tarea.estado_tarea).toEqual(ESTADO_COMPLETADO);
+    expect(tarea_repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nombre_tarea: 'Fungicida XYZ',
+        descripcion_tarea: 'Fungicida XYZ',
+        fecha_planificada_tarea: '2026-09-22',
+        fecha_ejecucion_tarea: fecha,
+        nombre_producto_aa: 'Fungicida XYZ',
+        dosis_aa: '2 L/ha',
+        tipo_tarea: TIPO_AGRO,
+        estado_tarea: ESTADO_COMPLETADO,
+        responsable,
+      }),
+    );
+    expect(estados_tarea_service.estado_inicial).not.toHaveBeenCalled();
+    expect(agro_repo.save).not.toHaveBeenCalled();
   });
 
   it('no duplica el registro de agroquímico si ya existía', async () => {
@@ -622,12 +679,23 @@ describe('PlanesAccionService', () => {
       hitos: [{ tareas: [pendiente, hecha] }],
     };
     plan_repo.find.mockResolvedValue([plan]);
+    const update = jest.fn().mockResolvedValue(undefined);
+    data_source.transaction.mockImplementation(
+      (cb: (manager: { update: jest.Mock }) => unknown) => cb({ update }),
+    );
 
     await service.cancelar_pendientes_y_inactivar_planes({ id_parcela: 101 });
 
-    expect(pendiente.estado_tarea).toBe(ESTADO_CANCELADA);
+    expect(update).toHaveBeenCalledWith(
+      Tarea,
+      { id_tarea: In([501]) },
+      { estado_tarea: ESTADO_CANCELADA },
+    );
+    expect(update).toHaveBeenCalledWith(
+      PlanAccion,
+      { id_plan_accion: In([77]) },
+      expect.objectContaining({ estado: EstadoPlanAccion.INACTIVADO }),
+    );
     expect(hecha.estado_tarea).toBe(ESTADO_COMPLETADO);
-    expect(plan.estado).toBe(EstadoPlanAccion.INACTIVADO);
-    expect(plan.fecha_fin_pa).toEqual(expect.any(String));
   });
 });

@@ -19,6 +19,7 @@ import { ParcelasModule } from './modules/parcelas';
 import { PlanesAccionModule } from './modules/planes-accion';
 import { SimuladorIotModule } from './modules/simulador-iot';
 import { NotasCampoModule } from './modules/notas-campo';
+import { AgroquimicosModule } from './modules/agroquimicos';
 
 /**
  * Root application module.
@@ -60,6 +61,7 @@ import { NotasCampoModule } from './modules/notas-campo';
     PlanesAccionModule,
     SimuladorIotModule,
     NotasCampoModule,
+    AgroquimicosModule,
 
     // ── Seed (desarrollo: admins del equipo) ─────────────────────
     SeedModule,
