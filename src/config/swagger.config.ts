@@ -21,6 +21,7 @@ export const SWAGGER_TAGS = {
   ESTADOS_TAREA: 'EstadosTarea',
   NOTAS_CAMPO: 'NotasCampo',
   GASTOS: 'Gastos',
+  AGROQUIMICOS: 'Agroquimicos',
   SOLICITUDES_DIGITALIZACION: 'SolicitudesDigitalizacion',
 } as const;
 
@@ -97,6 +98,7 @@ La mayoría de los endpoints requieren un JWT Bearer Token.
     .addTag(SWAGGER_TAGS.ESTADOS_TAREA, 'Catálogo de estados de tarea')
     .addTag(SWAGGER_TAGS.NOTAS_CAMPO, 'Notas de campo')
     .addTag(SWAGGER_TAGS.GASTOS, 'Gastos de producción y costos')
+    .addTag(SWAGGER_TAGS.AGROQUIMICOS, 'Registro de aplicaciones de agroquímicos')
     .addTag(SWAGGER_TAGS.REPORTS, 'Reportes e informes')
     .addTag(
       SWAGGER_TAGS.SOLICITUDES_DIGITALIZACION,

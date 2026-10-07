@@ -33,6 +33,8 @@ export type DomainErrorCode =
   | 'PROTECTED_CATALOG_ITEM'
   | 'PARCEL_WITHOUT_ACTION_PLAN'
   | 'NOTE_ALREADY_CONVERTED'
+  | 'AGROCHEMICAL_TASK_TYPE_UNAVAILABLE'
+  | 'LINKED_TASK_DELETED'
   | 'INVALID_DATE_RANGE'
   | 'EMPTY_EXPORT_RESULT';
 
@@ -201,6 +203,26 @@ export function noteAlreadyConverted(
   );
 }
 
+export function agrochemicalTaskTypeUnavailable(
+  message = 'No es posible registrar la aplicación. El tipo de tarea requerido no está disponible.',
+): DomainException {
+  return new DomainException(
+    'AGROCHEMICAL_TASK_TYPE_UNAVAILABLE',
+    message,
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
+export function linkedTaskDeleted(
+  message = 'No es posible editar esta aplicación. La tarea asociada fue eliminada.',
+): DomainException {
+  return new DomainException(
+    'LINKED_TASK_DELETED',
+    message,
+    HttpStatus.CONFLICT,
+  );
+}
+
 export function invalidDateRange(
   message = 'La fecha de fin debe ser igual o posterior a la fecha de inicio.',
 ): DomainException {
@@ -212,7 +234,7 @@ export function invalidDateRange(
 }
 
 export function emptyExportResult(
-  message = 'No hay gastos para exportar con los filtros seleccionados. Ajustá la configuración del reporte.',
+  message = 'No hay datos para exportar con los filtros seleccionados. Ajustá la configuración del reporte.',
 ): DomainException {
   return new DomainException(
     'EMPTY_EXPORT_RESULT',

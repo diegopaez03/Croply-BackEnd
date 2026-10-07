@@ -203,8 +203,8 @@ Acordadas al implementar Épicas 1 y 2:
 8. **Mail según entorno** — `MailerService`: log en consola fuera de production; Resend en production.
 9. **AuthZ HTTP por rol** (Admin Croply / Admin Finca); permisos como dato de ABM, no middleware granular.
 10. **Épica 4:** `CultivoBase`, `Variedad`, `PlantillaBase`, `PlantillaCultivoVariedad`, `HitoPlantilla`, `TareaPlantilla`. Extensiones al UML: `forma_siembra` (enum) en cultivo base; `observaciones` (string nullable) en variedad; `imagen_url` (varchar 500 nullable) en cultivo base y variedad.
-11. **Épica 5:** `TipoTarea` y `EstadoTarea` son entidades. Flags `protegido`, `es_tipo_agroquimico`, `es_estado_finalizador` y `cuenta_para_cierre_exitoso` no se editan desde la UI. `NotaCampo` resuelve la finca vía `UsuarioFinca`. `AplicacionAgroquimico` mínimo (OneToOne con `Tarea`) al completar; el ABM público queda en Épica 6.
-12. **`en_uso`** de cultivo/variedad se calcula por filas activas de `PlantillaCultivoVariedad`. Cuando exista `Parcela` (Épica 3) hay que sumar asociaciones activas de parcela.
+11. **Épica 5:** `TipoTarea` y `EstadoTarea` son entidades. Flags `protegido`, `es_tipo_agroquimico`, `es_estado_finalizador` y `cuenta_para_cierre_exitoso` no se editan desde la UI. `NotaCampo` resuelve la finca vía `UsuarioFinca`. Al completar una tarea agroquímica se persiste un `AplicacionAgroquimico` mínimo.
+12. **Épica 6:** ABM público de `AplicacionAgroquimico`. Extensiones al UML: `observaciones`, `fecha_creacion`, `fecha_modificacion` y FK a `Parcela`. El JSON expone `id_aplicacion` (la columna sigue siendo `id_aplicacion_agroquimico`). La tarea automática nace en el estado de cierre exitoso.
 13. **Plan de acción real** — `PlanAccion` / `Hito` / `Tarea` están implementados. Los cambios de plantilla no se retroactivan a planes ya copiados. `TASK_NOT_EDITABLE` aplica si el estado actual tiene `es_estado_finalizador`.
 14. **Épica 8:** `GastoProduccion` vive en `src/modules/gastos`. Baja lógica (`fecha_baja_gp`). Extensión `fecha_modificacion_gp`. `nombre_responsable` se persiste (no se recalcula). Responsable = `UsuarioFinca`. El gráfico de evolución no marca barras: el frontend compara el rango. El PDF de export inserta `imagen_grafico` enviada por el cliente.
 
@@ -274,7 +274,7 @@ Prioridad al consultar (HU-BC-03): específica de la variedad, si no la general 
 
 `HitoPlantilla` (`nombre_hpb`, `orden_hpb`) → `TareaPlantilla` (`dia_relativo_tp`, `tipo_tarea`, `descripcion_tp`, `nombre_producto`, `dosis_aa`). Guardar sin ningún hito con tareas → ERR-06 `EMPTY_SCHEDULE`.
 
-`nombre_producto` / `dosis_aa` siguen embebidos en la plantilla. Al completar una tarea real de tipo agroquímico se persiste un `AplicacionAgroquimico` mínimo (producto, dosis, fecha/hora, responsable, OneToOne con `Tarea`). El ABM público de ese registro es Épica 6.
+`nombre_producto` / `dosis_aa` siguen embebidos en la plantilla. Al completar una tarea real de tipo agroquímico se persiste un `AplicacionAgroquimico` (producto, dosis, fecha/hora, responsable, parcela, OneToOne nullable con `Tarea`). El ABM público vive en `src/modules/agroquimicos/` (Épica 6): el alta crea además una tarea que nace ya en el estado de cierre exitoso.
 
 ### 8.5 `TipoTarea` y `EstadoTarea` (Épica 5)
 
@@ -304,7 +304,6 @@ Materializado desde la plantilla (Épica 3) y administrado en el cronograma (Ép
 No confundir “está en el diagrama” con “está implementado”:
 
 - CRUD de reportes
-- ABM público de `AplicacionAgroquimico` (Épica 6)
 - RBAC middleware por permiso individual
 - Notificaciones
 - Refresh token persistido (vars en `.env` existen; contrato no lo exige)
