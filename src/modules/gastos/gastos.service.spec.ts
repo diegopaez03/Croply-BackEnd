@@ -288,6 +288,28 @@ describe('GastosService', () => {
     expect(result.etiqueta_periodo).toBe('mes_actual');
   });
 
+  it('pagina de a 10 en la página 2 aunque pageSize llegue como string', async () => {
+    finca_repo.findOne.mockResolvedValue(finca);
+    const filas = Array.from({ length: 12 }, (_, index) =>
+      gasto_persistido({
+        id_gasto_produccion: index + 1,
+        fecha_gp: `2026-08-${String(index + 1).padStart(2, '0')}`,
+        fecha_alta_gp: new Date(`2026-08-${String(index + 1).padStart(2, '0')}T10:00:00Z`),
+      }),
+    );
+    gasto_repo.find.mockResolvedValue(filas);
+
+    const result = await service.listar(12, {
+      page: 2,
+      pageSize: '10' as unknown as number,
+    });
+
+    expect(result.gastos).toHaveLength(2);
+    expect(result.page).toBe(2);
+    expect(result.pageSize).toBe(10);
+    expect(result.total).toBe(12);
+  });
+
   it('usa el total del rango filtrado y etiqueta rango_filtrado', async () => {
     finca_repo.findOne.mockResolvedValue(finca);
     gasto_repo.find.mockResolvedValue([

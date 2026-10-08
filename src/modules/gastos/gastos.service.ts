@@ -130,8 +130,8 @@ export class GastosService {
     await this.require_finca(id_finca);
     this.validar_rango(query.fecha_desde, query.fecha_hasta);
 
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 10;
+    const page = Math.max(1, Number(query.page) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize) || 10));
     const todos = await this.buscar(id_finca, query.fecha_desde, query.fecha_hasta);
     const monto_total = this.sumar(todos);
     const hay_filtro = Boolean(query.fecha_desde || query.fecha_hasta);
