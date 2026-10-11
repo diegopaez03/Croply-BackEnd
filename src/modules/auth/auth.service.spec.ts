@@ -120,6 +120,7 @@ describe('AuthService', () => {
           'Gestión de trabajadores',
           'Tareas de campo',
           'Notas de campo',
+          'Costos',
         ],
       });
     });

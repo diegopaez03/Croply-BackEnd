@@ -234,7 +234,7 @@ export function invalidDateRange(
 }
 
 export function emptyExportResult(
-  message = 'No hay aplicaciones para exportar con los filtros seleccionados. Ajustá la configuración del reporte.',
+  message = 'No hay datos para exportar con los filtros seleccionados. Ajustá la configuración del reporte.',
 ): DomainException {
   return new DomainException(
     'EMPTY_EXPORT_RESULT',
