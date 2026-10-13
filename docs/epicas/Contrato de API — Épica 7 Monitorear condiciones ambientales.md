@@ -247,6 +247,8 @@ Se ejecuta una **baja lógica**, asignando la fecha actual a `fecha_baja`
   "estado_general": "Transmitiendo",
   "sensores": [
     {
+      "id_controlador_sensor": 8,
+      "nombre_controlador": "Controlador Norte",
       "id_sensor": 501,
       "nombre_tipo_sensor": "Sensor de pH",
       "unidad_medida_ts": "pH",
@@ -255,6 +257,8 @@ Se ejecuta una **baja lógica**, asignando la fecha actual a `fecha_baja`
       "estado_senal": "Transmitiendo"
     },
     {
+      "id_controlador_sensor": 9,
+      "nombre_controlador": "Controlador Sur",
       "id_sensor": 502,
       "nombre_tipo_sensor": "Sensor de humedad del suelo",
       "unidad_medida_ts": "%",

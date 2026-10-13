@@ -105,15 +105,22 @@ export class SimuladorLecturaService implements OnModuleInit {
       throw resourceNotFound();
     }
 
-    const sensores = this.active_sensors(parcela);
-    const sensores_response = sensores.map((sensor) => ({
-      id_sensor: Number(sensor.id_sensor),
-      nombre_tipo_sensor: sensor.tipo_sensor.nombre_tipo_sensor,
-      unidad_medida_ts: sensor.tipo_sensor.unidad_medida_ts,
-      ultimo_valor: sensor.ultimo_valor,
-      fecha_ultima_lectura: sensor.fecha_ultima_lectura,
-      estado_senal: sensor.estado_senal,
-    }));
+    const sensores_response = (parcela.controladores ?? [])
+      .filter((controlador) => controlador.fecha_baja == null)
+      .flatMap((controlador) =>
+        (controlador.sensores ?? [])
+          .filter((sensor) => sensor.fecha_baja == null)
+          .map((sensor) => ({
+            id_controlador_sensor: Number(controlador.id_controlador_sensor),
+            nombre_controlador: controlador.nombre_controlador,
+            id_sensor: Number(sensor.id_sensor),
+            nombre_tipo_sensor: sensor.tipo_sensor.nombre_tipo_sensor,
+            unidad_medida_ts: sensor.tipo_sensor.unidad_medida_ts,
+            ultimo_valor: sensor.ultimo_valor,
+            fecha_ultima_lectura: sensor.fecha_ultima_lectura,
+            estado_senal: sensor.estado_senal,
+          })),
+      );
 
     return {
       estado_general:
