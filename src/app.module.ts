@@ -21,6 +21,7 @@ import { SimuladorIotModule } from './modules/simulador-iot';
 import { NotasCampoModule } from './modules/notas-campo';
 import { GastosModule } from './modules/gastos';
 import { AgroquimicosModule } from './modules/agroquimicos';
+import { TableroGlobalModule } from './modules/tablero-global';
 
 /**
  * Root application module.
@@ -64,6 +65,7 @@ import { AgroquimicosModule } from './modules/agroquimicos';
     NotasCampoModule,
     GastosModule,
     AgroquimicosModule,
+    TableroGlobalModule,
 
     // ── Seed (desarrollo: admins del equipo) ─────────────────────
     SeedModule,

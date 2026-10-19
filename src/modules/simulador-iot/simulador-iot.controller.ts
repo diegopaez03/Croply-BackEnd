@@ -10,6 +10,7 @@ import { ApiAuth, ApiErrorResponses } from '../../common/decorators';
 import { SWAGGER_TAGS } from '../../common/swagger';
 import { AdminFincaPorParcelaGuard } from '../auth/guards/admin-finca-por-parcela.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MonitoreoSensoresResponseDto } from './dto/monitoreo-sensores-response.dto';
 import { SimuladorLecturaService } from './simulador-lectura.service';
 
 @ApiTags(SWAGGER_TAGS.PARCELAS)
@@ -21,7 +22,10 @@ export class SimuladorIotController {
   @UseGuards(JwtAuthGuard, AdminFincaPorParcelaGuard)
   @ApiAuth()
   @ApiOperation({ summary: 'Consultar monitoreo de sensores de una parcela' })
-  @ApiOkResponse({ description: 'Estado persistido de los sensores' })
+  @ApiOkResponse({
+    description: 'Estado persistido de los sensores, agrupable por controlador',
+    type: MonitoreoSensoresResponseDto,
+  })
   @ApiErrorResponses({ notFound: true })
   monitoreo_sensores(@Param('id_parcela', ParseIntPipe) id_parcela: number) {
     return this.lectura_service.obtener_monitoreo(id_parcela);
