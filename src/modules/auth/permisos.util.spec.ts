@@ -13,6 +13,7 @@ describe('permisos.util', () => {
       expect.arrayContaining([
         PERMISO_SISTEMA.GESTION_USUARIOS,
         PERMISO_SISTEMA.CATALOGOS_BASE,
+        PERMISO_SISTEMA.SOPORTE,
       ]),
     );
   });
@@ -36,6 +37,7 @@ describe('permisos.util', () => {
     expect(usuario_tiene_permiso(usuario, PERMISO_SISTEMA.CATALOGOS_BASE)).toBe(
       false,
     );
+    expect(usuario_tiene_permiso(usuario, PERMISO_SISTEMA.SOPORTE)).toBe(false);
   });
 
   it('otorga todos los permisos de finca a ADMIN_FINCA vigente', () => {

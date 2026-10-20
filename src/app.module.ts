@@ -22,6 +22,7 @@ import { NotasCampoModule } from './modules/notas-campo';
 import { GastosModule } from './modules/gastos';
 import { AgroquimicosModule } from './modules/agroquimicos';
 import { TableroGlobalModule } from './modules/tablero-global';
+import { PreguntasFrecuentesModule } from './modules/preguntas-frecuentes';
 
 /**
  * Root application module.
@@ -66,6 +67,7 @@ import { TableroGlobalModule } from './modules/tablero-global';
     GastosModule,
     AgroquimicosModule,
     TableroGlobalModule,
+    PreguntasFrecuentesModule,
 
     // ── Seed (desarrollo: admins del equipo) ─────────────────────
     SeedModule,

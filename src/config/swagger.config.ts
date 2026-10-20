@@ -23,6 +23,7 @@ export const SWAGGER_TAGS = {
   GASTOS: 'Gastos',
   AGROQUIMICOS: 'Agroquimicos',
   SOLICITUDES_DIGITALIZACION: 'SolicitudesDigitalizacion',
+  SOPORTE: 'Soporte',
 } as const;
 
 export type SwaggerTag = (typeof SWAGGER_TAGS)[keyof typeof SWAGGER_TAGS];
@@ -103,6 +104,10 @@ La mayoría de los endpoints requieren un JWT Bearer Token.
     .addTag(
       SWAGGER_TAGS.SOLICITUDES_DIGITALIZACION,
       'Solicitudes de digitalización de finca',
+    )
+    .addTag(
+      SWAGGER_TAGS.SOPORTE,
+      'Ayuda y soporte: preguntas frecuentes, manual de usuario y contacto',
     );
 
   if (options.nodeEnv === 'production') {

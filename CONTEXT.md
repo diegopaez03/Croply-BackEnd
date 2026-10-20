@@ -16,10 +16,11 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 - Fincas, parcelas y cultivos
 - Reportes
 - Solicitudes de digitalización
+- Ayuda y soporte (preguntas frecuentes, manual de usuario y contacto)
 
 ### Estado actual
 
-**Épica 1 — Gestionar el Acceso**, **Épica 2 — Administrar Usuarios y Roles**, **Épica 4 — Planificar Cultivos** (HU-BC-01 a HU-BC-06), **Épica 3** (fincas, parcelas e IoT de etapa 1 más detalle/resumen), **Épica 5 — Gestionar Tareas de Campo** (HU-TC-01 a HU-TC-10), **Épica 6 — Registrar Agroquímicos** (HU-AQ-01 a HU-AQ-07), **Épica 7** (tipos de sensor, lecturas y clima) implementadas y **Épica 8 — Controlar Costos de Producción** (HU-GC-01 a HU-GC-07) implementadas.
+**Épica 1 — Gestionar el Acceso**, **Épica 2 — Administrar Usuarios y Roles**, **Épica 4 — Planificar Cultivos** (HU-BC-01 a HU-BC-06), **Épica 3** (fincas, parcelas e IoT de etapa 1 más detalle/resumen), **Épica 5 — Gestionar Tareas de Campo** (HU-TC-01 a HU-TC-10), **Épica 6 — Registrar Agroquímicos** (HU-AQ-01 a HU-AQ-07), **Épica 7** (tipos de sensor, lecturas y clima) implementadas **Épica 8 — Controlar Costos de Producción** (HU-GC-01 a HU-GC-07) y **Épica 9 — Acceder a Ayuda y Soporte** (HU-AS-01 a HU-AS-04) implementadas.
 
 | Módulo | Contenido |
 | --- | --- |
@@ -27,7 +28,7 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 | `auth` | Login, registro admin finca / invitado, reset y cambio de contraseña, primer acceso |
 | `usuarios` | Perfil `/me`, listado Croply, asignar rol sistema, cambiar estado |
 | `fincas` | ABM de Finca, propietario, roles de finca, usuarios de finca (scoped y multi-finca), invitaciones, asignación de rol |
-| `roles` | ABM roles sistema, catálogo de permisos, `Permiso` / `RolPermiso` |
+| `roles` | ABM roles sistema, catálogo de permisos, `Permiso` / `RolPermiso`. Permisos de sistema: `Gestión de usuarios`, `Fincas e Infraestructura`, `Catálogos Base`, `Solicitudes de digitalización`, `Soporte` |
 | `solicitudes-digitalizacion` | Alta pública + listado/detalle/estado (Admin Croply) |
 | `log-operaciones` | Auditoría interna (HU-GU-12), sin endpoint FE |
 | `cultivos` | Biblioteca de cultivos base y variedades (incluye `imagen_url` opcional); plantillas de plan base (hitos/tareas); búsqueda y filtros |
@@ -40,6 +41,7 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 | `parcelas` | ABM de `Parcela`, `ControladorSensor`, `Sensor`, `CodigoQR` (Épica 3) |
 | `planes-accion` | `PlanAccion`, `Hito`, `Tarea` (FK a `TipoTarea` y `EstadoTarea`). Alta interna de tarea ya finalizada para agroquímicos |
 | `agroquimicos` | ABM público de `AplicacionAgroquimico` bajo `/fincas/:id_finca/agroquimicos` (Épica 6), incluida la exportación PDF |
+| `preguntas-frecuentes` | ABM de `PreguntaFrecuente` (permiso `Soporte`) + consulta libre de FAQ y `GET /soporte/configuracion` (manual y email de soporte desde env) (Épica 9) |
 | `database/seed` | Admins Croply + fincas demo + biblioteca demo (Tomate, Ajo, plantilla general de Tomate) + roles + catálogo de permisos |
 
 Placeholder (sin lógica de negocio aún): `reportes`.
@@ -165,6 +167,7 @@ src/
     ├── parcelas/           # Parcela, ControladorSensor, Sensor, CodigoQR (Épica 3)
     ├── planes-accion/      # PlanAccion, Hito, Tarea (Épica 3/4)
     ├── agroquimicos/       # AplicacionAgroquimico público (Épica 6)
+    ├── preguntas-frecuentes/ # PreguntaFrecuente + /soporte/configuracion (Épica 9)
     └── reportes/           # placeholder
 ```
 
@@ -220,6 +223,7 @@ Para PRs a `main`, la revisión prioritaria es del Arquitecto.
 | Agroquimicos | `modules/agroquimicos` |
 | Reportes | `modules/reportes` |
 | SolicitudesDigitalizacion | `modules/solicitudes-digitalizacion` |
+| Soporte | `modules/preguntas-frecuentes` |
 
 ### Capas por feature
 
@@ -309,6 +313,28 @@ Respecto del diagrama completo y épicas futuras:
 
 
 ## 8. Épicas en curso — notas de implementación
+
+### Épica 9 — Acceder a Ayuda y Soporte
+
+**Alcance implementado:** `src/modules/preguntas-frecuentes/`. Contrato en
+`docs/epicas/Contrato de API — Épica 9 Acceder a Ayuda y Soporte.md`.
+
+- Permiso de sistema nuevo `Soporte` (`PERMISO_SISTEMA.SOPORTE`), asignado
+  automáticamente al rol Admin Croply al arrancar. Los tokens emitidos antes no
+  lo traen: hay que volver a iniciar sesión.
+- Editor (HU-AS-01): `GET /preguntas-frecuentes/gestion` (paginado, última
+  creada primero), `POST`, `PUT /:id_pregunta_frecuente` y
+  `DELETE /:id_pregunta_frecuente` (baja lógica con `fecha_baja_pf`). Guards
+  `JwtAuthGuard` + `AdminCroplyGuard` + `PermisoGuard` con `Soporte`.
+- Consulta (HU-AS-02): `GET /preguntas-frecuentes`, solo `JwtAuthGuard`, lista
+  completa sin paginar en orden alfabético.
+- `normalizar_pregunta` (minúsculas, sin acentos, sin signos de puntuación
+  iniciales ni finales; conserva la `ñ`) es la clave de unicidad entre activas
+  (`DUPLICATE_VALUE`) y de orden de la consulta. Se resuelve en memoria.
+- `pregunta` y `respuesta` llegan con `trim` (`@Transform`) antes de validar.
+- HU-AS-03/04: `GET /soporte/configuracion`, solo `JwtAuthGuard`. Lee
+  `MANUAL_USUARIO_URL` y `SOPORTE_EMAIL` una vez al arrancar; vacía o inválida →
+  `null` (con `warn` si es inválida).
 
 ### Épica 8 — Controlar Costos de Producción
 

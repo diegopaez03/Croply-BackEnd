@@ -1,6 +1,8 @@
 import { HttpStatus } from '@nestjs/common';
 import { RolesService } from './roles.service';
-import { AmbitoPermiso } from '../../common/enums';
+import { AmbitoPermiso, CODIGO_ADMIN_CROPLY } from '../../common/enums';
+import { PERMISO_SISTEMA } from '../../common/enums/permisos';
+import { PERMISOS_SEED } from './permisos.seed';
 
 describe('RolesService', () => {
   let service: RolesService;
@@ -154,5 +156,41 @@ describe('RolesService', () => {
       errorCode: 'RESOURCE_IN_USE',
       status: HttpStatus.CONFLICT,
     });
+  });
+
+  it('siembra el permiso Soporte y lo asigna al rol Admin Croply', async () => {
+    const en_db = PERMISOS_SEED.map((p, i) => ({ id_permiso: i + 1, ...p }));
+    const sistema = en_db.filter((p) => p.ambito === AmbitoPermiso.SISTEMA);
+    const admin_croply = { id_rol: 1, codigo: CODIGO_ADMIN_CROPLY };
+
+    permiso_repo.findOne.mockResolvedValue(null);
+    permiso_repo.find.mockImplementation((opts?: { where?: object }) =>
+      Promise.resolve(opts?.where ? sistema : en_db),
+    );
+    permiso_repo.createQueryBuilder.mockReturnValue({
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue(sistema),
+    });
+    rol_sistema_repo.findOne.mockResolvedValue(admin_croply);
+    rol_finca_repo.findOne.mockResolvedValue(null);
+
+    await service.ensure_seed_permisos();
+
+    expect(sistema).toHaveLength(5);
+    expect(permiso_repo.save).toHaveBeenCalledWith({
+      nombre_permiso: PERMISO_SISTEMA.SOPORTE,
+      ambito: AmbitoPermiso.SISTEMA,
+    });
+    expect(rol_permiso_repo.save).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        {
+          rol: admin_croply,
+          permiso: expect.objectContaining({
+            nombre_permiso: PERMISO_SISTEMA.SOPORTE,
+          }),
+        },
+      ]),
+    );
   });
 });
