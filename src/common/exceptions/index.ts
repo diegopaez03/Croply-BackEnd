@@ -5,6 +5,7 @@ export {
   requiredField,
   duplicateValue,
   unexpectedError,
+  aiServiceUnavailable,
   resourceNotFound,
   resourceInUse,
   emptySchedule,

@@ -22,6 +22,8 @@ import { NotasCampoModule } from './modules/notas-campo';
 import { GastosModule } from './modules/gastos';
 import { AgroquimicosModule } from './modules/agroquimicos';
 import { TableroGlobalModule } from './modules/tablero-global';
+import { RecomendacionesModule } from './modules/recomendaciones';
+import { AlertasClimaticasModule } from './modules/alertas-climaticas';
 
 /**
  * Root application module.
@@ -66,6 +68,8 @@ import { TableroGlobalModule } from './modules/tablero-global';
     GastosModule,
     AgroquimicosModule,
     TableroGlobalModule,
+    RecomendacionesModule,
+    AlertasClimaticasModule,
 
     // ── Seed (desarrollo: admins del equipo) ─────────────────────
     SeedModule,

@@ -18,6 +18,32 @@ export type CondicionClimatica =
   | 'Granizo'
   | 'Temperatura elevada';
 
+export interface VariablesPronostico {
+  temp_actual: number;
+  humedad_relativa: number;
+  temp_min_pronostico: number;
+  temp_max_pronostico: number;
+  precip_pronostico_24h: number;
+  viento_kmh: number;
+  wind_gust_kmh: number;
+  et0_diario: number;
+}
+
+interface OpenMeteoVariablesResponse {
+  current?: {
+    temperature_2m?: number;
+    relative_humidity_2m?: number;
+  };
+  daily?: {
+    temperature_2m_max?: number[];
+    temperature_2m_min?: number[];
+    precipitation_sum?: number[];
+    wind_speed_10m_max?: number[];
+    wind_gusts_10m_max?: number[];
+    et0_fao_evapotranspiration?: number[];
+  };
+}
+
 interface OpenMeteoResponse {
   current_weather?: {
     temperature: number;
@@ -71,6 +97,79 @@ export class ClimaService {
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
+  }
+
+  async obtener_variables_pronostico(id_finca: number): Promise<VariablesPronostico> {
+    const finca = await this.finca_repo.findOne({
+      where: { id_finca, fecha_baja_finca: IsNull() },
+    });
+    if (!finca) {
+      throw resourceNotFound();
+    }
+
+    try {
+      const response = await this.http.axiosRef.get<OpenMeteoVariablesResponse>(
+        'https://api.open-meteo.com/v1/forecast',
+        {
+          params: {
+            latitude: parseFloat(finca.latitud),
+            longitude: parseFloat(finca.longitud),
+            current: 'temperature_2m,relative_humidity_2m',
+            daily:
+              'temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,et0_fao_evapotranspiration',
+            timezone: 'auto',
+            forecast_days: 2,
+            wind_speed_unit: 'kmh',
+          },
+        },
+      );
+      return this.map_variables(response.data);
+    } catch (error) {
+      if (error instanceof DomainException) {
+        throw error;
+      }
+      throw new DomainException(
+        'WEATHER_SERVICE_UNAVAILABLE',
+        'No se pudo obtener la información climática en este momento.',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+  }
+
+  private map_variables(data: OpenMeteoVariablesResponse): VariablesPronostico {
+    const dia = 1;
+    const current = data.current;
+    const daily = data.daily;
+    const temp_actual = current?.temperature_2m;
+    const humedad_relativa = current?.relative_humidity_2m;
+    const temp_min = daily?.temperature_2m_min?.[dia];
+    const temp_max = daily?.temperature_2m_max?.[dia];
+    const precip = daily?.precipitation_sum?.[dia];
+    const viento = daily?.wind_speed_10m_max?.[dia];
+    const rafaga = daily?.wind_gusts_10m_max?.[dia];
+    const et0 = daily?.et0_fao_evapotranspiration?.[dia];
+    if (
+      temp_actual === undefined ||
+      humedad_relativa === undefined ||
+      temp_min === undefined ||
+      temp_max === undefined ||
+      precip === undefined ||
+      viento === undefined ||
+      rafaga === undefined ||
+      et0 === undefined
+    ) {
+      throw new Error('Pronóstico incompleto');
+    }
+    return {
+      temp_actual,
+      humedad_relativa,
+      temp_min_pronostico: temp_min,
+      temp_max_pronostico: temp_max,
+      precip_pronostico_24h: precip,
+      viento_kmh: viento,
+      wind_gust_kmh: rafaga,
+      et0_diario: et0,
+    };
   }
 
   private map_response(finca: Finca, data: OpenMeteoResponse) {

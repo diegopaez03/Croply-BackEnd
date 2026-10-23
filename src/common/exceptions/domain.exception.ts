@@ -25,6 +25,7 @@ export type DomainErrorCode =
   | 'INVALID_FILE_TYPE'
   | 'FILE_TOO_LARGE'
   | 'WEATHER_SERVICE_UNAVAILABLE'
+  | 'AI_SERVICE_UNAVAILABLE'
   | 'INSUFFICIENT_AREA'
   | 'FINCA_NOT_AVAILABLE'
   | 'TASK_NOT_EDITABLE'
@@ -88,6 +89,14 @@ export function unexpectedError(): DomainException {
     'UNEXPECTED_ERROR',
     'Ha ocurrido un error, intente nuevamente',
     HttpStatus.INTERNAL_SERVER_ERROR,
+  );
+}
+
+export function aiServiceUnavailable(): DomainException {
+  return new DomainException(
+    'AI_SERVICE_UNAVAILABLE',
+    'El motor de recomendaciones no se encuentra disponible en este momento. Mostrando última información conocida.',
+    HttpStatus.SERVICE_UNAVAILABLE,
   );
 }
 
