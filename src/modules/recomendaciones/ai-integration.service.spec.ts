@@ -24,6 +24,26 @@ describe('AiIntegrationService', () => {
     });
   });
 
+  it('mapea un cultivo no soportado del motor a CROP_NOT_SUPPORTED', async () => {
+    const error = Object.assign(new Error('rechazado'), {
+      response: {
+        status: 400,
+        data: {
+          detail:
+            "Cultivo 'frutilla' no soportado. Disponibles: ['tomate', 'ajo']",
+        },
+      },
+    });
+    http.axiosRef.post.mockRejectedValue(error);
+
+    await expect(service.evaluate_parcel({} as never)).rejects.toMatchObject({
+      errorCode: 'CROP_NOT_SUPPORTED',
+      status: HttpStatus.BAD_REQUEST,
+      message:
+        'Las recomendaciones todavía no están disponibles para el cultivo Frutilla.',
+    });
+  });
+
   it('devuelve AI_SERVICE_UNAVAILABLE ante un 500 del motor', async () => {
     const error = Object.assign(new Error('fallo'), {
       isAxiosError: true,

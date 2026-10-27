@@ -33,6 +33,8 @@ export type DomainErrorCode =
   | 'TASKS_NOT_COMPLETED'
   | 'PROTECTED_CATALOG_ITEM'
   | 'PARCEL_WITHOUT_ACTION_PLAN'
+  | 'CROP_NOT_SUPPORTED'
+  | 'INSUFFICIENT_SENSOR_DATA'
   | 'NOTE_ALREADY_CONVERTED'
   | 'AGROCHEMICAL_TASK_TYPE_UNAVAILABLE'
   | 'LINKED_TASK_DELETED'
@@ -197,6 +199,25 @@ export function parcelWithoutActionPlan(
 ): DomainException {
   return new DomainException(
     'PARCEL_WITHOUT_ACTION_PLAN',
+    message,
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
+export function cropNotSupported(cultivo: string): DomainException {
+  const nombre = cultivo.trim();
+  return new DomainException(
+    'CROP_NOT_SUPPORTED',
+    `Las recomendaciones todavía no están disponibles para el cultivo ${nombre}.`,
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
+export function insufficientSensorData(
+  message = 'No hay lecturas de sensores para generar una recomendación.',
+): DomainException {
+  return new DomainException(
+    'INSUFFICIENT_SENSOR_DATA',
     message,
     HttpStatus.BAD_REQUEST,
   );

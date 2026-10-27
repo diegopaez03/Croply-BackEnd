@@ -17,6 +17,8 @@ export {
   tasksNotCompleted,
   protectedCatalogItem,
   parcelWithoutActionPlan,
+  cropNotSupported,
+  insufficientSensorData,
   noteAlreadyConverted,
   agrochemicalTaskTypeUnavailable,
   linkedTaskDeleted,

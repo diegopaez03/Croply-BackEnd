@@ -61,7 +61,19 @@ describe('RecomendacionesIaService', () => {
       findOne: jest.fn().mockResolvedValue({
         id_parcela: 101,
         finca: { id_finca: 12, fecha_baja_finca: null },
-        controladores: [],
+        controladores: [
+          {
+            fecha_baja: null,
+            sensores: [
+              {
+                fecha_baja: null,
+                estado_senal: 'Transmitiendo',
+                ultimo_valor: 22,
+                tipo_sensor: { codigo_tipo_sensor: 'HUMEDAD_SUELO' },
+              },
+            ],
+          },
+        ],
       }),
     };
     plan_repo = {
@@ -216,5 +228,48 @@ describe('RecomendacionesIaService', () => {
       errorCode: 'PARCEL_WITHOUT_ACTION_PLAN',
     });
     expect(ai_service.evaluate_parcel).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un cultivo sin recomendaciones y no consulta a la IA', async () => {
+    plan_repo.findOne.mockResolvedValue({
+      fecha_inicio_pa: '2026-08-01',
+      cultivo_base: { nombre_cultivo_base: 'Frutilla' },
+      variedad: { nombre_variedad: 'Camarosa' },
+      hitos: [],
+    });
+
+    await expect(service.obtener_recomendacion(101)).rejects.toMatchObject({
+      errorCode: 'CROP_NOT_SUPPORTED',
+      message:
+        'Las recomendaciones todavía no están disponibles para el cultivo Frutilla.',
+    });
+    expect(ai_service.evaluate_parcel).not.toHaveBeenCalled();
+    expect(clima_service.obtener_variables_pronostico).not.toHaveBeenCalled();
+  });
+
+  it('rechaza la evaluación si no hay lecturas de sensores', async () => {
+    parcela_repo.findOne.mockResolvedValue({
+      id_parcela: 101,
+      finca: { id_finca: 12, fecha_baja_finca: null },
+      controladores: [
+        {
+          fecha_baja: null,
+          sensores: [
+            {
+              fecha_baja: null,
+              estado_senal: 'Sin_senal',
+              ultimo_valor: 10,
+              tipo_sensor: { codigo_tipo_sensor: 'HUMEDAD_SUELO' },
+            },
+          ],
+        },
+      ],
+    });
+
+    await expect(service.obtener_recomendacion(101)).rejects.toMatchObject({
+      errorCode: 'INSUFFICIENT_SENSOR_DATA',
+    });
+    expect(ai_service.evaluate_parcel).not.toHaveBeenCalled();
+    expect(clima_service.obtener_variables_pronostico).not.toHaveBeenCalled();
   });
 });

@@ -310,6 +310,7 @@ describe('ParcelasService', () => {
       cultivo_base: { nombre_cultivo_base: 'Tomate' },
       variedad: { nombre_variedad: 'Perita' },
       superficie_ocupada_pa: 5,
+      fecha_inicio_pa: '2026-05-15',
       estado: EstadoPlanAccion.ACTIVO,
     });
 
@@ -321,8 +322,33 @@ describe('ParcelasService', () => {
         nombre_cultivo_base: 'Tomate',
         nombre_variedad: 'Perita',
         superficie_ocupada_pa: 5,
+        fecha_inicio_pa: '2026-05-15',
+        fecha_estimada_cosecha: '2026-08-13',
       },
       recomendacion_ia_resumen: null,
+    });
+  });
+
+  it('deja la cosecha estimada en null si el cultivo no tiene ciclo conocido', async () => {
+    parcela_repo.findOne.mockResolvedValue({
+      id_parcela: 101,
+      nombre_parcela: 'Lote Norte',
+      estado_parcela: EstadoParcela.ACTIVA,
+      fecha_baja_parcela: null,
+    });
+    plan_accion_repo.findOne.mockResolvedValue({
+      cultivo_base: { nombre_cultivo_base: 'Frutilla' },
+      variedad: { nombre_variedad: 'Camarosa' },
+      superficie_ocupada_pa: 1,
+      fecha_inicio_pa: '2026-05-15',
+      estado: EstadoPlanAccion.ACTIVO,
+    });
+
+    await expect(service.resumen(101)).resolves.toMatchObject({
+      cultivo: {
+        fecha_inicio_pa: '2026-05-15',
+        fecha_estimada_cosecha: null,
+      },
     });
   });
 

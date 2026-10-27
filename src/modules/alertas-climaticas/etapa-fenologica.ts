@@ -7,6 +7,41 @@ const ETAPAS_DIAS: Record<string, number[]> = {
   papa: [22, 28, 48, 22],
 };
 
+export function cultivo_soportado(cultivo: string): boolean {
+  return Boolean(ETAPAS_DIAS[cultivo.trim().toLowerCase()]);
+}
+
+export function dias_ciclo(cultivo: string): number | null {
+  const etapas = ETAPAS_DIAS[cultivo.trim().toLowerCase()];
+  if (!etapas) {
+    return null;
+  }
+  return etapas.reduce((total, dias) => total + dias, 0);
+}
+
+export function fecha_iso(fecha: string | Date): string {
+  if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}/.test(fecha)) {
+    return fecha.slice(0, 10);
+  }
+  const date = fecha instanceof Date ? fecha : new Date(fecha);
+  return date.toISOString().slice(0, 10);
+}
+
+export function fecha_estimada_cosecha(
+  fecha_inicio: string | Date,
+  cultivo: string,
+): string | null {
+  const dias = dias_ciclo(cultivo);
+  if (dias == null) {
+    return null;
+  }
+  const inicio = Date.parse(`${fecha_iso(fecha_inicio)}T00:00:00Z`);
+  if (Number.isNaN(inicio)) {
+    return null;
+  }
+  return new Date(inicio + dias * 86_400_000).toISOString().slice(0, 10);
+}
+
 export function etapa_fenologica_idx(
   cultivo: string,
   dias_desde_siembra: number,

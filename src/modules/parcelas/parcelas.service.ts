@@ -23,6 +23,10 @@ import { SimuladorSincronizacionEstructuralService } from '../simulador-iot/simu
 import { PlanesAccionService } from '../planes-accion/planes-accion.service';
 import { PlanAccion } from '../planes-accion/entities/plan-accion.entity';
 import {
+  fecha_estimada_cosecha,
+  fecha_iso,
+} from '../alertas-climaticas/etapa-fenologica';
+import {
   ActualizarParcelaDto,
   CrearParcelaDto,
 } from './dto/parcelas.dto';
@@ -275,6 +279,15 @@ export class ParcelasService {
             nombre_cultivo_base: plan.cultivo_base.nombre_cultivo_base,
             nombre_variedad: plan.variedad.nombre_variedad,
             superficie_ocupada_pa: plan.superficie_ocupada_pa,
+            fecha_inicio_pa: plan.fecha_inicio_pa
+              ? fecha_iso(plan.fecha_inicio_pa)
+              : null,
+            fecha_estimada_cosecha: plan.fecha_inicio_pa
+              ? fecha_estimada_cosecha(
+                  plan.fecha_inicio_pa,
+                  plan.cultivo_base.nombre_cultivo_base,
+                )
+              : null,
           }
         : null,
       recomendacion_ia_resumen: null,

@@ -1,7 +1,11 @@
 import { HttpService } from '@nestjs/axios';
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DomainException, aiServiceUnavailable } from '../../common/exceptions';
+import {
+  DomainException,
+  aiServiceUnavailable,
+  cropNotSupported,
+} from '../../common/exceptions';
 
 export interface EvaluateParcelPayload {
   parcela_id: string;
@@ -127,14 +131,11 @@ export class AiIntegrationService {
       );
       const respuesta = this.respuesta_http(error);
       if (respuesta && respuesta.status < 500) {
-        const detail = respuesta.data;
-        const message =
-          typeof detail === 'object' &&
-          detail !== null &&
-          'detail' in detail &&
-          typeof (detail as { detail?: unknown }).detail === 'string'
-            ? (detail as { detail: string }).detail
-            : 'La evaluación agronómica fue rechazada.';
+        const message = this.mensaje_detalle(respuesta.data);
+        const cultivo = this.cultivo_rechazado(message);
+        if (cultivo) {
+          throw cropNotSupported(cultivo);
+        }
         throw new DomainException(
           'UNEXPECTED_ERROR',
           message,
@@ -143,6 +144,27 @@ export class AiIntegrationService {
       }
       throw aiServiceUnavailable();
     }
+  }
+
+  private mensaje_detalle(data: unknown): string {
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      'detail' in data &&
+      typeof (data as { detail?: unknown }).detail === 'string'
+    ) {
+      return (data as { detail: string }).detail;
+    }
+    return 'La evaluación agronómica fue rechazada.';
+  }
+
+  private cultivo_rechazado(message: string): string | null {
+    const coincidencia = message.match(/Cultivo '([^']+)' no soportado/i);
+    if (!coincidencia) {
+      return null;
+    }
+    const nombre = coincidencia[1].trim();
+    return nombre.charAt(0).toUpperCase() + nombre.slice(1);
   }
 
   private respuesta_http(

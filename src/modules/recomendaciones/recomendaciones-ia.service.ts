@@ -7,9 +7,12 @@ import {
   EstadoTransmision,
 } from '../../common/enums';
 import {
+  cropNotSupported,
+  insufficientSensorData,
   parcelWithoutActionPlan,
   resourceNotFound,
 } from '../../common/exceptions';
+import { cultivo_soportado } from '../alertas-climaticas/etapa-fenologica';
 import { VariablesPronostico } from '../fincas/clima.service';
 import { ClimaService } from '../fincas/clima.service';
 import { Parcela } from '../parcelas/entities/parcela.entity';
@@ -55,6 +58,14 @@ export class RecomendacionesIaService {
       return this.sin_textos(previa)
         ? null
         : this.map_respuesta(previa, id_parcela, 'CACHE_VIGENTE');
+    }
+
+    const nombre_cultivo = plan.cultivo_base.nombre_cultivo_base.trim();
+    if (!cultivo_soportado(nombre_cultivo)) {
+      throw cropNotSupported(nombre_cultivo);
+    }
+    if (!this.tiene_lecturas(parcela)) {
+      throw insufficientSensorData();
     }
 
     const pronostico = await this.clima_service.obtener_variables_pronostico(
@@ -283,6 +294,16 @@ export class RecomendacionesIaService {
 
   private hasta(desde: Date): Date {
     return new Date(desde.getTime() + VIGENCIA_MS);
+  }
+
+  private tiene_lecturas(parcela: Parcela): boolean {
+    return [
+      CodigoTipoSensor.TEMP_HUME_AMBIENTAL,
+      CodigoTipoSensor.HUMEDAD_SUELO,
+      CodigoTipoSensor.RADIACION_SOLAR,
+      CodigoTipoSensor.PH,
+      CodigoTipoSensor.PRECIPITACION,
+    ].some((codigo) => this.valor_sensor(parcela, codigo) != null);
   }
 
   private valor_sensor(
