@@ -40,6 +40,8 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 | `parcelas` | ABM de `Parcela`, `ControladorSensor`, `Sensor`, `CodigoQR` (Épica 3) |
 | `planes-accion` | `PlanAccion`, `Hito`, `Tarea` (FK a `TipoTarea` y `EstadoTarea`). Alta interna de tarea ya finalizada para agroquímicos |
 | `agroquimicos` | ABM público de `AplicacionAgroquimico` bajo `/fincas/:id_finca/agroquimicos` (Épica 6), incluida la exportación PDF |
+| `recomendaciones` | Recomendación de IA por parcela con caché de 1 hora (Épica 7, HU-NA-03) |
+| `alertas-climaticas` | Cron horario de alertas climáticas y consulta por finca (Épica 7, HU-NA-01) |
 | `database/seed` | Admins Croply + fincas demo + biblioteca demo (Tomate, Ajo, plantilla general de Tomate) + roles + catálogo de permisos |
 
 Placeholder (sin lógica de negocio aún): `reportes`.
@@ -82,7 +84,7 @@ pnpm start:dev
 | Swagger UI | `http://localhost:3000/api/v1/docs` |
 | OpenAPI JSON | `http://localhost:3000/api/v1/docs-json` |
 
-Variables clave (ver `.env.example`): `PORT`, `API_PREFIX`, `SWAGGER_ENABLED`, `DB_*`, `JWT_*`, `CORS_ORIGIN`, `FRONTEND_URL`, `THROTTLE_*`, `SEED_ADMIN_PASSWORD`, `CLOUDINARY_*`, `RESEND_API_KEY`, `MAIL_FROM`.
+Variables clave (ver `.env.example`): `PORT`, `API_PREFIX`, `SWAGGER_ENABLED`, `DB_*`, `JWT_*`, `CORS_ORIGIN`, `FRONTEND_URL`, `THROTTLE_*`, `SEED_ADMIN_PASSWORD`, `CLOUDINARY_*`, `RESEND_API_KEY`, `MAIL_FROM`, `SIMULADOR_*`, `AI_SERVICE_URL`.
 
 ### Credenciales de prueba (seed)
 
@@ -521,8 +523,13 @@ corresponden a un Administrador de Finca):
 **Botón "Solicitar digitalización de finca":** sin endpoint nuevo, reutiliza
 `POST /api/v1/solicitudes-digitalizacion` de Épica 1 tal cual.
 
-**`recomendacion_ia_resumen`:** sigue en `null`, depende de HU-NA-03 (sin
-contrato todavía).
+**`recomendacion_ia_resumen`:** sigue en `null`. HU-NA-03 expone la recomendación en `GET /parcelas/:id_parcela/recomendacion-ia`; el contrato de la parte 2 no define el shape de este resumen.
+
+### HU-NA-03 y HU-NA-01 — Recomendaciones de IA y alertas climáticas
+
+**HU-NA-03:** `src/modules/recomendaciones/`. `GET /parcelas/:id_parcela/recomendacion-ia` lee la última fila de `recomendaciones_ia`. Si `valida_hasta` sigue vigente, responde `CACHE_VIGENTE` (o 204 si no hay textos) y no llama al motor. Si venció, llama a `POST /api/v1/ai/evaluate-parcel` con `accion_previa`. Misma acción: renueva una hora y conserva los textos (`CACHE_RENOVADA_SIN_LLM`). Acción nueva: persiste la redacción (`NUEVA_EVALUACION_LLM` o `FALLBACK_INTA` si el motor usó el fallback INTA). Caída del microservicio: 503 `AI_SERVICE_UNAVAILABLE`. `AI_SERVICE_URL` default `http://localhost:8001` (el simulador sigue en 8000).
+
+**HU-NA-01:** `src/modules/alertas-climaticas/`. Un cron de cada hora recorre las fincas activas de a 20, pide el pronóstico del día siguiente y llama a `POST /api/v1/ai/evaluate-climate` (solo reglas, sin Gemma). Alta de `AlertaClimatica` en `Vigente` más una `Notificacion` por usuario con rol vigente. Si el código deja de venir, la alerta pasa a `Resuelta`. Un fallo de una finca no corta el lote. Lectura: `GET /fincas/:id_finca/alertas-climaticas`. No hay endpoint de notificaciones: el contrato no lo define.
 
 ---
 
@@ -548,7 +555,7 @@ No hay push directo a `main` ni `develop`.
 
 Estándar: **TDD** (red → green) en seams acordados. Skill: [`.agent/skills/Test-Driven Development/`](.agent/skills/Test-Driven%20Development/).
 
-Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`, `CultivosBaseService`, `PlantillasBaseService`, `PlanesAccionService`, `TiposTareaService`, `EstadosTareaService`, `NotasCampoService`, `ParcelasService`, `FincasService`, `MailerService`, `UploadsService`, `AgroquimicosService`.
+Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`, `CultivosBaseService`, `PlantillasBaseService`, `PlanesAccionService`, `TiposTareaService`, `EstadosTareaService`, `NotasCampoService`, `ParcelasService`, `FincasService`, `MailerService`, `UploadsService`, `AgroquimicosService`, `RecomendacionesIaService`, `AiIntegrationService`, `AlertasClimaticasCronService`.
 
 Antes de pasar a revisión:
 

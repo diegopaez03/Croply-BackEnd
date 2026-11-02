@@ -23,6 +23,7 @@ export const SWAGGER_TAGS = {
   GASTOS: 'Gastos',
   AGROQUIMICOS: 'Agroquimicos',
   SOLICITUDES_DIGITALIZACION: 'SolicitudesDigitalizacion',
+  NOTIFICACIONES: 'Notificaciones',
 } as const;
 
 export type SwaggerTag = (typeof SWAGGER_TAGS)[keyof typeof SWAGGER_TAGS];
@@ -103,7 +104,8 @@ La mayoría de los endpoints requieren un JWT Bearer Token.
     .addTag(
       SWAGGER_TAGS.SOLICITUDES_DIGITALIZACION,
       'Solicitudes de digitalización de finca',
-    );
+    )
+    .addTag(SWAGGER_TAGS.NOTIFICACIONES, 'Notificaciones del usuario');
 
   if (options.nodeEnv === 'production') {
     builder.addServer('https://api.croply.app', 'Producción');

@@ -42,6 +42,6 @@ import { PlanesAccionModule } from '../planes-accion/planes-accion.module';
   ],
   controllers: [FincasController, InvitacionesController, MiFincaController],
   providers: [FincasService, ClimaService],
-  exports: [FincasService, TypeOrmModule],
+  exports: [FincasService, ClimaService, TypeOrmModule],
 })
 export class FincasModule {}
