@@ -5,6 +5,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Tarea } from '../../planes-accion/entities/tarea.entity';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 import { TipoNotificacion } from '../enums/tipo-notificacion.enum';
 import { AlertaClimatica } from './alerta-climatica.entity';
@@ -26,6 +27,9 @@ export class Notificacion {
   @Column({ default: false })
   leida: boolean;
 
+  @Column({ name: 'fecha_lectura', type: 'timestamptz', nullable: true })
+  fecha_lectura: Date | null;
+
   @Column({
     name: 'fecha_creacion',
     type: 'timestamptz',
@@ -37,7 +41,11 @@ export class Notificacion {
   @JoinColumn({ name: 'id_usuario' })
   usuario: Usuario;
 
-  @ManyToOne(() => AlertaClimatica, { onDelete: 'CASCADE' })
+  @ManyToOne(() => AlertaClimatica, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_alerta' })
-  alerta: AlertaClimatica;
+  alerta: AlertaClimatica | null;
+
+  @ManyToOne(() => Tarea, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'id_tarea' })
+  tarea: Tarea | null;
 }
