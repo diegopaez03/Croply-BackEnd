@@ -128,6 +128,50 @@ describe('ClimaService', () => {
     );
   });
 
+  it('toma temperatura, viento y lluvia del día siguiente para el motor', async () => {
+    http.axiosRef.get.mockResolvedValue({
+      data: {
+        current: { temperature_2m: 9.5, relative_humidity_2m: 42 },
+        daily: {
+          temperature_2m_max: [22, 31],
+          temperature_2m_min: [8, -1.5],
+          precipitation_sum: [0, 4.2],
+          wind_speed_10m_max: [11, 27],
+          wind_gusts_10m_max: [15, 40],
+          et0_fao_evapotranspiration: [3.1, 5.4],
+        },
+      },
+    });
+
+    const result = await service.obtener_variables_pronostico(1);
+
+    expect(result).toEqual({
+      temp_actual: 9.5,
+      humedad_relativa: 42,
+      temp_min_pronostico: -1.5,
+      temp_max_pronostico: 31,
+      precip_pronostico_24h: 4.2,
+      viento_kmh: 27,
+      wind_gust_kmh: 40,
+      et0_diario: 5.4,
+    });
+    expect(http.axiosRef.get).toHaveBeenCalledWith(
+      'https://api.open-meteo.com/v1/forecast',
+      expect.objectContaining({
+        params: {
+          latitude: -32.957431,
+          longitude: -68.771205,
+          current: 'temperature_2m,relative_humidity_2m',
+          daily:
+            'temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,et0_fao_evapotranspiration',
+          timezone: 'auto',
+          forecast_days: 2,
+          wind_speed_unit: 'kmh',
+        },
+      }),
+    );
+  });
+
   it('lanza 503 literal si Open-Meteo falla', async () => {
     http.axiosRef.get.mockRejectedValue(new Error('network error'));
 

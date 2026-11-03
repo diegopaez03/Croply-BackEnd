@@ -25,6 +25,7 @@ export type DomainErrorCode =
   | 'INVALID_FILE_TYPE'
   | 'FILE_TOO_LARGE'
   | 'WEATHER_SERVICE_UNAVAILABLE'
+  | 'AI_SERVICE_UNAVAILABLE'
   | 'INSUFFICIENT_AREA'
   | 'FINCA_NOT_AVAILABLE'
   | 'TASK_NOT_EDITABLE'
@@ -32,6 +33,8 @@ export type DomainErrorCode =
   | 'TASKS_NOT_COMPLETED'
   | 'PROTECTED_CATALOG_ITEM'
   | 'PARCEL_WITHOUT_ACTION_PLAN'
+  | 'CROP_NOT_SUPPORTED'
+  | 'INSUFFICIENT_SENSOR_DATA'
   | 'NOTE_ALREADY_CONVERTED'
   | 'AGROCHEMICAL_TASK_TYPE_UNAVAILABLE'
   | 'LINKED_TASK_DELETED'
@@ -88,6 +91,14 @@ export function unexpectedError(): DomainException {
     'UNEXPECTED_ERROR',
     'Ha ocurrido un error, intente nuevamente',
     HttpStatus.INTERNAL_SERVER_ERROR,
+  );
+}
+
+export function aiServiceUnavailable(): DomainException {
+  return new DomainException(
+    'AI_SERVICE_UNAVAILABLE',
+    'El motor de recomendaciones no se encuentra disponible en este momento. Mostrando última información conocida.',
+    HttpStatus.SERVICE_UNAVAILABLE,
   );
 }
 
@@ -188,6 +199,25 @@ export function parcelWithoutActionPlan(
 ): DomainException {
   return new DomainException(
     'PARCEL_WITHOUT_ACTION_PLAN',
+    message,
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
+export function cropNotSupported(cultivo: string): DomainException {
+  const nombre = cultivo.trim();
+  return new DomainException(
+    'CROP_NOT_SUPPORTED',
+    `Las recomendaciones todavía no están disponibles para el cultivo ${nombre}.`,
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
+export function insufficientSensorData(
+  message = 'No hay lecturas de sensores para generar una recomendación.',
+): DomainException {
+  return new DomainException(
+    'INSUFFICIENT_SENSOR_DATA',
     message,
     HttpStatus.BAD_REQUEST,
   );

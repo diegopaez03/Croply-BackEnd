@@ -23,6 +23,9 @@ import { GastosModule } from './modules/gastos';
 import { AgroquimicosModule } from './modules/agroquimicos';
 import { TableroGlobalModule } from './modules/tablero-global';
 import { PreguntasFrecuentesModule } from './modules/preguntas-frecuentes';
+import { RecomendacionesModule } from './modules/recomendaciones';
+import { AlertasClimaticasModule } from './modules/alertas-climaticas';
+import { NotificacionesModule } from './modules/notificaciones';
 
 /**
  * Root application module.
@@ -68,6 +71,9 @@ import { PreguntasFrecuentesModule } from './modules/preguntas-frecuentes';
     AgroquimicosModule,
     TableroGlobalModule,
     PreguntasFrecuentesModule,
+    RecomendacionesModule,
+    AlertasClimaticasModule,
+    NotificacionesModule,
 
     // ── Seed (desarrollo: admins del equipo) ─────────────────────
     SeedModule,
