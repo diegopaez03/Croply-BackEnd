@@ -162,6 +162,18 @@ export class AplicacionListItemDto {
 
   @ApiProperty({ example: 'Roberto Sánchez', nullable: true })
   nombre_responsable: string | null;
+
+  @ApiProperty({
+    example: 'Aplicar en horas de baja radiación solar',
+    nullable: true,
+  })
+  observaciones: string | null;
+
+  @ApiProperty({ example: 201, nullable: true })
+  id_hito_real: number | null;
+
+  @ApiProperty({ example: 'Siembra', nullable: true })
+  nombre_hito: string | null;
 }
 
 export class ListarAplicacionesResponseDto {
@@ -181,18 +193,6 @@ export class ListarAplicacionesResponseDto {
 export class AplicacionDetalleResponseDto extends AplicacionListItemDto {
   @ApiProperty({ example: 'Aplicación registrada correctamente' })
   message: string;
-
-  @ApiProperty({
-    example: 'Aplicar en horas de baja radiación solar',
-    nullable: true,
-  })
-  observaciones: string | null;
-
-  @ApiProperty({ example: 201 })
-  id_hito_real: number | null;
-
-  @ApiProperty({ example: 'Siembra' })
-  nombre_hito: string | null;
 
   @ApiProperty({ example: 601 })
   id_tarea: number | null;

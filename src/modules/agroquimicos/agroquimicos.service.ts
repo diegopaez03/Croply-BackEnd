@@ -22,7 +22,11 @@ import { PlanAccion } from '../planes-accion/entities/plan-accion.entity';
 import { Tarea } from '../planes-accion/entities/tarea.entity';
 import { TiposTareaService } from '../tipos-tarea';
 import { Usuario } from '../usuarios/entities/usuario.entity';
-import { armar_pdf_historial } from './agroquimicos.pdf';
+import {
+  armar_pdf_historial,
+  formatear_fecha_hora_ar,
+  texto_rango,
+} from './agroquimicos.pdf';
 import {
   ActualizarAplicacionAgroquimicoDto,
   CrearAplicacionAgroquimicoDto,
@@ -156,9 +160,9 @@ export class AgroquimicosService {
     aplicacion.observaciones = observaciones;
     aplicacion.responsable = responsable;
 
+    // nombre_tarea/descripcion_tarea no se tocan: la tarea pudo crearse desde
+    // la parcela con nombre y descripción propios.
     const tarea = aplicacion.tarea;
-    tarea.nombre_tarea = nombre;
-    tarea.descripcion_tarea = nombre;
     tarea.fecha_ejecucion_tarea = fecha;
     tarea.nombre_producto_aa = nombre;
     tarea.dosis_aa = dosis;
@@ -227,14 +231,16 @@ export class AgroquimicosService {
     const generado = new Date();
     const buffer = await armar_pdf_historial({
       id_reporte: `AQ-${id_finca}-${generado.getTime()}`,
-      fecha_generacion: generado.toISOString(),
+      fecha_generacion: generado,
+      nombre_finca: finca.nombre_finca,
       rango: texto_rango(query.fecha_desde, query.fecha_hasta),
       nombre_parcela: parcela?.nombre_parcela ?? null,
       filas: filas.map((fila) => ({
-        fecha: fecha_tabla(fila.fecha_hora_aplicacion_aa),
+        fecha: formatear_fecha_hora_ar(fila.fecha_hora_aplicacion_aa),
         producto: fila.nombre_producto_aa ?? '',
         dosis: fila.dosis_aa ?? '',
         parcela: fila.parcela?.nombre_parcela ?? '',
+        nombre_responsable: nombre_responsable(fila.responsable),
       })),
     });
 
@@ -254,6 +260,8 @@ export class AgroquimicosService {
       .innerJoin('parcela.finca', 'finca')
       .leftJoinAndSelect('aplicacion.responsable', 'responsable')
       .leftJoinAndSelect('responsable.usuario', 'usuario')
+      .leftJoinAndSelect('aplicacion.tarea', 'tarea')
+      .leftJoinAndSelect('tarea.hito', 'hito')
       .where('finca.id_finca = :id_finca', { id_finca });
 
     if (filtros.id_parcela != null) {
@@ -388,6 +396,7 @@ export class AgroquimicosService {
   }
 
   private to_item(aplicacion: AplicacionAgroquimico) {
+    const hito = aplicacion.tarea?.hito;
     return {
       id_aplicacion: Number(aplicacion.id_aplicacion_agroquimico),
       fecha_hora_aplicacion_aa: to_iso(aplicacion.fecha_hora_aplicacion_aa),
@@ -399,6 +408,9 @@ export class AgroquimicosService {
         ? Number(aplicacion.responsable.id_usuario_finca)
         : null,
       nombre_responsable: nombre_responsable(aplicacion.responsable),
+      observaciones: aplicacion.observaciones ?? null,
+      id_hito_real: hito ? Number(hito.id_hito) : null,
+      nombre_hito: hito?.nombre_hito ?? null,
     };
   }
 
@@ -407,13 +419,9 @@ export class AgroquimicosService {
     message: string,
     incluir_modificacion: boolean,
   ): DetalleAplicacion {
-    const hito = aplicacion.tarea?.hito;
     const detalle: DetalleAplicacion = {
       message,
       ...this.to_item(aplicacion),
-      observaciones: aplicacion.observaciones,
-      id_hito_real: hito ? Number(hito.id_hito) : null,
-      nombre_hito: hito?.nombre_hito ?? null,
       id_tarea: aplicacion.tarea ? Number(aplicacion.tarea.id_tarea) : null,
       fecha_creacion: to_iso(aplicacion.fecha_creacion),
     };
@@ -478,29 +486,6 @@ function inicio_dia_utc(fecha: string): Date {
 function dia_siguiente_utc(fecha: string): Date {
   const inicio = inicio_dia_utc(fecha);
   return new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
-}
-
-function texto_rango(fecha_desde?: string, fecha_hasta?: string): string {
-  const desde = fecha_desde?.slice(0, 10);
-  const hasta = fecha_hasta?.slice(0, 10);
-  if (desde && hasta) {
-    return `${desde} a ${hasta}`;
-  }
-  if (desde) {
-    return `Desde ${desde}`;
-  }
-  if (hasta) {
-    return `Hasta ${hasta}`;
-  }
-  return 'Todas las fechas';
-}
-
-function fecha_tabla(value: Date | null): string {
-  const iso = to_iso(value);
-  if (!iso) {
-    return '';
-  }
-  return `${iso.slice(0, 10)} ${iso.slice(11, 16)}`;
 }
 
 function slug_nombre(nombre: string): string {

@@ -501,6 +501,7 @@ describe('PlanesAccionService', () => {
       tipo_tarea: TIPO_AGRO,
       fecha_ejecucion_tarea: null,
       fecha_planificada_tarea: '2026-09-20',
+      descripcion_tarea: '  Aplicar en el sector norte  ',
       nombre_producto_aa: 'Fungicida XYZ',
       dosis_aa: '2 L/ha',
       fecha_hora_aplicacion_aa: new Date('2026-09-20T09:00:00Z'),
@@ -518,12 +519,48 @@ describe('PlanesAccionService', () => {
       expect.objectContaining({
         nombre_producto_aa: 'Fungicida XYZ',
         dosis_aa: '2 L/ha',
-        observaciones: null,
+        observaciones: 'Aplicar en el sector norte',
         parcela,
       }),
     );
     expect(agro_repo.save).toHaveBeenCalled();
   });
+
+  it.each([
+    ['vacía', ''],
+    ['con solo espacios', '   '],
+    ['null', null],
+  ])(
+    'deja observaciones en null si la descripción de la tarea es %s',
+    async (_caso, descripcion_tarea) => {
+      plan_repo.findOne.mockResolvedValue({
+        id_plan_accion: 77,
+        estado: EstadoPlanAccion.ACTIVO,
+        parcela: { finca: { id_finca: 12 } },
+      });
+      tarea_repo.findOne.mockResolvedValue({
+        id_tarea: 502,
+        estado_tarea: ESTADO_PLANIFICADO,
+        tipo_tarea: TIPO_AGRO,
+        fecha_ejecucion_tarea: null,
+        fecha_planificada_tarea: '2026-09-20',
+        descripcion_tarea,
+        nombre_producto_aa: 'Fungicida XYZ',
+        dosis_aa: '2 L/ha',
+        fecha_hora_aplicacion_aa: new Date('2026-09-20T09:00:00Z'),
+        responsable: null,
+        hito: { plan_accion: { parcela: { id_parcela: 101 } } },
+      });
+      tarea_repo.find.mockResolvedValue([{ estado_tarea: ESTADO_COMPLETADO }]);
+      agro_repo.findOne.mockResolvedValue(null);
+
+      await service.cambiar_estado_tarea(77, 502, 2);
+
+      expect(agro_repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ observaciones: null }),
+      );
+    },
+  );
 
   it('crea la tarea de agroquímico ya en estado de cierre exitoso y no genera la aplicación', async () => {
     hito_repo.findOne.mockResolvedValue({ id_hito: 201, nombre_hito: 'Siembra' });
