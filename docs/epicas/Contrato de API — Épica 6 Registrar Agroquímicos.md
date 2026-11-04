@@ -119,6 +119,8 @@ Se dispara si no existe ningún `TipoTarea` con `es_tipo_agroquimico: true` y ac
 ```
 
 > **Tarea automática:** se crea en el mismo hito elegido (`id_hito_real`), con `id_tipo_tarea` = el `TipoTarea` marcado con `es_tipo_agroquimico: true`, `id_estado_tarea` = el `EstadoTarea` marcado con `es_estado_finalizador: true` ("Completado") **desde el momento de creación** — es la única forma en todo el sistema de crear una tarea que nace ya completada, no pasa por "Planificado" primero. `nombre_tarea`/`descripcion_tarea` = `nombre_producto_aa`. `fecha_ejecucion_tarea` = `fecha_hora_aplicacion_aa`. `id_responsable` = el mismo elegido acá. Reutiliza la lógica de creación de `PlanesAccionService`, no el endpoint HTTP `POST .../hitos/:id_hito_real/tareas` (que fuerza estado inicial "Planificado") — necesita una variante interna del método de creación, no expuesta por su propia ruta.
+
+> **Aplicación generada al completar una tarea desde la parcela:** el camino inverso (una tarea de tipo agroquímico creada desde el detalle de la parcela que se pasa a un estado de cierre exitoso) genera la `AplicacionAgroquimico` a partir de los datos de la tarea, y copia su `descripcion_tarea` (sin espacios sobrantes) como `observaciones` de la aplicación; si la descripción está vacía, `observaciones` queda en `null`. Si la tarea ya tenía una aplicación asociada no se genera otra.
 > 
 > 
 > Se escribe además una entrada en `LogOperaciones` (usuario autenticado, `tipo_operacion` de creación, `recurso` apuntando a la aplicación) — es lo que resuelve "usuario que registró la operación" (ver Decisión #2), no viaja como campo de la respuesta.
@@ -154,7 +156,7 @@ Se dispara si no existe ningún `TipoTarea` con `es_tipo_agroquimico: true` y ac
 
 `200 OK` con `message: "Aplicación actualizada correctamente"`, el detalle actualizado (mismo shape que la creación) y `fecha_modificacion` seteada.
 
-> **Propagación a la tarea vinculada:** si `id_tarea` no es `null`, se actualizan en la tarea: `fecha_ejecucion_tarea` (= nuevo `fecha_hora_aplicacion_aa`), `descripcion_tarea` (= nuevo `nombre_producto_aa`), `id_responsable`. Si `id_tarea` es `null` (la tarea fue eliminada), se rechaza toda la edición — ver ERR-15.
+> **Propagación a la tarea vinculada:** si `id_tarea` no es `null`, solo se sincronizan en la tarea el producto, la dosis, la fecha y el responsable: `nombre_producto_aa`, `dosis_aa`, `fecha_hora_aplicacion_aa`, `fecha_ejecucion_tarea` (= nuevo `fecha_hora_aplicacion_aa`) e `id_responsable`. `nombre_tarea` y `descripcion_tarea` **no se modifican** (la tarea pudo haberse creado desde la parcela con nombre y descripción propios). Si `id_tarea` es `null` (la tarea fue eliminada), se rechaza toda la edición — ver ERR-15.
 > 
 
 ### Errores
@@ -182,7 +184,10 @@ Se dispara si no existe ningún `TipoTarea` con `es_tipo_agroquimico: true` y ac
       "id_parcela": 101,
       "nombre_parcela": "Parcela Norte",
       "id_responsable": 34,
-      "nombre_responsable": "Roberto Sánchez"
+      "nombre_responsable": "Roberto Sánchez",
+      "observaciones": "Aplicar en horas de baja radiación solar",
+      "id_hito_real": 201,
+      "nombre_hito": "Siembra"
     }
   ],
   "total": 1,
@@ -192,6 +197,8 @@ Se dispara si no existe ningún `TipoTarea` con `es_tipo_agroquimico: true` y ac
 ```
 
 > Paginado de a 10 (HU-AQ-03 lo pide explícito). Orden por `fecha_hora_aplicacion_aa` descendente. `id_parcela` (HU-AQ-04), `fecha_desde`/`fecha_hasta` (HU-AQ-05, sobre `fecha_hora_aplicacion_aa`), `id_responsable` (HU-AQ-06) — todos opcionales y combinables entre sí, `"Todas"/"Todos"` = parámetro omitido. Sin resultados → `aplicaciones: []`, el frontend decide el mensaje según qué filtro esté activo; sin ningún registro en la finca → `"Aún no hay aplicaciones registradas. Hacé clic en 'Registrar Aplicación' para comenzar."`.
+>
+> Cada ítem trae también `observaciones`, `id_hito_real` y `nombre_hito` (todos nullable), así el frontend puede abrir el detalle/edición desde la fila sin otra llamada. El hito sale de la tarea vinculada (`tarea.hito`): si la aplicación no tiene tarea o la tarea no tiene hito, `id_hito_real` y `nombre_hito` vienen en `null`.
 > 
 
 ### Errores

@@ -696,7 +696,7 @@ async cancelar_pendientes_y_inactivar_planes(filtro: {
         nombre_producto_aa: tarea.nombre_producto_aa,
         dosis_aa: tarea.dosis_aa,
         fecha_hora_aplicacion_aa: tarea.fecha_hora_aplicacion_aa,
-        observaciones: null,
+        observaciones: tarea.descripcion_tarea?.trim() || null,
         responsable: tarea.responsable ?? null,
         parcela: tarea.hito?.plan_accion?.parcela ?? null,
       }),

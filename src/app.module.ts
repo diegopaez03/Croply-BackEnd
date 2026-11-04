@@ -22,6 +22,7 @@ import { NotasCampoModule } from './modules/notas-campo';
 import { GastosModule } from './modules/gastos';
 import { AgroquimicosModule } from './modules/agroquimicos';
 import { TableroGlobalModule } from './modules/tablero-global';
+import { PreguntasFrecuentesModule } from './modules/preguntas-frecuentes';
 import { RecomendacionesModule } from './modules/recomendaciones';
 import { AlertasClimaticasModule } from './modules/alertas-climaticas';
 import { NotificacionesModule } from './modules/notificaciones';
@@ -69,6 +70,7 @@ import { NotificacionesModule } from './modules/notificaciones';
     GastosModule,
     AgroquimicosModule,
     TableroGlobalModule,
+    PreguntasFrecuentesModule,
     RecomendacionesModule,
     AlertasClimaticasModule,
     NotificacionesModule,

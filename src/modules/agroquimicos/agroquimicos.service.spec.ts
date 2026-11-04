@@ -1,4 +1,5 @@
 import { EstadoPlanAccion, TipoOperacion } from '../../common/enums';
+import * as pdf from './agroquimicos.pdf';
 import { AgroquimicosService } from './agroquimicos.service';
 
 const ACTOR = { id_usuario: 7 } as never;
@@ -212,8 +213,8 @@ describe('AgroquimicosService', () => {
   it('actualiza la aplicación y propaga producto, fecha y responsable a la tarea', async () => {
     const tarea = {
       id_tarea: 601,
-      nombre_tarea: 'Fungicida XYZ',
-      descripcion_tarea: 'Fungicida XYZ',
+      nombre_tarea: 'Aplicar fungicida en hito 2',
+      descripcion_tarea: 'Aplicación programada',
       fecha_ejecucion_tarea: new Date('2026-09-22T09:00:00.000Z'),
       nombre_producto_aa: 'Fungicida XYZ',
       dosis_aa: '2 L/ha',
@@ -272,12 +273,31 @@ describe('AgroquimicosService', () => {
     );
 
     expect(result.message).toBe('Aplicación actualizada correctamente');
+    expect(Object.keys(result).sort()).toEqual(
+      [
+        'message',
+        'id_aplicacion',
+        'fecha_hora_aplicacion_aa',
+        'nombre_producto_aa',
+        'dosis_aa',
+        'observaciones',
+        'id_parcela',
+        'nombre_parcela',
+        'id_hito_real',
+        'nombre_hito',
+        'id_responsable',
+        'nombre_responsable',
+        'id_tarea',
+        'fecha_creacion',
+        'fecha_modificacion',
+      ].sort(),
+    );
     expect(result.fecha_modificacion).toBe('2026-09-22T11:00:00.000Z');
     expect(result.nombre_responsable).toBe('Ana López');
     expect(tarea).toEqual(
       expect.objectContaining({
-        nombre_tarea: 'Fungicida XYZ Plus',
-        descripcion_tarea: 'Fungicida XYZ Plus',
+        nombre_tarea: 'Aplicar fungicida en hito 2',
+        descripcion_tarea: 'Aplicación programada',
         nombre_producto_aa: 'Fungicida XYZ Plus',
         dosis_aa: '2.5 L/ha',
         fecha_ejecucion_tarea: new Date('2026-09-22T10:30:00.000Z'),
@@ -314,8 +334,13 @@ describe('AgroquimicosService', () => {
           fecha_hora_aplicacion_aa: new Date('2026-09-22T09:00:00.000Z'),
           nombre_producto_aa: 'Fungicida XYZ',
           dosis_aa: '2 L/ha',
+          observaciones: 'Aplicar en horas de baja radiación solar',
           parcela,
           responsable,
+          tarea: {
+            id_tarea: 601,
+            hito: { id_hito: 201, nombre_hito: 'Siembra' },
+          },
         },
       ],
       1,
@@ -347,12 +372,25 @@ describe('AgroquimicosService', () => {
           nombre_parcela: 'Parcela Norte',
           id_responsable: 34,
           nombre_responsable: 'Roberto Sánchez',
+          observaciones: 'Aplicar en horas de baja radiación solar',
+          id_hito_real: 201,
+          nombre_hito: 'Siembra',
         },
       ],
       total: 1,
       page: 1,
       pageSize: 10,
     });
+    expect(builder.leftJoinAndSelect).toHaveBeenCalledWith(
+      'aplicacion.tarea',
+      'tarea',
+    );
+    expect(builder.leftJoinAndSelect).toHaveBeenCalledWith(
+      'tarea.hito',
+      'hito',
+    );
+    expect(builder.skip).toHaveBeenCalledWith(0);
+    expect(builder.take).toHaveBeenCalledWith(10);
     expect(builder.orderBy).toHaveBeenCalledWith(
       'aplicacion.fecha_hora_aplicacion_aa',
       'DESC',
@@ -369,6 +407,34 @@ describe('AgroquimicosService', () => {
     expect(builder.andWhere).toHaveBeenCalledWith(
       'aplicacion.fecha_hora_aplicacion_aa < :fecha_hasta',
       { fecha_hasta: new Date('2026-10-01T00:00:00.000Z') },
+    );
+  });
+
+  it('lista con observaciones e hito en null si la aplicación no tiene tarea', async () => {
+    agro_repo.createQueryBuilder.mockReturnValue(
+      query_builder([
+        {
+          id_aplicacion_agroquimico: 56,
+          fecha_hora_aplicacion_aa: new Date('2026-09-23T09:00:00.000Z'),
+          nombre_producto_aa: 'Herbicida ABC',
+          dosis_aa: '1 L/ha',
+          observaciones: null,
+          parcela,
+          responsable: null,
+          tarea: null,
+        },
+      ]),
+    );
+
+    const result = await service.listar(12, {});
+
+    expect(result.aplicaciones[0]).toEqual(
+      expect.objectContaining({
+        id_aplicacion: 56,
+        observaciones: null,
+        id_hito_real: null,
+        nombre_hito: null,
+      }),
     );
   });
 
@@ -401,6 +467,7 @@ describe('AgroquimicosService', () => {
   });
 
   it('arma un PDF con el historial cuando hay aplicaciones', async () => {
+    const spy_pdf = jest.spyOn(pdf, 'armar_pdf_historial');
     finca_repo.findOne.mockResolvedValue({
       id_finca: 12,
       nombre_finca: 'Finca Demo Croply',
@@ -416,6 +483,14 @@ describe('AgroquimicosService', () => {
           parcela,
           responsable,
         },
+        {
+          id_aplicacion_agroquimico: 56,
+          fecha_hora_aplicacion_aa: new Date('2026-09-23T02:30:00.000Z'),
+          nombre_producto_aa: 'Herbicida ABC',
+          dosis_aa: '1 L/ha',
+          parcela,
+          responsable: null,
+        },
       ]),
     );
 
@@ -428,18 +503,38 @@ describe('AgroquimicosService', () => {
     expect(archivo.filename).toMatch(
       /^agroquimicos_finca-demo-croply_\d{4}-\d{2}-\d{2}\.pdf$/,
     );
-    const texto = archivo.buffer.toString('latin1');
-    expect(texto.startsWith('%PDF')).toBe(true);
-    expect(texto).toContain(hex_pdf('Croply'));
-    expect(texto).toContain(hex_pdf('Fungicida XYZ'));
-    expect(texto).toContain(hex_pdf('2 L/ha'));
-    expect(texto).toContain(hex_pdf('2026-09-01 a 2026-09-30'));
+    expect(archivo.buffer.subarray(0, 4).toString('latin1')).toBe('%PDF');
+
+    const datos = spy_pdf.mock.calls[0][0];
+    expect(datos.id_reporte).toMatch(/^AQ-12-\d+$/);
+    expect(datos.fecha_generacion).toBeInstanceOf(Date);
+    expect(datos).toEqual(
+      expect.objectContaining({
+        nombre_finca: 'Finca Demo Croply',
+        rango: '01/09/2026 — 30/09/2026',
+        nombre_parcela: 'Parcela Norte',
+      }),
+    );
+    // Hora de Argentina (UTC-3): 09:00Z → 06:00 y 02:30Z → 23:30 del día anterior.
+    expect(datos.filas).toEqual([
+      {
+        fecha: '22/09/2026 06:00',
+        producto: 'Fungicida XYZ',
+        dosis: '2 L/ha',
+        parcela: 'Parcela Norte',
+        nombre_responsable: 'Roberto Sánchez',
+      },
+      {
+        fecha: '22/09/2026 23:30',
+        producto: 'Herbicida ABC',
+        dosis: '1 L/ha',
+        parcela: 'Parcela Norte',
+        nombre_responsable: null,
+      },
+    ]);
+    spy_pdf.mockRestore();
   });
 });
-
-function hex_pdf(texto: string): string {
-  return Buffer.from(texto, 'latin1').toString('hex');
-}
 
 function alta_dto() {
   return {

@@ -1,4 +1,5 @@
 import { TipoOperacion } from '../../common/enums';
+import * as pdf from './gastos.pdf';
 import { GastosService } from './gastos.service';
 
 const PNG_1X1 =
@@ -403,7 +404,14 @@ describe('GastosService', () => {
 
     gasto_repo.find.mockResolvedValueOnce([
       gasto_persistido({ monto_gp: '45000.50' }),
+      gasto_persistido({
+        id_gasto_produccion: 89,
+        nombre_insumo_gp: 'Semillas de tomate',
+        monto_gp: '1200',
+        fecha_gp: '2026-09-01',
+      }),
     ]);
+    const spy_pdf = jest.spyOn(pdf, 'armar_pdf_historial');
 
     const archivo = await service.exportar(12, {
       fecha_desde: '2026-09-01',
@@ -415,5 +423,31 @@ describe('GastosService', () => {
     expect(archivo.filename).toMatch(
       /^costos_finca-la-esperanza_\d{4}-\d{2}-\d{2}\.pdf$/,
     );
+
+    const datos = spy_pdf.mock.calls[0][0];
+    expect(datos.generado_en).toBeInstanceOf(Date);
+    expect(datos).toEqual(
+      expect.objectContaining({
+        id_finca: 12,
+        nombre_finca: 'Finca La Esperanza',
+        fecha_desde: '2026-09-01',
+        fecha_hasta: '2026-09-30',
+        monto_total_periodo: 46200.5,
+        imagen_grafico: PNG_1X1,
+      }),
+    );
+    // fecha_gp viaja como día sin hora; el PDF la formatea sin pasar por Date.
+    expect(datos.gastos).toEqual(
+      expect.arrayContaining([
+        {
+          fecha_gp: '2026-09-20',
+          nombre_insumo_gp: 'Fertilizante NPK',
+          monto_gp: 45000.5,
+          nombre_responsable: 'Roberto Sánchez',
+        },
+        expect.objectContaining({ fecha_gp: '2026-09-01', monto_gp: 1200 }),
+      ]),
+    );
+    spy_pdf.mockRestore();
   });
 });

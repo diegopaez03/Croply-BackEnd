@@ -23,6 +23,7 @@ export const SWAGGER_TAGS = {
   GASTOS: 'Gastos',
   AGROQUIMICOS: 'Agroquimicos',
   SOLICITUDES_DIGITALIZACION: 'SolicitudesDigitalizacion',
+  SOPORTE: 'Soporte',
   NOTIFICACIONES: 'Notificaciones',
 } as const;
 
@@ -104,6 +105,10 @@ La mayoría de los endpoints requieren un JWT Bearer Token.
     .addTag(
       SWAGGER_TAGS.SOLICITUDES_DIGITALIZACION,
       'Solicitudes de digitalización de finca',
+    )
+    .addTag(
+      SWAGGER_TAGS.SOPORTE,
+      'Ayuda y soporte: preguntas frecuentes, manual de usuario y contacto',
     )
     .addTag(SWAGGER_TAGS.NOTIFICACIONES, 'Notificaciones del usuario');
 

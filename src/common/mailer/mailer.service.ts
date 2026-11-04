@@ -20,7 +20,7 @@ export class MailerService {
   ) {}
 
   async send_password_reset(email: string, token: string): Promise<void> {
-    const link = `${this.frontend_origin()}/resetear-contrasena?token=${token}`;
+    const link = `${this.frontend_origin()}/resetear-contrasena/${token}`;
     const template = passwordResetTemplate(link);
     await this.safe_send({
       to: email,

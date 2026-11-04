@@ -3,6 +3,7 @@ export const PERMISO_SISTEMA = {
   FINCAS_INFRAESTRUCTURA: 'Fincas e Infraestructura',
   CATALOGOS_BASE: 'Catálogos Base',
   SOLICITUDES_DIGITALIZACION: 'Solicitudes de digitalización',
+  SOPORTE: 'Soporte',
 } as const;
 
 export const PERMISO_FINCA = {
