@@ -17,7 +17,14 @@ export const SWAGGER_TAGS = {
   PARCELAS: 'Parcelas',
   REPORTS: 'Reportes',
   TIPOS_SENSOR: 'TiposSensor',
+  TIPOS_TAREA: 'TiposTarea',
+  ESTADOS_TAREA: 'EstadosTarea',
+  NOTAS_CAMPO: 'NotasCampo',
+  GASTOS: 'Gastos',
+  AGROQUIMICOS: 'Agroquimicos',
   SOLICITUDES_DIGITALIZACION: 'SolicitudesDigitalizacion',
+  SOPORTE: 'Soporte',
+  NOTIFICACIONES: 'Notificaciones',
 } as const;
 
 export type SwaggerTag = (typeof SWAGGER_TAGS)[keyof typeof SWAGGER_TAGS];
@@ -89,11 +96,21 @@ La mayoría de los endpoints requieren un JWT Bearer Token.
     .addTag(SWAGGER_TAGS.CULTIVOS, 'Cultivos')
     .addTag(SWAGGER_TAGS.UPLOADS, 'Subida de archivos e imágenes')
     .addTag(SWAGGER_TAGS.PARCELAS, 'Parcelas')
+    .addTag(SWAGGER_TAGS.TIPOS_TAREA, 'Catálogo de tipos de tarea')
+    .addTag(SWAGGER_TAGS.ESTADOS_TAREA, 'Catálogo de estados de tarea')
+    .addTag(SWAGGER_TAGS.NOTAS_CAMPO, 'Notas de campo')
+    .addTag(SWAGGER_TAGS.GASTOS, 'Gastos de producción y costos')
+    .addTag(SWAGGER_TAGS.AGROQUIMICOS, 'Registro de aplicaciones de agroquímicos')
     .addTag(SWAGGER_TAGS.REPORTS, 'Reportes e informes')
     .addTag(
       SWAGGER_TAGS.SOLICITUDES_DIGITALIZACION,
       'Solicitudes de digitalización de finca',
-    );
+    )
+    .addTag(
+      SWAGGER_TAGS.SOPORTE,
+      'Ayuda y soporte: preguntas frecuentes, manual de usuario y contacto',
+    )
+    .addTag(SWAGGER_TAGS.NOTIFICACIONES, 'Notificaciones del usuario');
 
   if (options.nodeEnv === 'production') {
     builder.addServer('https://api.croply.app', 'Producción');

@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Inject, Logger, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import {
@@ -20,7 +20,12 @@ import { CodigoQR } from './entities/codigo-qr.entity';
 import { Parcela } from './entities/parcela.entity';
 import { Sensor } from './entities/sensor.entity';
 import { SimuladorSincronizacionEstructuralService } from '../simulador-iot/simulador-sincronizacion-estructural.service';
+import { PlanesAccionService } from '../planes-accion/planes-accion.service';
 import { PlanAccion } from '../planes-accion/entities/plan-accion.entity';
+import {
+  fecha_estimada_cosecha,
+  fecha_iso,
+} from '../alertas-climaticas/etapa-fenologica';
 import {
   ActualizarParcelaDto,
   CrearParcelaDto,
@@ -44,6 +49,8 @@ export class ParcelasService {
     private readonly plan_accion_repo: Repository<PlanAccion>,
     private readonly tipos_sensor_service: TiposSensorService,
     private readonly simulador_sincronizacion_service: SimuladorSincronizacionEstructuralService,
+    @Inject(forwardRef(() => PlanesAccionService))
+    private readonly planes_service: PlanesAccionService,
   ) {}
 
   async crear(
@@ -157,6 +164,9 @@ export class ParcelasService {
       }
     }
     await this.simulador_sincronizacion_service.sincronizar_baja(parcela);
+    await this.planes_service.cancelar_pendientes_y_inactivar_planes({
+      id_parcela,
+    });
 
     return {
       message:
@@ -269,6 +279,15 @@ export class ParcelasService {
             nombre_cultivo_base: plan.cultivo_base.nombre_cultivo_base,
             nombre_variedad: plan.variedad.nombre_variedad,
             superficie_ocupada_pa: plan.superficie_ocupada_pa,
+            fecha_inicio_pa: plan.fecha_inicio_pa
+              ? fecha_iso(plan.fecha_inicio_pa)
+              : null,
+            fecha_estimada_cosecha: plan.fecha_inicio_pa
+              ? fecha_estimada_cosecha(
+                  plan.fecha_inicio_pa,
+                  plan.cultivo_base.nombre_cultivo_base,
+                )
+              : null,
           }
         : null,
       recomendacion_ia_resumen: null,

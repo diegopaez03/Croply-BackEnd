@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { HitoPlantilla } from './hito-plantilla.entity';
+import { TipoTarea } from '../../tipos-tarea/entities/tipo-tarea.entity';
 
 @Entity('tareas_plantilla')
 export class TareaPlantilla {
@@ -15,8 +16,9 @@ export class TareaPlantilla {
   @Column({ name: 'dia_relativo_tp', type: 'int' })
   dia_relativo_tp: number;
 
-  @Column({ name: 'id_tipo_tarea', type: 'int' })
-  id_tipo_tarea: number;
+  @ManyToOne(() => TipoTarea, { nullable: false })
+  @JoinColumn({ name: 'id_tipo_tarea' })
+  tipo_tarea: TipoTarea;
 
   @Column({ name: 'descripcion_tp', type: 'text' })
   descripcion_tp: string;

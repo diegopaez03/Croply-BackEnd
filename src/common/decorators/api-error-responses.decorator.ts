@@ -6,6 +6,7 @@ import {
   ApiGoneResponse,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
+  ApiServiceUnavailableResponse,
   ApiUnauthorizedResponse,
   ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
@@ -28,6 +29,8 @@ export interface ApiErrorResponsesOptions {
   tooManyRequests?: boolean;
   /** Include 500 Internal Server Error (default: true) */
   internalServerError?: boolean;
+  /** Include 503 Service Unavailable (default: false) */
+  serviceUnavailable?: boolean;
 }
 
 /**
@@ -44,6 +47,7 @@ export function ApiErrorResponses(options: ApiErrorResponsesOptions = {}) {
     gone = false,
     tooManyRequests = true,
     internalServerError = true,
+    serviceUnavailable = false,
   } = options;
 
   const decorators: MethodDecorator[] = [];
@@ -106,6 +110,15 @@ export function ApiErrorResponses(options: ApiErrorResponsesOptions = {}) {
     decorators.push(
       ApiTooManyRequestsResponse({
         description: 'Límite de rate limiting excedido',
+        type: ErrorResponseDto,
+      }),
+    );
+  }
+
+  if (serviceUnavailable) {
+    decorators.push(
+      ApiServiceUnavailableResponse({
+        description: 'Servicio externo no disponible',
         type: ErrorResponseDto,
       }),
     );

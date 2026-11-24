@@ -6,8 +6,9 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { EstadoTarea } from '../../../common/enums';
+import { EstadoTarea } from '../../estados-tarea/entities/estado-tarea.entity';
 import { UsuarioFinca } from '../../fincas/entities/usuario-finca.entity';
+import { TipoTarea } from '../../tipos-tarea/entities/tipo-tarea.entity';
 import { Hito } from './hito.entity';
 
 @Entity('tareas')
@@ -30,16 +31,13 @@ export class Tarea {
   @CreateDateColumn({ name: 'fecha_creacion_tarea', type: 'timestamptz' })
   fecha_creacion_tarea: Date;
 
-  @Column({ name: 'id_tipo_tarea', type: 'int' })
-  id_tipo_tarea: number;
+  @ManyToOne(() => TipoTarea, { nullable: false })
+  @JoinColumn({ name: 'id_tipo_tarea' })
+  tipo_tarea: TipoTarea;
 
-  @Column({
-    name: 'estado',
-    type: 'enum',
-    enum: EstadoTarea,
-    default: EstadoTarea.PLANIFICADO,
-  })
-  estado: EstadoTarea;
+  @ManyToOne(() => EstadoTarea, { nullable: false })
+  @JoinColumn({ name: 'id_estado_tarea' })
+  estado_tarea: EstadoTarea;
 
   @Column({ name: 'nombre_producto_aa', nullable: true })
   nombre_producto_aa: string | null;

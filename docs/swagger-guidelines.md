@@ -199,6 +199,7 @@ Los valores de tag en Swagger coinciden con `SWAGGER_TAGS`. Las carpetas de mód
 | `PARCELAS` | Parcelas | `modules/parcelas` |
 | `REPORTS` | Reportes | `modules/reportes` |
 | `SOLICITUDES_DIGITALIZACION` | SolicitudesDigitalizacion | `modules/solicitudes-digitalizacion` |
+| `SOPORTE` | Soporte | `modules/preguntas-frecuentes` |
 
 Al agregar un dominio nuevo:
 

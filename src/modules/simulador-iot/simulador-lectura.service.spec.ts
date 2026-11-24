@@ -24,7 +24,12 @@ function parcela(sensores = [sensor()]) {
     fecha_baja_parcela: null,
     finca: { fecha_baja_finca: null },
     controladores: [
-      { fecha_baja: null, sensores },
+      {
+        fecha_baja: null,
+        id_controlador_sensor: 8,
+        nombre_controlador: 'Controlador Norte',
+        sensores,
+      },
     ],
   } as never;
 }
@@ -165,6 +170,8 @@ describe('SimuladorLecturaService', () => {
       estado_general: EstadoTransmision.SIN_SENAL,
       sensores: [
         {
+          id_controlador_sensor: 8,
+          nombre_controlador: 'Controlador Norte',
           id_sensor: 17,
           nombre_tipo_sensor: 'Sensor de pH',
           unidad_medida_ts: 'pH',
@@ -179,6 +186,65 @@ describe('SimuladorLecturaService', () => {
     await expect(service.obtener_monitoreo(3)).resolves.toEqual({
       estado_general: null,
       sensores: [],
+    });
+  });
+
+  it('identifica el controlador de cada sensor cuando hay más de uno', async () => {
+    const sensor_norte = sensor({ id_sensor: 17 });
+    const sensor_sur = sensor({
+      id_sensor: 18,
+      ultimo_valor: 38.2,
+      estado_senal: EstadoTransmision.TRANSMITIENDO,
+      tipo_sensor: {
+        nombre_tipo_sensor: 'Sensor de humedad del suelo',
+        unidad_medida_ts: '%',
+      },
+    });
+    parcela_repo.findOne.mockResolvedValueOnce({
+      id_parcela: 3,
+      estado_parcela: EstadoParcela.ACTIVA,
+      fecha_baja_parcela: null,
+      finca: { fecha_baja_finca: null },
+      controladores: [
+        {
+          fecha_baja: null,
+          id_controlador_sensor: 8,
+          nombre_controlador: 'Controlador Norte',
+          sensores: [sensor_norte],
+        },
+        {
+          fecha_baja: null,
+          id_controlador_sensor: 9,
+          nombre_controlador: 'Controlador Sur',
+          sensores: [sensor_sur],
+        },
+      ],
+    });
+
+    await expect(service.obtener_monitoreo(3)).resolves.toEqual({
+      estado_general: EstadoTransmision.TRANSMITIENDO,
+      sensores: [
+        {
+          id_controlador_sensor: 8,
+          nombre_controlador: 'Controlador Norte',
+          id_sensor: 17,
+          nombre_tipo_sensor: 'Sensor de pH',
+          unidad_medida_ts: 'pH',
+          ultimo_valor: 10,
+          fecha_ultima_lectura: sensor_norte.fecha_ultima_lectura,
+          estado_senal: EstadoTransmision.SIN_SENAL,
+        },
+        {
+          id_controlador_sensor: 9,
+          nombre_controlador: 'Controlador Sur',
+          id_sensor: 18,
+          nombre_tipo_sensor: 'Sensor de humedad del suelo',
+          unidad_medida_ts: '%',
+          ultimo_valor: 38.2,
+          fecha_ultima_lectura: sensor_sur.fecha_ultima_lectura,
+          estado_senal: EstadoTransmision.TRANSMITIENDO,
+        },
+      ],
     });
   });
 

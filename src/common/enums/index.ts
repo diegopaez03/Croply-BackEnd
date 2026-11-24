@@ -12,7 +12,6 @@ export {
   EstadoParcela,
   EstadoTransmision,
   EstadoPlanAccion,
-  EstadoTarea,
 } from './estado.enum';
 export {
   PERMISO_SISTEMA,

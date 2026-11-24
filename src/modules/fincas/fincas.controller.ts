@@ -106,7 +106,9 @@ export class FincasController {
   @ApiOperation({
     summary: 'Listar usuarios de todas las fincas administradas',
     description:
-      'Vista multi-finca: cada fila incluye la finca a la que pertenece la vinculación. `id_finca` acota el listado a una finca puntual.',
+      'Vista multi-finca: cada fila incluye la finca a la que pertenece la vinculación. `id_finca` acota el listado a una finca puntual. ' +
+      'Incluye primero las invitaciones pendientes (vigentes, sin aceptar ni cancelar) como filas con `id_usuario: null`, `id_usuario_finca: null`, ' +
+      '`id_invitacion_finca` y `estado: "Pendiente"`; se muestran sin filtro de estado o con `estado=Pendiente`, y `search` las busca por email.',
   })
   @ApiOkResponse({ description: 'Listado paginado' })
   @ApiErrorResponses({ forbidden: true, notFound: true })
@@ -305,7 +307,13 @@ export class FincasController {
   @UseGuards(JwtAuthGuard, AdminFincaGuard, PermisoGuard)
   @RequirePermiso(PERMISO_FINCA.GESTION_TRABAJADORES)
   @ApiAuth()
-  @ApiOperation({ summary: 'Listar usuarios vinculados a la finca' })
+  @ApiOperation({
+    summary: 'Listar usuarios vinculados a la finca',
+    description:
+      'Incluye primero las invitaciones pendientes de la finca (vigentes, sin aceptar ni cancelar) como filas con `id_usuario: null`, ' +
+      '`id_usuario_finca: null`, `id_invitacion_finca` y `estado: "Pendiente"`; se muestran sin filtro de estado o con `estado=Pendiente`, ' +
+      'y `search` las busca por email.',
+  })
   @ApiOkResponse({ description: 'Listado paginado' })
   @ApiErrorResponses({ forbidden: true })
   listar_usuarios(

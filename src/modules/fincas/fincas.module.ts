@@ -18,6 +18,7 @@ import { InvitacionesController } from './invitaciones.controller';
 import { ClimaService } from './clima.service';
 import { MiFincaController } from './mi-finca.controller';
 import { ParcelasModule } from '../parcelas/parcelas.module';
+import { PlanesAccionModule } from '../planes-accion/planes-accion.module';
 
 
 @Module({
@@ -36,10 +37,11 @@ import { ParcelasModule } from '../parcelas/parcelas.module';
     forwardRef(() => UsuariosModule),
     forwardRef(() => AuthModule),
     forwardRef(() => ParcelasModule),
+    forwardRef(() => PlanesAccionModule),
     MailerModule,
   ],
   controllers: [FincasController, InvitacionesController, MiFincaController],
   providers: [FincasService, ClimaService],
-  exports: [FincasService, TypeOrmModule],
+  exports: [FincasService, ClimaService, TypeOrmModule],
 })
 export class FincasModule {}

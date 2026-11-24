@@ -32,6 +32,7 @@ import {
 } from './dto/fincas.dto';
 //import { ParcelasService } from '@modules/parcelas/parcelas.service';
 import { ParcelasService } from '../parcelas/parcelas.service';
+import { PlanesAccionService } from '../planes-accion/planes-accion.service';
 
 
 const INVITATION_TTL_DAYS = 7;
@@ -56,6 +57,8 @@ export class FincasService {
     private readonly log_service: LogOperacionesService,
     @Inject(forwardRef(() => ParcelasService))
     private readonly parcelas_service: ParcelasService,
+    @Inject(forwardRef(() => PlanesAccionService))
+    private readonly planes_service: PlanesAccionService,
   ) {}
 
   async find_finca_by_id(id_finca: number): Promise<Finca | null> {
@@ -245,21 +248,28 @@ export class FincasService {
   }
 
   async dar_baja_finca(id_finca: number, actor: Usuario) {
-    const finca = await this.require_finca(id_finca);
+  const finca = await this.require_finca(id_finca);
 
-    // Confirmado: baja lógica en cascada — cambia estado a Inactivo, inactiva parcelas asociadas, cancela tareas pendientes de esas parcelas, conserva histórico de agroquímicos sin modificar, inactiva cultivos activos, revoca accesos de usuarios invitados sin tocar el estado de cuenta del Administrador de Finca.
-    finca.fecha_baja_finca = new Date();
-    await this.finca_repo.save(finca);
+  finca.fecha_baja_finca = new Date();
+  await this.finca_repo.save(finca);
 
-    await this.log_service.registrar({
-      usuario: actor,
-      tipo_operacion: TipoOperacion.OPERACION_DESTRUCTIVA,
-      descripcion: `Baja de finca ${finca.nombre_finca}`,
-      recurso: `Finca:${finca.id_finca}`,
-    });
+  const parcelas_activas = await this.parcela_repo.find({
+    where: { finca: { id_finca }, estado_parcela: EstadoParcela.ACTIVA },
+  });
+
+  for (const parcela of parcelas_activas) {
+    await this.parcelas_service.dar_baja(id_finca, parcela.id_parcela);
+  }
+
+  await this.log_service.registrar({
+    usuario: actor,
+    tipo_operacion: TipoOperacion.OPERACION_DESTRUCTIVA,
+    descripcion: `Baja de finca ${finca.nombre_finca}`,
+    recurso: `Finca:${finca.id_finca}`,
+  });
 
     return {
-      message:
+     message:
         'Finca dada de baja correctamente. Las parcelas y datos asociados fueron actualizados.',
     };
   }
@@ -342,12 +352,7 @@ export class FincasService {
         'rf.codigo_rol_finca = :codigo_admin_finca',
         { codigo_admin_finca: CODIGO_ADMIN_FINCA },
       )
-      .leftJoinAndSelect(
-        'f.parcelas',
-        'p',
-        'p.estado_parcela = :estado_parcela',
-        { estado_parcela: EstadoParcela.ACTIVA },
-      )
+      .leftJoinAndSelect('f.parcelas', 'p')
       .leftJoinAndSelect(
         'p.controladores',
         'c',

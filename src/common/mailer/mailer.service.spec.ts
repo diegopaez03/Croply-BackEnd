@@ -25,7 +25,7 @@ describe('MailerService', () => {
         to: 'user@croply.app',
         subject: 'Restablecé tu contraseña — Croply',
         html: expect.stringContaining(
-          'http://localhost:5173/resetear-contrasena?token=token-abc',
+          'http://localhost:5173/resetear-contrasena/token-abc',
         ),
       }),
     );

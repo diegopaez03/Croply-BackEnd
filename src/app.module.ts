@@ -11,11 +11,21 @@ import { RolesModule } from './modules/roles';
 import { SolicitudesDigitalizacionModule } from './modules/solicitudes-digitalizacion';
 import { LogOperacionesModule } from './modules/log-operaciones';
 import { TiposSensorModule } from './modules/tipos-sensor';
+import { TiposTareaModule } from './modules/tipos-tarea';
+import { EstadosTareaModule } from './modules/estados-tarea';
 import { CultivosModule } from './modules/cultivos';
 import { UploadsModule } from './modules/uploads';
 import { ParcelasModule } from './modules/parcelas';
 import { PlanesAccionModule } from './modules/planes-accion';
 import { SimuladorIotModule } from './modules/simulador-iot';
+import { NotasCampoModule } from './modules/notas-campo';
+import { GastosModule } from './modules/gastos';
+import { AgroquimicosModule } from './modules/agroquimicos';
+import { TableroGlobalModule } from './modules/tablero-global';
+import { PreguntasFrecuentesModule } from './modules/preguntas-frecuentes';
+import { RecomendacionesModule } from './modules/recomendaciones';
+import { AlertasClimaticasModule } from './modules/alertas-climaticas';
+import { NotificacionesModule } from './modules/notificaciones';
 
 /**
  * Root application module.
@@ -49,11 +59,21 @@ import { SimuladorIotModule } from './modules/simulador-iot';
     AuthModule,
     SolicitudesDigitalizacionModule,
     TiposSensorModule,
+    TiposTareaModule,
+    EstadosTareaModule,
     CultivosModule,
     UploadsModule,
     ParcelasModule,
     PlanesAccionModule,
     SimuladorIotModule,
+    NotasCampoModule,
+    GastosModule,
+    AgroquimicosModule,
+    TableroGlobalModule,
+    PreguntasFrecuentesModule,
+    RecomendacionesModule,
+    AlertasClimaticasModule,
+    NotificacionesModule,
 
     // ── Seed (desarrollo: admins del equipo) ─────────────────────
     SeedModule,

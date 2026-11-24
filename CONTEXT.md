@@ -16,10 +16,11 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 - Fincas, parcelas y cultivos
 - Reportes
 - Solicitudes de digitalización
+- Ayuda y soporte (preguntas frecuentes, manual de usuario y contacto)
 
 ### Estado actual
 
-**Épica 1 — Gestionar el Acceso**, **Épica 2 — Administrar Usuarios y Roles**, **Épica 4 — Planificar Cultivos** (HU-BC-01 a HU-BC-05) y **Épica 3 — Etapa 1** (HU-FP-01, 02, 03, 04, 06, 07) implementadas. **Épica 7 — HU-IoT-01** (ABM de tipos de sensor) también implementada, con un pendiente puntual (ver sección 8, "Épicas en curso").
+**Épica 1 — Gestionar el Acceso**, **Épica 2 — Administrar Usuarios y Roles**, **Épica 4 — Planificar Cultivos** (HU-BC-01 a HU-BC-06), **Épica 3** (fincas, parcelas e IoT de etapa 1 más detalle/resumen), **Épica 5 — Gestionar Tareas de Campo** (HU-TC-01 a HU-TC-10), **Épica 6 — Registrar Agroquímicos** (HU-AQ-01 a HU-AQ-07), **Épica 7** (tipos de sensor, lecturas y clima) implementadas **Épica 8 — Controlar Costos de Producción** (HU-GC-01 a HU-GC-07) y **Épica 9 — Acceder a Ayuda y Soporte** (HU-AS-01 a HU-AS-04) implementadas.
 
 | Módulo | Contenido |
 | --- | --- |
@@ -27,19 +28,27 @@ Guía de contexto para desarrollar con eficiencia en este repositorio. Resume pr
 | `auth` | Login, registro admin finca / invitado, reset y cambio de contraseña, primer acceso |
 | `usuarios` | Perfil `/me`, listado Croply, asignar rol sistema, cambiar estado |
 | `fincas` | ABM de Finca, propietario, roles de finca, usuarios de finca (scoped y multi-finca), invitaciones, asignación de rol |
-| `roles` | ABM roles sistema, catálogo de permisos, `Permiso` / `RolPermiso` |
+| `roles` | ABM roles sistema, catálogo de permisos, `Permiso` / `RolPermiso`. Permisos de sistema: `Gestión de usuarios`, `Fincas e Infraestructura`, `Catálogos Base`, `Solicitudes de digitalización`, `Soporte` |
 | `solicitudes-digitalizacion` | Alta pública + listado/detalle/estado (Admin Croply) |
 | `log-operaciones` | Auditoría interna (HU-GU-12), sin endpoint FE |
 | `cultivos` | Biblioteca de cultivos base y variedades (incluye `imagen_url` opcional); plantillas de plan base (hitos/tareas); búsqueda y filtros |
+| `tipos-tarea` | ABM de `TipoTarea` (Épica 5, HU-TC-01). Semilla: solo `Aplicación de agroquímico` |
+| `estados-tarea` | ABM de `EstadoTarea` (Épica 5, HU-TC-02). Semilla: `Planificado`, `Completado`, `Cancelada` |
+| `notas-campo` | Captura, listado y conversión de `NotaCampo` en tarea (HU-TC-05 a HU-TC-07) |
+| `gastos` | ABM de `GastoProduccion`, listado/filtros, evolución mensual y export PDF (Épica 8). Permiso `Costos` para ABM/listado; `Reportes` solo para exportar. |
 | `uploads` | `POST /uploads/imagenes` — subida mediada a Cloudinary (JWT) |
 | `tipos-sensor` | ABM de `TipoSensor` (Épica 7, HU-IoT-01) |
 | `parcelas` | ABM de `Parcela`, `ControladorSensor`, `Sensor`, `CodigoQR` (Épica 3) |
-| `planes-accion` | `PlanAccion`, `Hito`, `Tarea` materializados desde plantillas (Épica 3/4) |
+| `planes-accion` | `PlanAccion`, `Hito`, `Tarea` (FK a `TipoTarea` y `EstadoTarea`). Alta interna de tarea ya finalizada para agroquímicos |
+| `agroquimicos` | ABM público de `AplicacionAgroquimico` bajo `/fincas/:id_finca/agroquimicos` (Épica 6), incluida la exportación PDF |
+| `preguntas-frecuentes` | ABM de `PreguntaFrecuente` (permiso `Soporte`) + consulta libre de FAQ y `GET /soporte/configuracion` (manual y email de soporte desde env) (Épica 9) |
+| `recomendaciones` | Recomendación de IA por parcela con caché de 1 hora (Épica 7, HU-NA-03) |
+| `alertas-climaticas` | Cron horario de alertas climáticas y consulta por finca (Épica 7, HU-NA-01) |
 | `database/seed` | Admins Croply + fincas demo + biblioteca demo (Tomate, Ajo, plantilla general de Tomate) + roles + catálogo de permisos |
 
 Placeholder (sin lógica de negocio aún): `reportes`.
 
-**HU-BC-06** (cronograma y ABM de tareas del plan de acción real) está implementada sobre `PlanAccion` / `Hito` / `Tarea`. Los hitos no se editan (vienen de la plantilla). `estado` de tarea es un enum cerrado hasta HU-TC-02. `AplicacionAgroquimico` rica queda para Épica 6.
+**HU-BC-06** (cronograma y ABM de tareas del plan de acción real) quedó reescrita por la Épica 5: `estado` e `id_tipo_tarea` son FKs a catálogos reales. La lógica de negocio usa flags (`es_estado_finalizador`, `cuenta_para_cierre_exitoso`, `es_tipo_agroquimico`), nunca el nombre ni un id fijo. Completar una tarea agroquímica sigue persistiendo `AplicacionAgroquimico`. El ABM público (alta con tarea que nace completada, edición, listado y PDF) es la Épica 6.
 
 Contratos: [`docs/epicas/`](docs/epicas/).
 
@@ -77,7 +86,7 @@ pnpm start:dev
 | Swagger UI | `http://localhost:3000/api/v1/docs` |
 | OpenAPI JSON | `http://localhost:3000/api/v1/docs-json` |
 
-Variables clave (ver `.env.example`): `PORT`, `API_PREFIX`, `SWAGGER_ENABLED`, `DB_*`, `JWT_*`, `CORS_ORIGIN`, `FRONTEND_URL`, `THROTTLE_*`, `SEED_ADMIN_PASSWORD`, `CLOUDINARY_*`, `RESEND_API_KEY`, `MAIL_FROM`.
+Variables clave (ver `.env.example`): `PORT`, `API_PREFIX`, `SWAGGER_ENABLED`, `DB_*`, `JWT_*`, `CORS_ORIGIN`, `FRONTEND_URL`, `THROTTLE_*`, `SEED_ADMIN_PASSWORD`, `CLOUDINARY_*`, `RESEND_API_KEY`, `MAIL_FROM`, `SIMULADOR_*`, `AI_SERVICE_URL`.
 
 ### Credenciales de prueba (seed)
 
@@ -152,9 +161,15 @@ src/
     ├── solicitudes-digitalizacion/
     ├── uploads/            # POST /uploads/imagenes (Cloudinary)
     ├── cultivos/           # biblioteca + plantillas base (Épica 4)
+    ├── tipos-tarea/        # ABM de TipoTarea (Épica 5)
+    ├── estados-tarea/      # ABM de EstadoTarea (Épica 5)
+    ├── notas-campo/        # NotaCampo (Épica 5)
+    ├── gastos/             # GastoProduccion (Épica 8)
     ├── tipos-sensor/       # ABM de TipoSensor (Épica 7, HU-IoT-01)
     ├── parcelas/           # Parcela, ControladorSensor, Sensor, CodigoQR (Épica 3)
     ├── planes-accion/      # PlanAccion, Hito, Tarea (Épica 3/4)
+    ├── agroquimicos/       # AplicacionAgroquimico público (Épica 6)
+    ├── preguntas-frecuentes/ # PreguntaFrecuente + /soporte/configuracion (Épica 9)
     └── reportes/           # placeholder
 ```
 
@@ -199,12 +214,18 @@ Para PRs a `main`, la revisión prioritaria es del Arquitecto.
 | Roles | `modules/roles` |
 | Fincas | `modules/fincas` |
 | Cultivos | `modules/cultivos` |
+| TiposTarea | `modules/tipos-tarea` |
+| EstadosTarea | `modules/estados-tarea` |
+| NotasCampo | `modules/notas-campo` |
+| Gastos | `modules/gastos` |
 | Uploads | `modules/uploads` |
 | TiposSensor | `modules/tipos-sensor` |
 | Parcelas | `modules/parcelas` |
 | PlanesAccion | `modules/planes-accion` |
+| Agroquimicos | `modules/agroquimicos` |
 | Reportes | `modules/reportes` |
 | SolicitudesDigitalizacion | `modules/solicitudes-digitalizacion` |
+| Soporte | `modules/preguntas-frecuentes` |
 
 ### Capas por feature
 
@@ -282,9 +303,9 @@ Railway (deploy futuro), Open-Meteo (clima), Croply IoT Simulator. No bloquean e
 
 Respecto del diagrama completo y épicas futuras:
 
+- CRUD genérico del módulo `reportes` (el PDF de costos de Épica 8 vive en `gastos`, no ahí)
+- ABM público de `AplicacionAgroquimico` (Épica 6; HU-TC-03 solo persiste el registro mínimo al completar)
 - CRUD de reportes
-- ABM de `TipoTarea` / entidad `EstadoTarea` (hoy hay catálogo mock + enum cerrado en `Tarea.estado`)
-- Entidad rica `AplicacionAgroquimico` (Épica 6; HU-BC-06 solo embebe 3 campos en la tarea)
 - RBAC middleware por permiso individual (los permisos se administran; la auth HTTP sigue por rol)
 - Notificaciones push
 - Refresh token como endpoint
@@ -294,6 +315,37 @@ Respecto del diagrama completo y épicas futuras:
 
 
 ## 8. Épicas en curso — notas de implementación
+
+### Épica 9 — Acceder a Ayuda y Soporte
+
+**Alcance implementado:** `src/modules/preguntas-frecuentes/`. Contrato en
+`docs/epicas/Contrato de API — Épica 9 Acceder a Ayuda y Soporte.md`.
+
+- Permiso de sistema nuevo `Soporte` (`PERMISO_SISTEMA.SOPORTE`), asignado
+  automáticamente al rol Admin Croply al arrancar. Los tokens emitidos antes no
+  lo traen: hay que volver a iniciar sesión.
+- Editor (HU-AS-01): `GET /preguntas-frecuentes/gestion` (paginado, última
+  creada primero), `POST`, `PUT /:id_pregunta_frecuente` y
+  `DELETE /:id_pregunta_frecuente` (baja lógica con `fecha_baja_pf`). Guards
+  `JwtAuthGuard` + `AdminCroplyGuard` + `PermisoGuard` con `Soporte`.
+- Consulta (HU-AS-02): `GET /preguntas-frecuentes`, solo `JwtAuthGuard`, lista
+  completa sin paginar en orden alfabético.
+- `normalizar_pregunta` (minúsculas, sin acentos, sin signos de puntuación
+  iniciales ni finales; conserva la `ñ`) es la clave de unicidad entre activas
+  (`DUPLICATE_VALUE`) y de orden de la consulta. Se resuelve en memoria.
+- `pregunta` y `respuesta` llegan con `trim` (`@Transform`) antes de validar.
+- HU-AS-03/04: `GET /soporte/configuracion`, solo `JwtAuthGuard`. Lee
+  `MANUAL_USUARIO_URL` y `SOPORTE_EMAIL` una vez al arrancar; vacía o inválida →
+  `null` (con `warn` si es inválida).
+
+### Épica 8 — Controlar Costos de Producción
+
+**Alcance implementado:** ABM de `GastoProduccion` en `src/modules/gastos/`
+(`POST`/`PUT`/`DELETE` + listado paginado + evolución mensual + export PDF).
+Permiso de finca `Costos` para HU-GC-01 a HU-GC-06; `Reportes` solo para
+`POST .../gastos/exportar`. Baja lógica. `nombre_responsable` persistido.
+La evolución mensual responde un **array plano** `[{ mes, monto }]` para
+integrar con el frontend actual (el contrato muestra `{ meses: [...] }`).
 
 ### HU-IoT-01 — ABM de tipos de sensor (Épica 7)
 
@@ -339,7 +391,11 @@ resto del flujo de baja.
 
 **RESOURCE_IN_USE de TipoSensor (Épica 7) — ahora desbloqueable:** con Sensor ya implementado en esta etapa, TiposSensorService.contar_sensores_activos_asociados() puede reemplazarse por un count() real cuando se retome Épica 7. Habilitar también el test actualmente it.skip en tipos-sensor.service.spec.ts en ese momento.
 
-**Catálogo temporal de TipoTarea:** Tarea/TareaPlantilla usan id_tipo_tarea como número plano (sin FK), resuelto contra src/modules/cultivos/tipo-tarea.catalog.ts. Es intencional y temporal — Épica 5 reemplaza este catálogo por una entidad TipoTarea real. No implementar ABM real de TipoTarea/Tarea como parte de EP-03/EP-04.
+**Catálogo de TipoTarea:** entidad real con ABM (HU-TC-01). `Tarea` y `TareaPlantilla` referencian `TipoTarea` por FK. La semilla solo inserta `Aplicación de agroquímico` (`protegido`, `es_tipo_agroquimico`). El resto de los tipos los carga el equipo desde el ABM. El archivo `tipo-tarea.catalog.ts` fue eliminado.
+
+**Baja de parcela o finca:** las tareas de planes activos cuyo estado no es finalizador pasan a `Cancelada` (por flags) y esos planes pasan a `Inactivado`.
+
+**Base local ya poblada:** `DB_SYNCHRONIZE` no reescribe la columna enum `tareas.estado` ni los `id_tipo_tarea` del catálogo mock (1–7). Hay que recrear la base de desarrollo antes de arrancar esta versión.
 
 **Naming de ControladorSensor:** el nombre contractual definitivo del identificador es `id_controlador_sensor` (singular). Debe utilizarse de forma consistente en entidad, DTOs, requests y responses. No utilizar `id_controlador_sensores`.
 
@@ -355,12 +411,19 @@ resto del flujo de baja.
 3. Integración con la API de clima (HU-IoT-03).
 4. HU IoT correspondiente / completar funcionalidades dependientes de IoT.
 
-**Pendientes para Épica 5:**
+**Épica 5 — implementada** (HU-TC-01 a HU-TC-10): catálogos reales, cronograma con `atrasada` y filtros, notas de campo y cascada de baja. Al completar una tarea agroquímica se persiste el registro mínimo; el ABM público es la Épica 6.
 
-* TipoTarea real (entidad + ABM).
-* Tarea real con ABM propio.
-* Reemplazo del catálogo mock `tipo-tarea.catalog.ts`.
-* Migración de `id_tipo_tarea` desde número plano a FK real cuando corresponda.
+### Épica 6 — Registrar agroquímicos
+
+**Alcance implementado:** `src/modules/agroquimicos/`. Alta, edición, listado filtrado y exportación PDF bajo `/fincas/:id_finca/agroquimicos`. Guard `JwtAuthGuard`, `AdminFincaGuard`, `PermisoGuard` + `REGISTRO_AGROQUIMICOS`.
+
+**Tarea automática:** `PlanesAccionService.crear_tarea_ya_finalizada` (no expuesto por HTTP) crea la tarea directo en el estado con `es_estado_finalizador` y `cuenta_para_cierre_exitoso`. No reutiliza `POST .../tareas`, que fuerza el estado inicial. El tipo se resuelve por `es_tipo_agroquimico` activo; si no hay, `AGROCHEMICAL_TASK_TYPE_UNAVAILABLE`.
+
+**Extensión de `AplicacionAgroquimico`:** `observaciones`, `fecha_creacion`, `fecha_modificacion` y FK a `Parcela`. La PK de base sigue siendo `id_aplicacion_agroquimico`; el JSON usa `id_aplicacion`. La relación con `Tarea` es nullable (`0..1`) y mantiene `ON DELETE CASCADE`. `LINKED_TASK_DELETED` cubre una tarea ausente; hoy una tarea finalizadora no se puede borrar.
+
+**Auditoría:** alta y edición escriben `LogOperaciones` con el usuario autenticado. El responsable del modal es `UsuarioFinca`, no quien registró.
+
+**PDF:** lo arma el backend con `pdfkit` (`GET .../agroquimicos/exportar`). Sin filas responde `EMPTY_EXPORT_RESULT` y no genera archivo.
 
 ### HU-IoT-02 — Visualizar datos de sensores en tiempo real (Épica 7)
 
@@ -486,8 +549,13 @@ corresponden a un Administrador de Finca):
 **Botón "Solicitar digitalización de finca":** sin endpoint nuevo, reutiliza
 `POST /api/v1/solicitudes-digitalizacion` de Épica 1 tal cual.
 
-**`recomendacion_ia_resumen`:** sigue en `null`, depende de HU-NA-03 (sin
-contrato todavía).
+**`recomendacion_ia_resumen`:** sigue en `null`. HU-NA-03 expone la recomendación en `GET /parcelas/:id_parcela/recomendacion-ia`; el contrato de la parte 2 no define el shape de este resumen.
+
+### HU-NA-03 y HU-NA-01 — Recomendaciones de IA y alertas climáticas
+
+**HU-NA-03:** `src/modules/recomendaciones/`. `GET /parcelas/:id_parcela/recomendacion-ia` lee la última fila de `recomendaciones_ia`. Si `valida_hasta` sigue vigente, responde `CACHE_VIGENTE` (o 204 si no hay textos) y no llama al motor. Si venció, llama a `POST /api/v1/ai/evaluate-parcel` con `accion_previa`. Misma acción: renueva una hora y conserva los textos (`CACHE_RENOVADA_SIN_LLM`). Acción nueva: persiste la redacción (`NUEVA_EVALUACION_LLM` o `FALLBACK_INTA` si el motor usó el fallback INTA). Caída del microservicio: 503 `AI_SERVICE_UNAVAILABLE`. `AI_SERVICE_URL` default `http://localhost:8001` (el simulador sigue en 8000).
+
+**HU-NA-01:** `src/modules/alertas-climaticas/`. Un cron de cada hora recorre las fincas activas de a 20, pide el pronóstico del día siguiente y llama a `POST /api/v1/ai/evaluate-climate` (solo reglas, sin Gemma). Alta de `AlertaClimatica` en `Vigente` más una `Notificacion` por usuario con rol vigente. Si el código deja de venir, la alerta pasa a `Resuelta`. Un fallo de una finca no corta el lote. Lectura: `GET /fincas/:id_finca/alertas-climaticas`. No hay endpoint de notificaciones: el contrato no lo define.
 
 ---
 
@@ -513,7 +581,7 @@ No hay push directo a `main` ni `develop`.
 
 Estándar: **TDD** (red → green) en seams acordados. Skill: [`.agent/skills/Test-Driven Development/`](.agent/skills/Test-Driven%20Development/).
 
-Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`, `CultivosBaseService`, `PlantillasBaseService`, `MailerService`, `UploadsService`.
+Seams actuales: `AllExceptionsFilter`, `AuthService`, `RolesService`, `UsuariosService`, `SolicitudesDigitalizacionService`, `SeedService`, `CultivosBaseService`, `PlantillasBaseService`, `PlanesAccionService`, `TiposTareaService`, `EstadosTareaService`, `NotasCampoService`, `ParcelasService`, `FincasService`, `MailerService`, `UploadsService`, `AgroquimicosService`, `RecomendacionesIaService`, `AiIntegrationService`, `AlertasClimaticasCronService`.
 
 Antes de pasar a revisión:
 

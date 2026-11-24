@@ -11,6 +11,7 @@ import {
   varietyAlreadyAssigned,
 } from '../../common/exceptions';
 import { LogOperacionesService } from '../log-operaciones';
+import { TiposTareaService } from '../tipos-tarea';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import {
   CrearPlantillaBaseDto,
@@ -24,10 +25,6 @@ import { PlantillaBase } from './entities/plantilla-base.entity';
 import { PlantillaCultivoVariedad } from './entities/plantilla-cultivo-variedad.entity';
 import { TareaPlantilla } from './entities/tarea-plantilla.entity';
 import { Variedad } from './entities/variedad.entity';
-import {
-  es_aplicacion_agroquimico,
-  find_tipo_tarea,
-} from './tipo-tarea.catalog';
 
 @Injectable()
 export class PlantillasBaseService {
@@ -46,6 +43,7 @@ export class PlantillasBaseService {
     private readonly variedad_repo: Repository<Variedad>,
     private readonly data_source: DataSource,
     private readonly log_service: LogOperacionesService,
+    private readonly tipos_tarea_service: TiposTareaService,
   ) {}
 
   async listar(query: ListarPlantillasBaseQueryDto) {
@@ -85,7 +83,7 @@ export class PlantillasBaseService {
   }
 
   async crear(dto: CrearPlantillaBaseDto, actor: Usuario) {
-    this.validar_cronograma(dto.hitos);
+    await this.validar_cronograma(dto.hitos);
     await this.asegurar_nombre_libre(dto.nombre_pb.trim());
     await this.validar_cultivos(dto.cultivos);
     await this.validar_asignaciones(dto.cultivos);
@@ -126,7 +124,7 @@ export class PlantillasBaseService {
     actor: Usuario,
   ) {
     const plantilla = await this.find_plantilla_activa(id_plantilla_base);
-    this.validar_cronograma(dto.hitos);
+    await this.validar_cronograma(dto.hitos);
     await this.asegurar_nombre_libre(dto.nombre_pb.trim(), id_plantilla_base);
     await this.validar_cultivos(dto.cultivos);
     await this.validar_asignaciones(dto.cultivos, id_plantilla_base);
@@ -173,18 +171,23 @@ export class PlantillasBaseService {
     });
   }
 
-  private validar_cronograma(hitos: HitoPlantillaInputDto[]): void {
+  private async validar_cronograma(
+    hitos: HitoPlantillaInputDto[],
+  ): Promise<void> {
     const tiene_tarea = hitos.some((hito) => (hito.tareas?.length ?? 0) > 0);
     if (!tiene_tarea) {
       throw emptySchedule();
     }
     for (const hito of hitos) {
       for (const tarea of hito.tareas ?? []) {
-        if (!find_tipo_tarea(tarea.id_tipo_tarea)) {
+        const tipo = await this.tipos_tarea_service.find_activo_by_id(
+          tarea.id_tipo_tarea,
+        );
+        if (!tipo) {
           throw resourceNotFound('El tipo de tarea indicado no existe.');
         }
         if (
-          es_aplicacion_agroquimico(tarea.id_tipo_tarea) &&
+          tipo.es_tipo_agroquimico &&
           (!tarea.nombre_producto?.trim() || !tarea.dosis_aa?.trim())
         ) {
           throw new DomainException(
@@ -321,7 +324,7 @@ export class PlantillasBaseService {
         await tarea_repo.save(
           tarea_repo.create({
             dia_relativo_tp: tarea_dto.dia_relativo_tp,
-            id_tipo_tarea: tarea_dto.id_tipo_tarea,
+            tipo_tarea: { id_tipo_tarea: tarea_dto.id_tipo_tarea },
             descripcion_tp: tarea_dto.descripcion_tp.trim(),
             nombre_producto: tarea_dto.nombre_producto?.trim() || null,
             dosis_aa: tarea_dto.dosis_aa?.trim() || null,
@@ -375,6 +378,7 @@ export class PlantillasBaseService {
         'plantilla_cultivo_variedades.variedad',
         'hitos',
         'hitos.tareas',
+        'hitos.tareas.tipo_tarea',
       ],
       order: { hitos: { orden_hpb: 'ASC' } },
     });
@@ -419,10 +423,9 @@ export class PlantillasBaseService {
           tareas: (hito.tareas ?? []).map((tarea) => ({
             id_tarea_plantilla: Number(tarea.id_tarea_plantilla),
             dia_relativo_tp: tarea.dia_relativo_tp,
-            id_tipo_tarea: tarea.id_tipo_tarea,
+            id_tipo_tarea: Number(tarea.tipo_tarea?.id_tipo_tarea),
             nombre_tipo_tarea:
-              find_tipo_tarea(tarea.id_tipo_tarea)?.nombre_tipo_tarea ??
-              'Desconocido',
+              tarea.tipo_tarea?.nombre_tipo_tarea ?? 'Desconocido',
             descripcion_tp: tarea.descripcion_tp,
             nombre_producto: tarea.nombre_producto ?? null,
             dosis_aa: tarea.dosis_aa ?? null,

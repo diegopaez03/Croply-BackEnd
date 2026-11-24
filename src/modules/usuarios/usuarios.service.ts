@@ -4,6 +4,7 @@ import { Repository, SelectQueryBuilder } from 'typeorm';
 import {
   CODIGO_ADMIN_CROPLY,
   CODIGO_ADMIN_FINCA,
+  EstadoInvitacion,
   EstadoUsuario,
   TipoOperacion,
 } from '../../common/enums';
@@ -16,6 +17,7 @@ import { LogOperacionesService } from '../log-operaciones';
 import { RolesService } from '../roles/roles.service';
 import { FincasService } from '../fincas/fincas.service';
 import { UsuarioFinca } from '../fincas/entities/usuario-finca.entity';
+import { InvitacionFinca } from '../fincas/entities/invitacion-finca.entity';
 import { Usuario } from './entities/usuario.entity';
 import {
   ActualizarEstadoUsuarioDto,
@@ -33,6 +35,8 @@ export class UsuariosService {
     private readonly roles_service: RolesService,
     private readonly fincas_service: FincasService,
     private readonly log_service: LogOperacionesService,
+    @InjectRepository(InvitacionFinca)
+    private readonly invitacion_repo: Repository<InvitacionFinca>,
   ) {}
 
   async find_by_email(email: string): Promise<Usuario | null> {
@@ -328,6 +332,11 @@ const ids_sin_rol_sistema = usuarios
   /**
    * Listado por vinculación usuario-finca: una fila por finca. Con varias
    * fincas (multi-finca) un mismo usuario aparece una vez por cada una.
+   *
+   * Incluye además las invitaciones pendientes (todavía sin usuario creado),
+   * siempre antes que los usuarios. La paginación se resuelve sobre el listado
+   * combinado sin traer todo a memoria: se cuentan ambas partes y a cada query
+   * se le pide sólo el tramo que cae en la página.
    */
   async listar_ambito_finca(
     ids_finca: number[],
@@ -343,7 +352,68 @@ const ids_sin_rol_sistema = usuarios
       };
     }
 
-    const listQb = this.usuario_finca_repo
+    const incluir_invitaciones =
+      !query.estado || query.estado === EstadoUsuario.PENDIENTE;
+
+    const invitacionesQb = incluir_invitaciones
+      ? this.build_invitaciones_pendientes_qb(ids_finca, query)
+      : null;
+    const usuariosQb = this.build_usuarios_finca_qb(ids_finca, query);
+
+    const [total_invitaciones, total_usuarios] = await Promise.all([
+      invitacionesQb ? invitacionesQb.getCount() : Promise.resolve(0),
+      usuariosQb.getCount(),
+    ]);
+
+    const offset = (page - 1) * pageSize;
+    const take_invitaciones = Math.max(
+      0,
+      Math.min(pageSize, total_invitaciones - offset),
+    );
+    const skip_usuarios = Math.max(0, offset - total_invitaciones);
+    const take_usuarios = Math.max(
+      0,
+      Math.min(pageSize - take_invitaciones, total_usuarios - skip_usuarios),
+    );
+
+    const [invitaciones, vinculaciones] = await Promise.all([
+      invitacionesQb && take_invitaciones > 0
+        ? invitacionesQb
+            .orderBy('inv.fecha_envio', 'DESC')
+            .addOrderBy('inv.id_invitacion_finca', 'DESC')
+            .skip(offset)
+            .take(take_invitaciones)
+            .getMany()
+        : Promise.resolve([] as InvitacionFinca[]),
+      take_usuarios > 0
+        ? usuariosQb
+            .orderBy('u.apellido', 'ASC')
+            .addOrderBy('u.nombre', 'ASC')
+            .addOrderBy('f.id_finca', 'ASC')
+            .skip(skip_usuarios)
+            .take(take_usuarios)
+            .getMany()
+        : Promise.resolve([] as UsuarioFinca[]),
+    ]);
+
+    return {
+      usuarios: [
+        ...invitaciones.map((inv) => this.map_invitacion_pendiente_item(inv)),
+        ...vinculaciones.map((uf) => this.map_usuario_finca_item(uf)),
+      ],
+      pagination: build_page_size_pagination(
+        page,
+        pageSize,
+        total_invitaciones + total_usuarios,
+      ),
+    };
+  }
+
+  private build_usuarios_finca_qb(
+    ids_finca: number[],
+    query: ListarUsuariosQueryDto,
+  ): SelectQueryBuilder<UsuarioFinca> {
+    const qb = this.usuario_finca_repo
       .createQueryBuilder('uf')
       .innerJoinAndSelect('uf.usuario', 'u')
       .innerJoinAndSelect('uf.finca', 'f')
@@ -353,31 +423,45 @@ const ids_sin_rol_sistema = usuarios
 
     if (query.search?.trim()) {
       const term = `%${query.search.trim().toLowerCase()}%`;
-      listQb.andWhere(
+      qb.andWhere(
         '(LOWER(u.nombre) LIKE :term OR LOWER(u.apellido) LIKE :term OR LOWER(u.email) LIKE :term)',
         { term },
       );
     }
     if (query.estado) {
-      listQb.andWhere('u.estado = :estado', { estado: query.estado });
+      qb.andWhere('u.estado = :estado', { estado: query.estado });
     }
     if (query.id_rol) {
-      listQb.andWhere('rol.id_rol = :id_rol', { id_rol: query.id_rol });
+      qb.andWhere('rol.id_rol = :id_rol', { id_rol: query.id_rol });
     }
+    return qb;
+  }
 
-    const totalItems = await listQb.getCount();
-    const vinculaciones = await listQb
-      .orderBy('u.apellido', 'ASC')
-      .addOrderBy('u.nombre', 'ASC')
-      .addOrderBy('f.id_finca', 'ASC')
-      .skip((page - 1) * pageSize)
-      .take(pageSize)
-      .getMany();
+  /** Invitaciones vigentes: ni aceptadas, ni canceladas, ni vencidas. */
+  private build_invitaciones_pendientes_qb(
+    ids_finca: number[],
+    query: ListarUsuariosQueryDto,
+  ): SelectQueryBuilder<InvitacionFinca> {
+    const qb = this.invitacion_repo
+      .createQueryBuilder('inv')
+      .innerJoinAndSelect('inv.finca', 'f')
+      .leftJoinAndSelect('inv.rol_finca', 'rol')
+      .where('f.id_finca IN (:...ids_finca)', { ids_finca })
+      .andWhere('inv.estado = :estado_invitacion', {
+        estado_invitacion: EstadoInvitacion.PENDIENTE,
+      })
+      .andWhere('inv.fecha_fin_vigencia > NOW()')
+      .andWhere('inv.fecha_respuesta IS NULL')
+      .andWhere('inv.fecha_cancelacion IS NULL');
 
-    return {
-      usuarios: vinculaciones.map((uf) => this.map_usuario_finca_item(uf)),
-      pagination: build_page_size_pagination(page, pageSize, totalItems),
-    };
+    if (query.search?.trim()) {
+      const term = `%${query.search.trim().toLowerCase()}%`;
+      qb.andWhere('LOWER(inv.email_invitado) LIKE :term', { term });
+    }
+    if (query.id_rol) {
+      qb.andWhere('rol.id_rol = :id_rol', { id_rol: query.id_rol });
+    }
+    return qb;
   }
 
   private apply_usuario_filters(
@@ -441,6 +525,29 @@ const ids_sin_rol_sistema = usuarios
         nombre_finca: uf.finca.nombre_finca,
       },
       estado: usuario.estado,
+    };
+  }
+
+  private map_invitacion_pendiente_item(inv: InvitacionFinca) {
+    return {
+      id_usuario: null,
+      id_usuario_finca: null,
+      id_invitacion_finca: Number(inv.id_invitacion_finca),
+      nombre: null,
+      apellido: null,
+      telefono: null,
+      email: inv.email_invitado,
+      rol: inv.rol_finca
+        ? {
+            id_rol: Number(inv.rol_finca.id_rol),
+            nombre_rol: inv.rol_finca.nombre_rol,
+          }
+        : null,
+      finca: {
+        id_finca: Number(inv.finca.id_finca),
+        nombre_finca: inv.finca.nombre_finca,
+      },
+      estado: EstadoUsuario.PENDIENTE,
     };
   }
 

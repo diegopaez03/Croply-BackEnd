@@ -463,6 +463,28 @@ Una fila por **vinculación usuario-finca**, no por usuario: en la vista multi-f
 >
 > En el listado de ámbito Croply ninguno de los dos campos aplica y no se envían.
 
+**Invitaciones pendientes.** Ambos endpoints de ámbito finca incluyen también las invitaciones enviadas que todavía no se usaron: el usuario recién se crea al aceptarlas (HU-AC-03), así que hasta entonces se listan como una fila sin usuario:
+
+```json
+{
+  "id_usuario": null,
+  "id_usuario_finca": null,
+  "id_invitacion_finca": 88,
+  "nombre": null,
+  "apellido": null,
+  "telefono": null,
+  "email": "luis_invitado@finca.com",
+  "rol": { "id_rol": 22, "nombre_rol": "Operario" },
+  "finca": { "id_finca": 12, "nombre_finca": "Finca Demo Croply" },
+  "estado": "Pendiente"
+}
+```
+
+- Cuenta como pendiente la invitación con estado `Pendiente`, vigente (`fecha_fin_vigencia` futura), sin respuesta y sin cancelación. Las aceptadas, canceladas o vencidas no se muestran.
+- `id_invitacion_finca` sólo viene en estas filas; las filas de usuario no cambian.
+- Filtros: sin `estado` o con `estado=Pendiente` se incluyen (con `Pendiente`, junto a los usuarios en ese estado); con `Activo`/`Inactivo` no. `search` las busca por email; `id_rol` filtra por el rol de la invitación.
+- Orden: primero las invitaciones (más recientes primero), después los usuarios por apellido, nombre y finca. `pagination.totalItems` suma ambas.
+
 Para el ámbito Croply, HU-GU-08 pide dos pestañas separadas (Administradores / Solicitudes de clientes) — la pestaña "Solicitudes" **no** usa este endpoint, usa el de HU-GU-13 más abajo.
 
 Sin resultados (lista vacía por falta de datos, no por filtro): `usuarios: []`, `pagination.totalItems: 0` — el frontend distingue "no hay usuarios en el entorno" de "no hay resultados para el filtro" mirando si había `search`/`id_rol`/`estado` en la request que disparó la respuesta vacía, no por un campo del backend.

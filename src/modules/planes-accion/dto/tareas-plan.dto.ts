@@ -10,7 +10,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { EstadoPlanAccion, EstadoTarea } from '../../../common/enums';
+import { EstadoPlanAccion } from '../../../common/enums';
 
 export class CrearTareaPlanDto {
   @ApiProperty({ example: 'Aplicación de fungicida preventivo' })
@@ -28,7 +28,7 @@ export class CrearTareaPlanDto {
   @IsDateString()
   fecha_planificada_tarea: string;
 
-  @ApiProperty({ example: 5 })
+  @ApiProperty({ example: 1 })
   @Type(() => Number)
   @IsInt()
   @Min(1)
@@ -63,9 +63,31 @@ export class CrearTareaPlanDto {
 }
 
 export class CambiarEstadoTareaDto {
-  @ApiProperty({ enum: EstadoTarea, example: EstadoTarea.COMPLETADO })
-  @IsEnum(EstadoTarea)
-  estado: EstadoTarea;
+  @ApiProperty({ example: 2 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_estado_tarea: number;
+}
+
+export class ReprogramarTareaDto {
+  @ApiProperty({ example: '2026-09-25' })
+  @IsDateString()
+  fecha_planificada_tarea: string;
+}
+
+export class CronogramaQueryDto {
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  estado?: number;
+
+  @ApiPropertyOptional({ example: '2026-09-22' })
+  @IsOptional()
+  @IsDateString()
+  fecha?: string;
 }
 
 export class CambiarEstadoPlanDto {
